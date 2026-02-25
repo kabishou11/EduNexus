@@ -1,0 +1,611 @@
+openapi: 3.1.0
+info:
+  title: EduNexus Phase1 API
+  version: 0.1.0
+  summary: Core APIs for workspace, graph, path, and local KB-lite integration.
+servers:
+  - url: /api
+    description: Relative API base for Next.js Route Handlers
+security:
+  - bearerAuth: []
+tags:
+  - name: Workspace
+  - name: Graph
+  - name: Path
+  - name: KB
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    ErrorBody:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          example: INVALID_REQUEST
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+    ApiError:
+      type: object
+      required: [success, error, traceId]
+      properties:
+        success:
+          type: boolean
+          const: false
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+        traceId:
+          type: string
+    Citation:
+      type: object
+      required: [sourceId, chunkRef]
+      properties:
+        sourceId:
+          type: string
+        chunkRef:
+          type: string
+        quote:
+          type: string
+    WorkspaceSession:
+      type: object
+      required: [id, userId, createdAt]
+      properties:
+        id:
+          type: string
+          example: ws_123
+        userId:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [active, closed]
+        createdAt:
+          type: string
+          format: date-time
+    CreateSessionRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        courseId:
+          type: string
+        initialGoal:
+          type: string
+    CreateSessionResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [session]
+          properties:
+            session:
+              $ref: '#/components/schemas/WorkspaceSession'
+        traceId:
+          type: string
+    SocraticNextRequest:
+      type: object
+      required: [sessionId, userInput, currentLevel]
+      properties:
+        sessionId:
+          type: string
+        userInput:
+          type: string
+        currentLevel:
+          type: integer
+          minimum: 1
+          maximum: 4
+        contextIds:
+          type: array
+          items:
+            type: string
+    SocraticNextResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [nextLevel, guidance, canUnlockFinal]
+          properties:
+            nextLevel:
+              type: integer
+            guidance:
+              type: string
+            citations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Citation'
+            canUnlockFinal:
+              type: boolean
+        traceId:
+          type: string
+    UnlockFinalRequest:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId:
+          type: string
+        reflection:
+          type: string
+          description: Required by policy for final-answer unlock in strict mode.
+    UnlockFinalResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [unlocked]
+          properties:
+            unlocked:
+              type: boolean
+            finalAnswer:
+              type: string
+            citations:
+              type: array
+              items:
+                $ref: '#/components/schemas/Citation'
+            reason:
+              type: string
+        traceId:
+          type: string
+    SaveNoteRequest:
+      type: object
+      required: [sessionId, title, content]
+      properties:
+        sessionId:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        links:
+          type: array
+          items:
+            type: string
+    SaveNoteResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [noteId, path]
+          properties:
+            noteId:
+              type: string
+            path:
+              type: string
+        traceId:
+          type: string
+    GraphNode:
+      type: object
+      required: [id, label]
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        domain:
+          type: string
+        mastery:
+          type: number
+          minimum: 0
+          maximum: 1
+        risk:
+          type: number
+          minimum: 0
+          maximum: 1
+    GraphEdge:
+      type: object
+      required: [source, target]
+      properties:
+        source:
+          type: string
+        target:
+          type: string
+        weight:
+          type: number
+    GraphViewResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [nodes, edges]
+          properties:
+            nodes:
+              type: array
+              items:
+                $ref: '#/components/schemas/GraphNode'
+            edges:
+              type: array
+              items:
+                $ref: '#/components/schemas/GraphEdge'
+        traceId:
+          type: string
+    GraphNodeResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          properties:
+            node:
+              $ref: '#/components/schemas/GraphNode'
+            evidences:
+              type: array
+              items:
+                $ref: '#/components/schemas/Citation'
+        traceId:
+          type: string
+    PathGenerateRequest:
+      type: object
+      required: [goalType, goal]
+      properties:
+        goalType:
+          type: string
+          enum: [exam, project, certificate]
+        goal:
+          type: string
+        days:
+          type: integer
+          default: 7
+    LearningTask:
+      type: object
+      required: [taskId, title, priority]
+      properties:
+        taskId:
+          type: string
+        title:
+          type: string
+        priority:
+          type: integer
+          minimum: 1
+          maximum: 5
+        reason:
+          type: string
+        dueDate:
+          type: string
+          format: date
+    PathGenerateResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [planId, tasks]
+          properties:
+            planId:
+              type: string
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/LearningTask'
+        traceId:
+          type: string
+    PathReplanRequest:
+      type: object
+      required: [planId, reason]
+      properties:
+        planId:
+          type: string
+        reason:
+          type: string
+        availableHoursPerDay:
+          type: number
+    PathReplanResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [planId, tasks]
+          properties:
+            planId:
+              type: string
+            tasks:
+              type: array
+              items:
+                $ref: '#/components/schemas/LearningTask'
+        traceId:
+          type: string
+    KbSearchResponse:
+      type: object
+      required: [success, data, traceId]
+      properties:
+        success:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [query, candidates]
+          properties:
+            query:
+              type: string
+            candidates:
+              type: array
+              items:
+                type: object
+                required: [docId, score, snippet]
+                properties:
+                  docId:
+                    type: string
+                  score:
+                    type: number
+                  snippet:
+                    type: string
+                  reason:
+                    type: array
+                    items:
+                      type: string
+        traceId:
+          type: string
+paths:
+  /workspace/session:
+    post:
+      tags: [Workspace]
+      summary: Create a new workspace learning session.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSessionRequest'
+      responses:
+        '200':
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSessionResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /workspace/socratic/next:
+    post:
+      tags: [Workspace]
+      summary: Get next Socratic guidance level.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SocraticNextRequest'
+      responses:
+        '200':
+          description: Next guidance returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocraticNextResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /workspace/socratic/unlock-final:
+    post:
+      tags: [Workspace]
+      summary: Try to unlock final answer based on policy gates.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnlockFinalRequest'
+      responses:
+        '200':
+          description: Unlock decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnlockFinalResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /workspace/session/{id}/stream:
+    get:
+      tags: [Workspace]
+      summary: Stream answer tokens for a session.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Server-sent events stream.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '404':
+          description: Session not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /workspace/note/save:
+    post:
+      tags: [Workspace]
+      summary: Save session snippet as markdown note into local vault.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveNoteRequest'
+      responses:
+        '200':
+          description: Note saved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveNoteResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /graph/view:
+    get:
+      tags: [Graph]
+      summary: Get graph view data with filters.
+      parameters:
+        - name: domain
+          in: query
+          schema:
+            type: string
+        - name: owner
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Graph data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphViewResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /graph/node/{nodeId}:
+    get:
+      tags: [Graph]
+      summary: Get node detail and evidences.
+      parameters:
+        - name: nodeId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Node detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GraphNodeResponse'
+        '404':
+          description: Node not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /path/generate:
+    post:
+      tags: [Path]
+      summary: Generate a 7-day plan based on goal and graph.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathGenerateRequest'
+      responses:
+        '200':
+          description: Plan generated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathGenerateResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /path/replan:
+    post:
+      tags: [Path]
+      summary: Replan tasks after schedule or progress changes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PathReplanRequest'
+      responses:
+        '200':
+          description: Plan replanned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PathReplanResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+  /kb/search:
+    get:
+      tags: [KB]
+      summary: Search local knowledge vault with lightweight retrieval.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KbSearchResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'

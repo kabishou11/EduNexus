@@ -1,0 +1,32 @@
+# Node / Next.js
+node_modules/
+.next/
+dist/
+coverage/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local KB generated index artifacts
+vault/index/*.db
+vault/index/*.sqlite
+vault/index/*.sqlite3
+vault/index/*.lock
+
+# Temp
+tmp/
+temp/
