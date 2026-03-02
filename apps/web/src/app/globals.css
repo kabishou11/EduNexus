@@ -5093,6 +5093,40 @@ html[data-theme="aurora"] .config-diff-values em {
   padding: 4px 8px;
 }
 
+.graph-bridge-node-stats {
+  margin-top: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.graph-bridge-node-stat {
+  border: 1px solid rgba(97, 132, 178, 0.32);
+  border-radius: 9px;
+  background: rgba(8, 13, 22, 0.5);
+  color: #d8efff;
+  font: inherit;
+  text-align: left;
+  padding: 7px 8px;
+  display: grid;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.graph-bridge-node-stat strong {
+  font-size: 12px;
+}
+
+.graph-bridge-node-stat span {
+  font-size: 11px;
+  color: #9fc7ee;
+}
+
+.graph-bridge-node-stat em {
+  font-size: 11px;
+  font-style: normal;
+  color: var(--text-dim);
+}
+
 .graph-bridge-timeline-item {
   border: 1px solid rgba(97, 132, 178, 0.3);
   border-radius: 9px;
@@ -5441,6 +5475,34 @@ html[data-theme="aurora"] .config-diff-values em {
   gap: 6px;
 }
 
+.path-bridge-save-mode {
+  margin-top: 4px;
+  border: 1px solid rgba(97, 132, 178, 0.32);
+  border-radius: 9px;
+  padding: 8px;
+  background: rgba(8, 13, 22, 0.46);
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.path-bridge-save-mode label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.path-bridge-save-mode select {
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 8px;
+  background: rgba(10, 16, 27, 0.56);
+  color: #d8efff;
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
 .path-bridge-checklist-hint {
   font-size: 11px;
   color: #9fc7ee;
@@ -5766,6 +5828,20 @@ html[data-theme="aurora"] .graph-bridge-timeline-filter select {
   color: #2f5e8d;
 }
 
+html[data-theme="aurora"] .graph-bridge-node-stat {
+  border-color: rgba(118, 154, 216, 0.38);
+  background: rgba(255, 255, 255, 0.84);
+  color: #2e5a8b;
+}
+
+html[data-theme="aurora"] .graph-bridge-node-stat span {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .graph-bridge-node-stat em {
+  color: #6a8db6;
+}
+
 html[data-theme="aurora"] .graph-bridge-timeline-item span {
   color: #5c7fad;
 }
@@ -5914,6 +5990,21 @@ html[data-theme="aurora"] .path-bridge-checklist button {
   border-color: rgba(118, 154, 216, 0.46);
   background: rgba(255, 255, 255, 0.86);
   color: #4f719f;
+}
+
+html[data-theme="aurora"] .path-bridge-save-mode {
+  border-color: rgba(118, 154, 216, 0.38);
+  background: rgba(255, 255, 255, 0.84);
+}
+
+html[data-theme="aurora"] .path-bridge-save-mode label {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .path-bridge-save-mode select {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  color: #2f5e8d;
 }
 
 html[data-theme="aurora"] .path-bridge-checklist-hint {
@@ -6927,7 +7018,8 @@ html[data-theme="aurora"] .stream-guidance {
   }
 
   .dashboard-bridge-filter,
-  .dashboard-activity-filter {
+  .dashboard-activity-filter,
+  .path-bridge-save-mode {
     grid-template-columns: 1fr;
   }
 }

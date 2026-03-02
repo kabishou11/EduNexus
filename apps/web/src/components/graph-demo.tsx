@@ -92,6 +92,14 @@ type BridgeHistorySnapshot = {
   bridges: BridgeHistoryEntry[];
 };
 
+type BridgeReplayNodeStat = {
+  label: string;
+  count: number;
+  averageRisk: number;
+  maxRisk: number;
+  latestAt: string;
+};
+
 function resolveRiskTone(risk: number) {
   if (risk >= 0.65) {
     return "high";
@@ -747,6 +755,44 @@ export function GraphDemo() {
     );
   }, [bridgeReplayFrames, bridgeReplayNodeFilter]);
 
+  const bridgeReplayNodeStats = useMemo<BridgeReplayNodeStat[]>(() => {
+    if (displayedBridgeReplayFrames.length === 0) {
+      return [];
+    }
+    const map = new Map<
+      string,
+      { count: number; riskTotal: number; maxRisk: number; latestAt: string }
+    >();
+    for (const frame of displayedBridgeReplayFrames) {
+      const labels = [frame.bridge.sourceLabel, frame.bridge.targetLabel];
+      for (const label of labels) {
+        const previous = map.get(label) ?? {
+          count: 0,
+          riskTotal: 0,
+          maxRisk: 0,
+          latestAt: ""
+        };
+        previous.count += 1;
+        previous.riskTotal += frame.bridge.risk;
+        previous.maxRisk = Math.max(previous.maxRisk, frame.bridge.risk);
+        if (!previous.latestAt || frame.at > previous.latestAt) {
+          previous.latestAt = frame.at;
+        }
+        map.set(label, previous);
+      }
+    }
+    return Array.from(map.entries())
+      .map(([label, value]) => ({
+        label,
+        count: value.count,
+        averageRisk: Number((value.riskTotal / Math.max(1, value.count)).toFixed(2)),
+        maxRisk: Number(value.maxRisk.toFixed(2)),
+        latestAt: value.latestAt
+      }))
+      .sort((a, b) => b.count - a.count || b.averageRisk - a.averageRisk)
+      .slice(0, 6);
+  }, [displayedBridgeReplayFrames]);
+
   useEffect(() => {
     if (bridgeReplayNodeFilter === "all") {
       return;
@@ -823,6 +869,17 @@ export function GraphDemo() {
     },
     [bridgeSuggestionMap]
   );
+
+  const handleFocusReplayNode = useCallback((label: string) => {
+    setBridgeReplayNodeFilter(label);
+    const matched = placements.find((item) => item.label === label);
+    if (!matched) {
+      return;
+    }
+    setDomainFilter(matched.domain ?? "all");
+    setNodeKeyword("");
+    setActiveNodeId(matched.id);
+  }, [placements]);
 
   const handlePushBridgeToPath = useCallback(
     (bridge: RiskBridgeSuggestion) => {
@@ -1283,6 +1340,26 @@ export function GraphDemo() {
                   </select>
                 </label>
               </div>
+              {bridgeReplayNodeStats.length > 0 ? (
+                <div className="graph-bridge-node-stats">
+                  {bridgeReplayNodeStats.map((item) => (
+                    <button
+                      type="button"
+                      key={`bridge_replay_stat_${item.label}`}
+                      className="graph-bridge-node-stat"
+                      onClick={() => handleFocusReplayNode(item.label)}
+                    >
+                      <strong>{item.label}</strong>
+                      <span>
+                        出现 {item.count} 次 · 平均风险 {toPercent(item.averageRisk)}
+                      </span>
+                      <em>
+                        峰值 {toPercent(item.maxRisk)} · 最近 {formatDateTime(item.latestAt)}
+                      </em>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               {displayedBridgeReplayFrames.length > 0 ? (
                 <div className="graph-bridge-timeline-list">
                   {displayedBridgeReplayFrames.map((frame) => (

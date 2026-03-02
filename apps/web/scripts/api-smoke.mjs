@@ -223,6 +223,61 @@ async function main() {
     const kbJson = await kbRes.json();
     assert.ok((kbJson.data?.candidates?.length ?? 0) > 0, "知识库未返回候选文档");
 
+    const graphRes = await requestJson(baseUrl, "/api/graph/view");
+    assert.equal(graphRes.status, 200, "图谱视图接口失败");
+    const graphJson = await graphRes.json();
+    const graphNodes = graphJson.data?.nodes ?? [];
+    const graphEdges = graphJson.data?.edges ?? [];
+    assert.ok(graphNodes.length > 0, "图谱节点为空");
+    assert.ok(graphEdges.length > 0, "图谱关系为空");
+
+    const focusNode = graphNodes[0];
+    const pathGenerateRes = await requestJson(baseUrl, "/api/path/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        goalType: "exam",
+        goal: "一周内完成函数与数列迁移训练",
+        days: 7,
+        focusNodeId: focusNode?.id,
+        focusNodeLabel: focusNode?.label,
+        focusNodeRisk: focusNode?.risk,
+        relatedNodes: []
+      })
+    });
+    assert.equal(pathGenerateRes.status, 200, "路径生成接口失败");
+    const pathGenerateJson = await pathGenerateRes.json();
+    const planId = pathGenerateJson.data?.planId;
+    const pathTasks = pathGenerateJson.data?.tasks ?? [];
+    assert.ok(planId, "路径计划 planId 为空");
+    assert.ok(pathTasks.length > 0, "路径计划任务为空");
+
+    const pathReplanRes = await requestJson(baseUrl, "/api/path/replan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        planId,
+        reason: "冒烟测试验证重排能力",
+        availableHoursPerDay: 1.5
+      })
+    });
+    assert.equal(pathReplanRes.status, 200, "路径重排接口失败");
+
+    const focusTask = pathTasks[0];
+    const pathFeedbackRes = await requestJson(baseUrl, "/api/path/focus/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        planId,
+        taskId: focusTask?.taskId,
+        nodeId: focusNode?.id,
+        nodeLabel: focusNode?.label,
+        relatedNodes: [],
+        quality: "solid"
+      })
+    });
+    assert.equal(pathFeedbackRes.status, 200, "路径焦点反馈接口失败");
+
     const teacherRes = await requestJson(baseUrl, "/api/teacher/lesson-plan/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

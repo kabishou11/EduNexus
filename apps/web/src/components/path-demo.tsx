@@ -44,6 +44,14 @@ type CreateWorkspaceSessionResponse = {
   };
 };
 
+type WorkspaceSessionSummary = {
+  id: string;
+  title: string;
+  updatedAt: string;
+};
+
+type BridgeSaveMode = "create_new" | "append_existing";
+
 type BridgeChecklistItem = {
   id: string;
   label: string;
@@ -183,6 +191,9 @@ export function PathDemo() {
   const [bridgeExportHint, setBridgeExportHint] = useState("");
   const [savingBridgeNote, setSavingBridgeNote] = useState(false);
   const [bridgeWorkspaceSessionId, setBridgeWorkspaceSessionId] = useState("");
+  const [bridgeSaveMode, setBridgeSaveMode] = useState<BridgeSaveMode>("create_new");
+  const [bridgeTargetSessionId, setBridgeTargetSessionId] = useState("");
+  const [workspaceSessions, setWorkspaceSessions] = useState<WorkspaceSessionSummary[]>([]);
   const [submittingTaskId, setSubmittingTaskId] = useState("");
   const [data, setData] = useState<PathPayload | null>(null);
   const [error, setError] = useState("");
@@ -407,7 +418,29 @@ export function PathDemo() {
   useEffect(() => {
     setBridgeExportHint("");
     setBridgeWorkspaceSessionId("");
+    setBridgeSaveMode("create_new");
+    setBridgeTargetSessionId("");
   }, [bridgeChecklistStorageKey]);
+
+  useEffect(() => {
+    if (bridgeChecklist.length === 0) {
+      setWorkspaceSessions([]);
+      return;
+    }
+    const loadSessions = async () => {
+      try {
+        const data = await requestJson<{ sessions: WorkspaceSessionSummary[] }>(
+          "/api/workspace/sessions"
+        );
+        const sessions = (data.sessions ?? []).slice(0, 20);
+        setWorkspaceSessions(sessions);
+        setBridgeTargetSessionId((prev) => prev || sessions[0]?.id || "");
+      } catch {
+        setWorkspaceSessions([]);
+      }
+    };
+    void loadSessions();
+  }, [bridgeChecklist.length]);
 
   function applyBridgeTemplateGoal() {
     if (!focusSummary?.bridgeTaskTemplate) {
@@ -460,18 +493,27 @@ export function PathDemo() {
         goal,
         generatedAt: new Date().toISOString()
       });
-      const sessionPayload = await requestJson<CreateWorkspaceSessionResponse>(
-        "/api/workspace/session",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            title: `桥接清单-${focusPayload.nodeLabel}`,
-            initialGoal: goal
-          })
+      let sessionId = "";
+      if (bridgeSaveMode === "append_existing") {
+        sessionId = bridgeTargetSessionId.trim();
+        if (!sessionId) {
+          setError("请选择一个已有工作区会话用于追加沉淀。");
+          return;
         }
-      );
-      const sessionId = sessionPayload.session.id;
+      } else {
+        const sessionPayload = await requestJson<CreateWorkspaceSessionResponse>(
+          "/api/workspace/session",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: `桥接清单-${focusPayload.nodeLabel}`,
+              initialGoal: goal
+            })
+          }
+        );
+        sessionId = sessionPayload.session.id;
+      }
       const response = await requestJson<SaveNoteResponse>("/api/workspace/note/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -488,7 +530,11 @@ export function PathDemo() {
         })
       });
       setBridgeWorkspaceSessionId(sessionId);
-      setBridgeExportHint(`已写入会话沉淀：${response.noteId}（session: ${sessionId}）`);
+      setBridgeExportHint(
+        `${bridgeSaveMode === "append_existing" ? "已追加会话沉淀" : "已写入会话沉淀"}：${
+          response.noteId
+        }（session: ${sessionId}）`
+      );
       pushGraphActivityEventToStorage(
         {
           source: "workspace",
@@ -698,6 +744,34 @@ export function PathDemo() {
                   {item.label}
                 </label>
               ))}
+              <div className="path-bridge-save-mode">
+                <label>
+                  会话沉淀方式
+                  <select
+                    value={bridgeSaveMode}
+                    onChange={(event) => setBridgeSaveMode(event.target.value as BridgeSaveMode)}
+                  >
+                    <option value="create_new">新建会话并沉淀</option>
+                    <option value="append_existing">追加到已有会话</option>
+                  </select>
+                </label>
+                {bridgeSaveMode === "append_existing" ? (
+                  <label>
+                    目标会话
+                    <select
+                      value={bridgeTargetSessionId}
+                      onChange={(event) => setBridgeTargetSessionId(event.target.value)}
+                    >
+                      <option value="">请选择会话</option>
+                      {workspaceSessions.map((session) => (
+                        <option key={`bridge_session_${session.id}`} value={session.id}>
+                          {session.title}（{session.id}）
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
+              </div>
               <div className="path-bridge-checklist-actions">
                 {bridgeChecklistProgress.done < bridgeChecklistProgress.total ? (
                   <button type="button" onClick={markAllBridgeChecklistDone}>
@@ -710,7 +784,10 @@ export function PathDemo() {
                 <button
                   type="button"
                   onClick={() => void saveBridgeChecklistToWorkspaceSession()}
-                  disabled={savingBridgeNote}
+                  disabled={
+                    savingBridgeNote ||
+                    (bridgeSaveMode === "append_existing" && !bridgeTargetSessionId)
+                  }
                 >
                   {savingBridgeNote ? "写入中..." : "写入会话沉淀"}
                 </button>
