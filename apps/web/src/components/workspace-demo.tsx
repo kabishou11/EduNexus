@@ -194,6 +194,9 @@ const REPLAY_PANEL_PRESETS: Record<
   }
 };
 
+const WORKSPACE_AUTO_APPLY_FOCUS_PROMPT_STORAGE_KEY =
+  "edunexus_workspace_auto_apply_focus_prompt";
+
 function buildStreamMarkdownContent(snapshot: StreamMarkdownSnapshot) {
   return [
     "---",
@@ -521,6 +524,17 @@ export function WorkspaceDemo() {
   );
 
   const canUnlock = useMemo(() => nextData?.canUnlockFinal ?? false, [nextData]);
+  const activeGraphFocusQueueIndex = useMemo(() => {
+    if (graphFocusQueue.length === 0) {
+      return -1;
+    }
+    const activeKey =
+      activeGraphFocusQueueKey || (graphFocus ? buildFocusQueueKey(graphFocus) : "");
+    if (!activeKey) {
+      return 0;
+    }
+    return graphFocusQueue.findIndex((item) => buildFocusQueueKey(item) === activeKey);
+  }, [activeGraphFocusQueueKey, graphFocus, graphFocusQueue]);
   const graphFocusSummary = useMemo(() => {
     if (!graphFocus) {
       return null;
@@ -614,6 +628,32 @@ export function WorkspaceDemo() {
   useEffect(() => {
     autoExportReplaySummaryRef.current = autoExportReplaySummary;
   }, [autoExportReplaySummary]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(
+        WORKSPACE_AUTO_APPLY_FOCUS_PROMPT_STORAGE_KEY
+      );
+      if (raw === "1") {
+        setAutoApplyGraphFocusPrompt(true);
+      } else if (raw === "0") {
+        setAutoApplyGraphFocusPrompt(false);
+      }
+    } catch {
+      // ignore preference read errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        WORKSPACE_AUTO_APPLY_FOCUS_PROMPT_STORAGE_KEY,
+        autoApplyGraphFocusPrompt ? "1" : "0"
+      );
+    } catch {
+      // ignore preference write errors
+    }
+  }, [autoApplyGraphFocusPrompt]);
 
   useEffect(() => {
     if (hasAppliedGraphFocusRef.current) {
@@ -880,6 +920,19 @@ export function WorkspaceDemo() {
     void loadSessionDetail(querySessionId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [querySessionId]);
+
+  function stepGraphFocusQueue(offset: number) {
+    if (graphFocusQueue.length < 2) {
+      return;
+    }
+    const baseIndex = activeGraphFocusQueueIndex >= 0 ? activeGraphFocusQueueIndex : 0;
+    const nextIndex = (baseIndex + offset + graphFocusQueue.length) % graphFocusQueue.length;
+    const next = graphFocusQueue[nextIndex];
+    if (!next) {
+      return;
+    }
+    switchGraphFocusFromQueue(next, nextIndex);
+  }
 
   function switchGraphFocusFromQueue(target: PathFocusPayload, index: number) {
     setGraphFocus(target);
@@ -1786,7 +1839,20 @@ export function WorkspaceDemo() {
             </p>
             {graphFocusQueue.length > 1 ? (
               <div className="workspace-focus-queue">
-                <span>批量关系链队列（{graphFocusQueue.length}）</span>
+                <div className="workspace-focus-queue-head">
+                  <span>批量关系链队列（{graphFocusQueue.length}）</span>
+                  <div className="workspace-focus-queue-nav">
+                    <button type="button" onClick={() => stepGraphFocusQueue(-1)} disabled={loading}>
+                      上一条
+                    </button>
+                    <span>
+                      {Math.max(1, activeGraphFocusQueueIndex + 1)}/{graphFocusQueue.length}
+                    </span>
+                    <button type="button" onClick={() => stepGraphFocusQueue(1)} disabled={loading}>
+                      下一条
+                    </button>
+                  </div>
+                </div>
                 <label className="workspace-focus-auto-apply">
                   <input
                     type="checkbox"

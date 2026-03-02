@@ -699,6 +699,12 @@ html[data-theme="aurora"] .dashboard-bridge-preview-item em {
   color: #5c7fad;
 }
 
+html[data-theme="aurora"] .dashboard-bridge-preview-stats span {
+  border-color: rgba(118, 154, 216, 0.42);
+  color: #5c7fad;
+  background: rgba(255, 255, 255, 0.9);
+}
+
 html[data-theme="aurora"] .dashboard-bridge-preview-item {
   border-color: rgba(118, 154, 216, 0.36);
   background: rgba(255, 255, 255, 0.9);
@@ -1009,6 +1015,21 @@ html[data-theme="aurora"] .headline-badge {
   font-style: normal;
   font-size: 11px;
   color: #9fc7ee;
+}
+
+.dashboard-bridge-preview-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.dashboard-bridge-preview-stats span {
+  border: 1px solid rgba(97, 132, 178, 0.36);
+  border-radius: 999px;
+  padding: 2px 7px;
+  font-size: 11px;
+  color: #9fc7ee;
+  background: rgba(10, 16, 27, 0.56);
 }
 
 .dashboard-bridge-preview-list {
@@ -6020,6 +6041,42 @@ html[data-theme="aurora"] .config-diff-values em {
   color: #9fc7ee;
 }
 
+.workspace-focus-queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workspace-focus-queue-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.workspace-focus-queue-nav button {
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.62);
+  color: #d8efff;
+  font: inherit;
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+}
+
+.workspace-focus-queue-nav button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.workspace-focus-queue-nav span {
+  font-size: 11px;
+  color: #9fc7ee;
+  min-width: 44px;
+  text-align: center;
+}
+
 .workspace-focus-auto-apply {
   display: inline-flex;
   align-items: center;
@@ -6564,6 +6621,16 @@ html[data-theme="aurora"] .workspace-focus-card p {
 }
 
 html[data-theme="aurora"] .workspace-focus-queue > span {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .workspace-focus-queue-nav button {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  color: #4f719f;
+}
+
+html[data-theme="aurora"] .workspace-focus-queue-nav span {
   color: #5c7fad;
 }
 

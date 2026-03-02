@@ -930,6 +930,22 @@ export default function DashboardPage() {
     [selectedBridgeRows]
   );
   const firstSelectedBridgeFocus = selectedBridgeFocusBatch[0] ?? null;
+  const selectedBridgePreviewStats = useMemo(() => {
+    if (selectedBridgeRows.length === 0 || selectedBridgeFocusBatch.length === 0) {
+      return null;
+    }
+    const averageRisk =
+      selectedBridgeFocusBatch.reduce((sum, item) => sum + item.risk, 0) /
+      selectedBridgeFocusBatch.length;
+    const crossDomainCount = selectedBridgeRows.filter((row) =>
+      isCrossDomainBridge(row)
+    ).length;
+    return {
+      averageRisk: Number(averageRisk.toFixed(2)),
+      crossDomainCount,
+      sameDomainCount: Math.max(0, selectedBridgeRows.length - crossDomainCount)
+    };
+  }, [selectedBridgeFocusBatch, selectedBridgeRows]);
 
   useEffect(() => {
     if (activityNodeFilter === "all") {
@@ -2136,6 +2152,15 @@ export default function DashboardPage() {
                         风险 {Math.round(firstSelectedBridgeFocus.risk * 100)}% · 掌握度{" "}
                         {Math.round(firstSelectedBridgeFocus.mastery * 100)}%
                       </em>
+                      {selectedBridgePreviewStats ? (
+                        <div className="dashboard-bridge-preview-stats">
+                          <span>
+                            平均风险 {Math.round(selectedBridgePreviewStats.averageRisk * 100)}%
+                          </span>
+                          <span>跨域 {selectedBridgePreviewStats.crossDomainCount}</span>
+                          <span>同域 {selectedBridgePreviewStats.sameDomainCount}</span>
+                        </div>
+                      ) : null}
                     </div>
                   ) : null}
                   <div className="dashboard-bridge-preview-list">

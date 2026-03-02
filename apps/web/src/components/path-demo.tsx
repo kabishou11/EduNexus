@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatErrorMessage, requestJson } from "@/lib/client/api";
 import { pushGraphActivityEventToStorage } from "@/lib/client/graph-activity";
@@ -556,15 +556,15 @@ export function PathDemo() {
     setFocusHint("已将关系链桥接模板应用到学习目标。");
   }
 
-  function selectFocusFromQueue(payload: PathFocusPayload) {
+  const selectFocusFromQueue = useCallback((payload: PathFocusPayload) => {
     setFocusPayload(payload);
     setActiveFocusQueueKey(buildFocusQueueKey(payload));
     setGoal(buildPathGoalFromFocus(payload));
     setFocusHint(buildFocusHintText(payload, focusQueue.length || incomingBatchCount));
     setBridgeExportHint("");
-  }
+  }, [focusQueue.length, incomingBatchCount]);
 
-  function stepFocusQueue(offset: number) {
+  const stepFocusQueue = useCallback((offset: number) => {
     if (focusQueue.length < 2) {
       return;
     }
@@ -575,7 +575,36 @@ export function PathDemo() {
       return;
     }
     selectFocusFromQueue(next);
-  }
+  }, [activeFocusQueueIndex, focusQueue, selectFocusFromQueue]);
+
+  useEffect(() => {
+    if (focusQueue.length < 2) {
+      return;
+    }
+    const handleQueueShortcut = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      if (
+        target?.isContentEditable ||
+        tagName === "input" ||
+        tagName === "textarea" ||
+        tagName === "select"
+      ) {
+        return;
+      }
+      if (event.key === "[" || event.key === "ArrowLeft") {
+        event.preventDefault();
+        stepFocusQueue(-1);
+      } else if (event.key === "]" || event.key === "ArrowRight") {
+        event.preventDefault();
+        stepFocusQueue(1);
+      }
+    };
+    window.addEventListener("keydown", handleQueueShortcut);
+    return () => {
+      window.removeEventListener("keydown", handleQueueShortcut);
+    };
+  }, [focusQueue.length, stepFocusQueue]);
 
   function toggleBridgeChecklistItem(itemId: string) {
     setBridgeChecklist((prev) =>
