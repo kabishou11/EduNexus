@@ -130,6 +130,12 @@ type HoverSaveResult = {
   nodeLabel: string;
 };
 
+type OpenWorkspaceSessionOptions = {
+  from?: "graph" | "graph_save";
+  noteId?: string;
+  nodeLabel?: string;
+};
+
 function resolveRiskTone(risk: number) {
   if (risk >= 0.65) {
     return "high";
@@ -1118,12 +1124,19 @@ export function GraphDemo() {
   }, [resolveRelatedNodeLabelsForFocus, router]);
 
   const openWorkspaceSessionById = useCallback(
-    (sessionId: string) => {
+    (sessionId: string, options?: OpenWorkspaceSessionOptions) => {
       const normalized = sessionId.trim();
       if (!normalized) {
         return;
       }
       const params = new URLSearchParams({ sessionId: normalized });
+      params.set("from", options?.from ?? "graph");
+      if (options?.noteId?.trim()) {
+        params.set("noteId", options.noteId.trim());
+      }
+      if (options?.nodeLabel?.trim()) {
+        params.set("nodeLabel", options.nodeLabel.trim());
+      }
       router.push(`/workspace?${params.toString()}`);
     },
     [router]
@@ -1426,7 +1439,13 @@ export function GraphDemo() {
           <span>会话：{hoverSaveResult.sessionId}</span>
           <button
             type="button"
-            onClick={() => openWorkspaceSessionById(hoverSaveResult.sessionId)}
+            onClick={() =>
+              openWorkspaceSessionById(hoverSaveResult.sessionId, {
+                from: "graph_save",
+                noteId: hoverSaveResult.noteId,
+                nodeLabel: hoverSaveResult.nodeLabel
+              })
+            }
           >
             打开对应工作区会话
           </button>
@@ -1673,7 +1692,13 @@ export function GraphDemo() {
                       {hoverSaveResult && hoverSaveResult.nodeId === hoveredNode.id ? (
                         <button
                           type="button"
-                          onClick={() => openWorkspaceSessionById(hoverSaveResult.sessionId)}
+                          onClick={() =>
+                            openWorkspaceSessionById(hoverSaveResult.sessionId, {
+                              from: "graph_save",
+                              noteId: hoverSaveResult.noteId,
+                              nodeLabel: hoverSaveResult.nodeLabel
+                            })
+                          }
                         >
                           打开对应会话
                         </button>

@@ -518,10 +518,24 @@ export function WorkspaceDemo() {
     () => searchParams.get("sessionId")?.trim() ?? "",
     [searchParams]
   );
+  const queryFrom = useMemo(
+    () => searchParams.get("from")?.trim().toLowerCase() ?? "",
+    [searchParams]
+  );
+  const queryNoteId = useMemo(
+    () => searchParams.get("noteId")?.trim() ?? "",
+    [searchParams]
+  );
+  const queryNodeLabel = useMemo(
+    () => searchParams.get("nodeLabel")?.trim() ?? "",
+    [searchParams]
+  );
   const queryBatchCount = useMemo(
     () => Number(searchParams.get("batchCount") ?? "0"),
     [searchParams]
   );
+  const hasGraphContext = queryFrom === "graph" || queryFrom === "graph_save";
+  const hasMatchedQuerySession = Boolean(querySessionId) && sessionId === querySessionId;
 
   const canUnlock = useMemo(() => nextData?.canUnlockFinal ?? false, [nextData]);
   const activeGraphFocusQueueIndex = useMemo(() => {
@@ -1813,6 +1827,37 @@ export function WorkspaceDemo() {
 
   return (
     <div className="panel-grid panel-grid-tight">
+      {hasGraphContext ? (
+        <div className={`workspace-graph-context${hasMatchedQuerySession ? " ready" : ""}`}>
+          <strong>
+            {queryFrom === "graph_save" ? "图谱沉淀回看上下文已带入" : "图谱回看上下文已带入"}
+          </strong>
+          <p>
+            {queryNodeLabel ? `节点：${queryNodeLabel}` : "节点：未指定"} · 会话：
+            {querySessionId || "未指定"}
+            {queryNoteId ? ` · 笔记：${queryNoteId}` : ""}
+          </p>
+          <p className="workspace-graph-context-guide">
+            {hasMatchedQuerySession
+              ? queryNoteId
+                ? `已定位对应会话。可在本地知识库中搜索笔记 ID「${queryNoteId}」查看该次沉淀笔记。`
+                : "已定位对应会话，可直接继续复盘。"
+              : "如需精确回看，请点击“重新定位该会话”后继续复盘。"}
+          </p>
+          {querySessionId ? (
+            <div className="workspace-graph-context-actions">
+              <button
+                type="button"
+                onClick={() => void loadSessionDetail(querySessionId)}
+                disabled={loading}
+              >
+                重新定位该会话
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="panel wide">
         <h3>会话历史与恢复</h3>
         <div className="demo-form">

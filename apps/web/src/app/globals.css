@@ -6234,6 +6234,61 @@ html[data-theme="aurora"] .config-diff-values em {
   background: rgba(113, 225, 188, 0.14);
 }
 
+.workspace-graph-context {
+  grid-column: 1 / -1;
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(97, 199, 255, 0.18), transparent 42%),
+    rgba(8, 13, 22, 0.56);
+  display: grid;
+  gap: 4px;
+}
+
+.workspace-graph-context.ready {
+  border-color: rgba(159, 255, 210, 0.56);
+  box-shadow: 0 0 0 1px rgba(159, 255, 210, 0.14);
+}
+
+.workspace-graph-context strong {
+  font-size: 13px;
+  color: #def5ff;
+}
+
+.workspace-graph-context p {
+  margin: 0;
+  font-size: 12px;
+  color: #9fc7ee;
+}
+
+.workspace-graph-context-guide {
+  color: #cae8ff;
+}
+
+.workspace-graph-context-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 2px;
+}
+
+.workspace-graph-context-actions button {
+  border: 1px solid rgba(97, 132, 178, 0.46);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.56);
+  color: #d8efff;
+  font: inherit;
+  font-size: 12px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.workspace-graph-context-actions button:disabled {
+  opacity: 0.56;
+  cursor: not-allowed;
+}
+
 .workspace-focus-card {
   border: 1px solid rgba(97, 132, 178, 0.36);
   border-radius: 12px;
@@ -6961,6 +7016,33 @@ html[data-theme="aurora"] .workspace-focus-card button {
 html[data-theme="aurora"] .path-focus-task-row.done {
   border-color: rgba(64, 174, 138, 0.44);
   background: rgba(103, 210, 174, 0.2);
+}
+
+html[data-theme="aurora"] .workspace-graph-context {
+  border-color: rgba(118, 154, 216, 0.42);
+  background:
+    radial-gradient(circle at 14% 0%, rgba(84, 155, 255, 0.18), transparent 42%),
+    rgba(255, 255, 255, 0.84);
+}
+
+html[data-theme="aurora"] .workspace-graph-context.ready {
+  border-color: rgba(64, 174, 138, 0.5);
+  box-shadow: 0 0 0 1px rgba(64, 174, 138, 0.18);
+}
+
+html[data-theme="aurora"] .workspace-graph-context strong {
+  color: #274f7e;
+}
+
+html[data-theme="aurora"] .workspace-graph-context p,
+html[data-theme="aurora"] .workspace-graph-context-guide {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .workspace-graph-context-actions button {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  color: #4f719f;
 }
 
 html[data-theme="aurora"] .workspace-focus-card {

@@ -8,7 +8,7 @@ export default function WorkspacePage() {
       <header className="page-head">
         <h2>学习工作区</h2>
         <p>
-          一期核心页面。默认采用 Socratic 分层引导，不直接给最终答案。当前已支持图谱焦点节点一键带入、会话搜索、恢复、重命名、删除、LangGraph 工作流（含 SSE 节点轨迹）、流式引导与笔记沉淀。
+          一期核心页面。默认采用 Socratic 分层引导，不直接给最终答案。当前已支持图谱焦点节点一键带入、图谱沉淀回看上下文提示、会话搜索/恢复/重命名/删除、LangGraph 工作流（含 SSE 节点轨迹）、流式引导与笔记沉淀。
         </p>
       </header>
 
