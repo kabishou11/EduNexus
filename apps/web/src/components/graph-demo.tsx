@@ -166,6 +166,14 @@ type ReplayPushMeta = {
   replayMode?: BridgeReplayMode;
 };
 type ReplayPushHistoryModeFilter = "all" | PathFocusPayload["replayMode"] | "unknown";
+type ReplayHistoryPresetKey =
+  | "manual"
+  | "all"
+  | "path_roundtrip"
+  | "workspace_roundtrip"
+  | "single_frame"
+  | "batch_queue"
+  | "repush_focus";
 
 function resolveRiskTone(risk: number) {
   if (risk >= 0.65) {
@@ -391,6 +399,10 @@ export function GraphDemo() {
   const [replayHistorySort, setReplayHistorySort] =
     useState<ReplayPushHistorySort>("latest");
   const [replayHistoryTopN, setReplayHistoryTopN] = useState<"all" | 3 | 5 | 10>("all");
+  const [replayHistoryPreset, setReplayHistoryPreset] =
+    useState<ReplayHistoryPresetKey>("all");
+  const [replayCompareLeftId, setReplayCompareLeftId] = useState("");
+  const [replayCompareRightId, setReplayCompareRightId] = useState("");
   const [queryReplayBatchId, setQueryReplayBatchId] = useState("");
   const [queryReplayFrom, setQueryReplayFrom] = useState("");
   const bridgeReplayTimerRef = useRef<number | null>(null);
@@ -588,6 +600,111 @@ export function GraphDemo() {
     [replayPushHistory]
   );
 
+  const applyReplayHistoryPreset = useCallback((preset: ReplayHistoryPresetKey) => {
+    setReplayHistoryPreset(preset);
+    if (preset === "manual") {
+      return;
+    }
+    if (preset === "all") {
+      setReplayHistoryTargetFilter("all");
+      setReplayHistorySourceFilter("all");
+      setReplayHistoryModeFilter("all");
+      setReplayHistorySort("latest");
+      setReplayHistoryTopN("all");
+      return;
+    }
+    if (preset === "path_roundtrip") {
+      setReplayHistoryTargetFilter("path");
+      setReplayHistorySourceFilter("all");
+      setReplayHistoryModeFilter("all");
+      setReplayHistorySort("latest");
+      setReplayHistoryTopN(10);
+      return;
+    }
+    if (preset === "workspace_roundtrip") {
+      setReplayHistoryTargetFilter("workspace");
+      setReplayHistorySourceFilter("all");
+      setReplayHistoryModeFilter("all");
+      setReplayHistorySort("latest");
+      setReplayHistoryTopN(10);
+      return;
+    }
+    if (preset === "single_frame") {
+      setReplayHistoryTargetFilter("all");
+      setReplayHistorySourceFilter("single_frame");
+      setReplayHistoryModeFilter("all");
+      setReplayHistorySort("latest");
+      setReplayHistoryTopN(10);
+      return;
+    }
+    if (preset === "batch_queue") {
+      setReplayHistoryTargetFilter("all");
+      setReplayHistorySourceFilter("batch_queue");
+      setReplayHistoryModeFilter("all");
+      setReplayHistorySort("count_desc");
+      setReplayHistoryTopN(10);
+      return;
+    }
+    setReplayHistoryTargetFilter("all");
+    setReplayHistorySourceFilter("history_repush");
+    setReplayHistoryModeFilter("all");
+    setReplayHistorySort("latest");
+    setReplayHistoryTopN("all");
+  }, []);
+
+  useEffect(() => {
+    if (replayHistoryPreset === "manual") {
+      return;
+    }
+    const presetMatches =
+      (replayHistoryPreset === "all" &&
+        replayHistoryTargetFilter === "all" &&
+        replayHistorySourceFilter === "all" &&
+        replayHistoryModeFilter === "all" &&
+        replayHistorySort === "latest" &&
+        replayHistoryTopN === "all") ||
+      (replayHistoryPreset === "path_roundtrip" &&
+        replayHistoryTargetFilter === "path" &&
+        replayHistorySourceFilter === "all" &&
+        replayHistoryModeFilter === "all" &&
+        replayHistorySort === "latest" &&
+        replayHistoryTopN === 10) ||
+      (replayHistoryPreset === "workspace_roundtrip" &&
+        replayHistoryTargetFilter === "workspace" &&
+        replayHistorySourceFilter === "all" &&
+        replayHistoryModeFilter === "all" &&
+        replayHistorySort === "latest" &&
+        replayHistoryTopN === 10) ||
+      (replayHistoryPreset === "single_frame" &&
+        replayHistoryTargetFilter === "all" &&
+        replayHistorySourceFilter === "single_frame" &&
+        replayHistoryModeFilter === "all" &&
+        replayHistorySort === "latest" &&
+        replayHistoryTopN === 10) ||
+      (replayHistoryPreset === "batch_queue" &&
+        replayHistoryTargetFilter === "all" &&
+        replayHistorySourceFilter === "batch_queue" &&
+        replayHistoryModeFilter === "all" &&
+        replayHistorySort === "count_desc" &&
+        replayHistoryTopN === 10) ||
+      (replayHistoryPreset === "repush_focus" &&
+        replayHistoryTargetFilter === "all" &&
+        replayHistorySourceFilter === "history_repush" &&
+        replayHistoryModeFilter === "all" &&
+        replayHistorySort === "latest" &&
+        replayHistoryTopN === "all");
+    if (!presetMatches) {
+      setReplayHistoryPreset("manual");
+    }
+  }, [
+    replayHistoryModeFilter,
+    replayHistoryPreset,
+    replayHistorySort,
+    replayHistorySourceFilter,
+    replayHistoryTargetFilter,
+    replayHistoryTopN
+  ]);
+
   const filteredReplayPushHistory = useMemo(() => {
     return replayPushHistory.filter((item) => {
       if (replayHistoryTargetFilter !== "all" && item.target !== replayHistoryTargetFilter) {
@@ -623,6 +740,75 @@ export function GraphDemo() {
     return sortedReplayPushHistory.slice(0, replayHistoryTopN);
   }, [replayHistoryTopN, sortedReplayPushHistory]);
 
+  const replayCompareCandidates = useMemo(
+    () => sortedReplayPushHistory.slice(0, 24),
+    [sortedReplayPushHistory]
+  );
+
+  useEffect(() => {
+    if (replayCompareCandidates.length < 2) {
+      setReplayCompareLeftId("");
+      setReplayCompareRightId("");
+      return;
+    }
+    const leftExists = replayCompareCandidates.some((item) => item.id === replayCompareLeftId);
+    const rightExists = replayCompareCandidates.some((item) => item.id === replayCompareRightId);
+    if (!leftExists || !replayCompareLeftId) {
+      setReplayCompareLeftId(replayCompareCandidates[0]?.id ?? "");
+    }
+    if (
+      !rightExists ||
+      !replayCompareRightId ||
+      replayCompareRightId === replayCompareCandidates[0]?.id
+    ) {
+      setReplayCompareRightId(replayCompareCandidates[1]?.id ?? "");
+    }
+  }, [replayCompareCandidates, replayCompareLeftId, replayCompareRightId]);
+
+  const replayCompareSummary = useMemo(() => {
+    if (!replayCompareLeftId || !replayCompareRightId || replayCompareLeftId === replayCompareRightId) {
+      return null;
+    }
+    const left = replayCompareCandidates.find((item) => item.id === replayCompareLeftId);
+    const right = replayCompareCandidates.find((item) => item.id === replayCompareRightId);
+    if (!left || !right) {
+      return null;
+    }
+    const leftNodeSet = new Set(left.queue.map((item) => item.nodeId));
+    const rightNodeSet = new Set(right.queue.map((item) => item.nodeId));
+    const overlapNodeIds = [...leftNodeSet].filter((nodeId) => rightNodeSet.has(nodeId));
+    const leftRiskAvg =
+      left.queue.length > 0
+        ? left.queue.reduce((acc, item) => acc + item.risk, 0) / left.queue.length
+        : 0;
+    const rightRiskAvg =
+      right.queue.length > 0
+        ? right.queue.reduce((acc, item) => acc + item.risk, 0) / right.queue.length
+        : 0;
+    const leftTime = Date.parse(left.at);
+    const rightTime = Date.parse(right.at);
+    const timeGapHours =
+      Number.isFinite(leftTime) && Number.isFinite(rightTime)
+        ? Math.abs(leftTime - rightTime) / (1000 * 60 * 60)
+        : null;
+    return {
+      left,
+      right,
+      countDelta: right.count - left.count,
+      riskDelta: Number((rightRiskAvg - leftRiskAvg).toFixed(3)),
+      overlapNodeIds,
+      overlapRatio:
+        leftNodeSet.size > 0 ? Number((overlapNodeIds.length / leftNodeSet.size).toFixed(2)) : 0,
+      timeGapHours:
+        timeGapHours !== null && Number.isFinite(timeGapHours)
+          ? Number(timeGapHours.toFixed(1))
+          : null,
+      targetChanged: left.target !== right.target,
+      sourceChanged: left.source !== right.source,
+      modeChanged: (left.mode ?? "unknown") !== (right.mode ?? "unknown")
+    };
+  }, [replayCompareCandidates, replayCompareLeftId, replayCompareRightId]);
+
   const locatedReplayHistoryBatch = useMemo(() => {
     if (!queryReplayBatchId) {
       return null;
@@ -635,12 +821,16 @@ export function GraphDemo() {
       replayBatchQueryAppliedRef.current = "";
       return;
     }
-    setReplayHistoryTargetFilter("all");
-    setReplayHistorySourceFilter("all");
-    setReplayHistoryModeFilter("all");
-    setReplayHistorySort("latest");
-    setReplayHistoryTopN("all");
-  }, [queryReplayBatchId]);
+    if (queryReplayFrom === "path") {
+      applyReplayHistoryPreset("path_roundtrip");
+      return;
+    }
+    if (queryReplayFrom === "workspace") {
+      applyReplayHistoryPreset("workspace_roundtrip");
+      return;
+    }
+    applyReplayHistoryPreset("all");
+  }, [applyReplayHistoryPreset, queryReplayBatchId, queryReplayFrom]);
 
   useEffect(() => {
     if (!queryReplayBatchId) {
@@ -2163,11 +2353,14 @@ export function GraphDemo() {
 
   const clearReplayPushHistory = useCallback(() => {
     setReplayPushHistory([]);
+    setReplayHistoryPreset("all");
     setReplayHistoryTargetFilter("all");
     setReplayHistorySourceFilter("all");
     setReplayHistoryModeFilter("all");
     setReplayHistorySort("latest");
     setReplayHistoryTopN("all");
+    setReplayCompareLeftId("");
+    setReplayCompareRightId("");
     try {
       window.localStorage.removeItem(GRAPH_REPLAY_PUSH_HISTORY_STORAGE_KEY);
     } catch {
@@ -3131,6 +3324,60 @@ export function GraphDemo() {
                   </div>
                   <div className="graph-replay-history-filters">
                     <div className="graph-replay-history-filter-group">
+                      <span>预设</span>
+                      <div className="graph-replay-history-filter-buttons">
+                        <button
+                          type="button"
+                          className={replayHistoryPreset === "all" ? "active" : ""}
+                          onClick={() => applyReplayHistoryPreset("all")}
+                        >
+                          全量视角
+                        </button>
+                        <button
+                          type="button"
+                          className={replayHistoryPreset === "path_roundtrip" ? "active" : ""}
+                          onClick={() => applyReplayHistoryPreset("path_roundtrip")}
+                        >
+                          路径回流
+                        </button>
+                        <button
+                          type="button"
+                          className={replayHistoryPreset === "workspace_roundtrip" ? "active" : ""}
+                          onClick={() => applyReplayHistoryPreset("workspace_roundtrip")}
+                        >
+                          工作区回流
+                        </button>
+                        <button
+                          type="button"
+                          className={replayHistoryPreset === "batch_queue" ? "active" : ""}
+                          onClick={() => applyReplayHistoryPreset("batch_queue")}
+                        >
+                          批量优先
+                        </button>
+                        <button
+                          type="button"
+                          className={replayHistoryPreset === "single_frame" ? "active" : ""}
+                          onClick={() => applyReplayHistoryPreset("single_frame")}
+                        >
+                          单帧优先
+                        </button>
+                        <button
+                          type="button"
+                          className={replayHistoryPreset === "repush_focus" ? "active" : ""}
+                          onClick={() => applyReplayHistoryPreset("repush_focus")}
+                        >
+                          复推轨迹
+                        </button>
+                        <button
+                          type="button"
+                          className={replayHistoryPreset === "manual" ? "active" : ""}
+                          disabled
+                        >
+                          {replayHistoryPreset === "manual" ? "当前为自定义" : "自定义"}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="graph-replay-history-filter-group">
                       <span>目标</span>
                       <div className="graph-replay-history-filter-buttons">
                         <button
@@ -3288,6 +3535,74 @@ export function GraphDemo() {
                       条
                     </span>
                   </div>
+                  {replayCompareCandidates.length > 1 ? (
+                    <div className="graph-replay-compare">
+                      <strong>批次对比视图</strong>
+                      <div className="graph-replay-compare-selects">
+                        <label>
+                          批次 A
+                          <select
+                            value={replayCompareLeftId}
+                            onChange={(event) => setReplayCompareLeftId(event.target.value)}
+                          >
+                            {replayCompareCandidates.map((item) => (
+                              <option key={`compare_left_${item.id}`} value={item.id}>
+                                {item.batchId} · {item.count} 条
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label>
+                          批次 B
+                          <select
+                            value={replayCompareRightId}
+                            onChange={(event) => setReplayCompareRightId(event.target.value)}
+                          >
+                            {replayCompareCandidates.map((item) => (
+                              <option key={`compare_right_${item.id}`} value={item.id}>
+                                {item.batchId} · {item.count} 条
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+                      {replayCompareSummary ? (
+                        <div className="graph-replay-compare-metrics">
+                          <span>
+                            数量差{" "}
+                            {replayCompareSummary.countDelta > 0
+                              ? `+${replayCompareSummary.countDelta}`
+                              : replayCompareSummary.countDelta}
+                          </span>
+                          <span>
+                            平均风险差{" "}
+                            {replayCompareSummary.riskDelta > 0
+                              ? `+${replayCompareSummary.riskDelta}`
+                              : replayCompareSummary.riskDelta}
+                          </span>
+                          <span>节点重合 {replayCompareSummary.overlapNodeIds.length}</span>
+                          <span>
+                            重合率 {Math.round(replayCompareSummary.overlapRatio * 100)}%
+                          </span>
+                          <span>
+                            目标变化 {replayCompareSummary.targetChanged ? "是" : "否"}
+                          </span>
+                          <span>
+                            来源变化 {replayCompareSummary.sourceChanged ? "是" : "否"}
+                          </span>
+                          <span>模式变化 {replayCompareSummary.modeChanged ? "是" : "否"}</span>
+                          <span>
+                            时间间隔{" "}
+                            {replayCompareSummary.timeGapHours !== null
+                              ? `${replayCompareSummary.timeGapHours}h`
+                              : "未知"}
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="muted">请选择两条不同批次进行对比。</p>
+                      )}
+                    </div>
+                  ) : null}
                   {visibleReplayPushHistory.length > 0 ? (
                     <div className="graph-replay-history-list">
                       {visibleReplayPushHistory.map((entry) => (

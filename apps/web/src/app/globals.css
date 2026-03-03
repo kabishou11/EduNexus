@@ -5889,6 +5889,11 @@ html[data-theme="aurora"] .config-diff-values em {
   cursor: pointer;
 }
 
+.graph-replay-history-filter-buttons button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .graph-replay-history-filter-buttons button.active {
   border-color: rgba(97, 199, 255, 0.56);
   background: rgba(97, 199, 255, 0.2);
@@ -5898,6 +5903,59 @@ html[data-theme="aurora"] .config-diff-values em {
 .graph-replay-history-viewport {
   font-size: 11px;
   color: #9fc7ee;
+}
+
+.graph-replay-compare {
+  margin-top: 8px;
+  border: 1px solid rgba(97, 132, 178, 0.34);
+  border-radius: 10px;
+  background: rgba(8, 13, 22, 0.48);
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+}
+
+.graph-replay-compare strong {
+  font-size: 12px;
+  color: #d8efff;
+}
+
+.graph-replay-compare-selects {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.graph-replay-compare-selects label {
+  display: grid;
+  gap: 4px;
+  font-size: 11px;
+  color: #9fc7ee;
+}
+
+.graph-replay-compare-selects select {
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 8px;
+  background: rgba(10, 16, 27, 0.56);
+  color: #d8efff;
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 7px;
+}
+
+.graph-replay-compare-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.graph-replay-compare-metrics span {
+  border: 1px solid rgba(97, 132, 178, 0.34);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.58);
+  color: #cfe8ff;
+  font-size: 11px;
+  padding: 3px 8px;
 }
 
 .graph-replay-history-list {
@@ -7393,6 +7451,31 @@ html[data-theme="aurora"] .graph-replay-history-actions button:nth-child(2) {
 html[data-theme="aurora"] .graph-replay-history-actions button:nth-child(3) {
   border-color: rgba(64, 174, 138, 0.46);
   background: rgba(103, 210, 174, 0.2);
+}
+
+html[data-theme="aurora"] .graph-replay-compare {
+  border-color: rgba(118, 154, 216, 0.4);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+html[data-theme="aurora"] .graph-replay-compare strong {
+  color: #2e5a8b;
+}
+
+html[data-theme="aurora"] .graph-replay-compare-selects label {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .graph-replay-compare-selects select {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  color: #4f719f;
+}
+
+html[data-theme="aurora"] .graph-replay-compare-metrics span {
+  border-color: rgba(118, 154, 216, 0.4);
+  background: rgba(255, 255, 255, 0.88);
+  color: #4f719f;
 }
 
 html[data-theme="aurora"] .graph-bridge-node-stat {
