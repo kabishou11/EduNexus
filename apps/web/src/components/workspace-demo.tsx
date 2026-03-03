@@ -1853,6 +1853,41 @@ export function WorkspaceDemo() {
               >
                 重新定位该会话
               </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const keyword = querySessionId || queryNodeLabel || queryNoteId;
+                  if (!keyword) {
+                    return;
+                  }
+                  setSessionQuery(keyword);
+                  void loadSessions(keyword);
+                }}
+                disabled={loading}
+              >
+                仅筛选该上下文会话
+              </button>
+              {queryNoteId ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const noteAnchor = `[图谱沉淀锚点] 节点：${
+                      queryNodeLabel || "未命名节点"
+                    }；笔记ID：${queryNoteId}。请基于本次沉淀继续复盘，不直接给答案。`;
+                    setUserInput((prev) => {
+                      if (prev.includes(queryNoteId)) {
+                        return prev;
+                      }
+                      const trimmed = prev.trim();
+                      return trimmed ? `${noteAnchor}\n\n${trimmed}` : noteAnchor;
+                    });
+                    setGraphFocusHint(`已将沉淀锚点写入输入框：${queryNoteId}`);
+                  }}
+                  disabled={loading}
+                >
+                  写入沉淀锚点
+                </button>
+              ) : null}
             </div>
           ) : null}
         </div>
