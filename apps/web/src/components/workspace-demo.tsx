@@ -1899,6 +1899,9 @@ export function WorkspaceDemo() {
                       q: queryNoteId,
                       auto: "1"
                     });
+                    if (querySessionId) {
+                      params.set("sessionId", querySessionId);
+                    }
                     if (queryNodeLabel) {
                       params.set("nodeLabel", queryNodeLabel);
                     }

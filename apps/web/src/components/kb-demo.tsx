@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatErrorMessage, requestJson } from "@/lib/client/api";
 
 type Candidate = {
@@ -235,6 +235,7 @@ function formatChapterPanelPresetLabel(preset: ChapterPanelPreset) {
 }
 
 export function KbDemo() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("等差数列");
   const [typeFilter, setTypeFilter] = useState("");
@@ -287,6 +288,10 @@ export function KbDemo() {
   );
   const presetAutoSearch = useMemo(
     () => searchParams.get("auto") === "1",
+    [searchParams]
+  );
+  const presetSessionId = useMemo(
+    () => searchParams.get("sessionId")?.trim() ?? "",
     [searchParams]
   );
 
@@ -1222,6 +1227,24 @@ export function KbDemo() {
             >
               按上下文重跑检索
             </button>
+            {presetSessionId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  const params = new URLSearchParams({
+                    sessionId: presetSessionId,
+                    from: "kb_backlink"
+                  });
+                  if (presetNoteId) {
+                    params.set("noteId", presetNoteId);
+                  }
+                  router.push(`/workspace?${params.toString()}`);
+                }}
+                disabled={loading}
+              >
+                返回工作区会话
+              </button>
+            ) : null}
           </div>
         </div>
       ) : null}
