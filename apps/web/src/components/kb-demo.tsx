@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { formatErrorMessage, requestJson } from "@/lib/client/api";
 
 type Candidate = {
@@ -234,6 +235,7 @@ function formatChapterPanelPresetLabel(preset: ChapterPanelPreset) {
 }
 
 export function KbDemo() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("等差数列");
   const [typeFilter, setTypeFilter] = useState("");
   const [domainFilter, setDomainFilter] = useState("");
@@ -265,6 +267,23 @@ export function KbDemo() {
   const [graph, setGraph] = useState<BacklinkGraph | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [externalContextHint, setExternalContextHint] = useState("");
+  const presetQuery = useMemo(
+    () => searchParams.get("q")?.trim() ?? "",
+    [searchParams]
+  );
+  const presetNoteId = useMemo(
+    () => searchParams.get("noteId")?.trim() ?? "",
+    [searchParams]
+  );
+  const presetFrom = useMemo(
+    () => searchParams.get("from")?.trim().toLowerCase() ?? "",
+    [searchParams]
+  );
+  const presetAutoSearch = useMemo(
+    () => searchParams.get("auto") === "1",
+    [searchParams]
+  );
 
   async function loadTags() {
     try {
@@ -1018,6 +1037,33 @@ export function KbDemo() {
     }
   }
 
+  useEffect(() => {
+    const bootstrapQuery = presetQuery || presetNoteId;
+    if (!bootstrapQuery) {
+      return;
+    }
+    setQuery(bootstrapQuery);
+    setTypeFilter("");
+    setDomainFilter("");
+    setTagFilter("");
+    const sourceLabel =
+      presetFrom === "graph_save"
+        ? "图谱沉淀回看"
+        : presetFrom
+          ? presetFrom
+          : "外部上下文";
+    setExternalContextHint(`已从${sourceLabel}带入检索词：${bootstrapQuery}`);
+    if (presetAutoSearch) {
+      void search({
+        query: bootstrapQuery,
+        typeFilter: "",
+        domainFilter: "",
+        tagFilter: ""
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetAutoSearch, presetFrom, presetNoteId, presetQuery]);
+
   async function loadDoc(docId: string) {
     setLoading(true);
     setError("");
@@ -1109,6 +1155,7 @@ export function KbDemo() {
       <button type="button" onClick={rebuildIndex} disabled={loading}>
         重建索引摘要
       </button>
+      {externalContextHint ? <div className="result-box info">{externalContextHint}</div> : null}
       <div className="card-item">
         <strong>沉浸阅读模式</strong>
         <p className="muted">融合 Obsidian 双链结构与 NotebookLM 摘录卡片风格。</p>

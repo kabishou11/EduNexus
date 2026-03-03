@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { formatErrorMessage, readApiErrorMessage, requestJson } from "@/lib/client/api";
 import { pushGraphActivityEventToStorage } from "@/lib/client/graph-activity";
 import {
@@ -457,6 +457,7 @@ function buildReplayScriptContent(snapshot: ReplayScriptSnapshot) {
 }
 
 export function WorkspaceDemo() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [sessionId, setSessionId] = useState<string>("");
   const [sessionTitle, setSessionTitle] = useState("");
@@ -1886,6 +1887,26 @@ export function WorkspaceDemo() {
                   disabled={loading}
                 >
                   写入沉淀锚点
+                </button>
+              ) : null}
+              {queryNoteId ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      from: queryFrom || "workspace_graph_context",
+                      noteId: queryNoteId,
+                      q: queryNoteId,
+                      auto: "1"
+                    });
+                    if (queryNodeLabel) {
+                      params.set("nodeLabel", queryNodeLabel);
+                    }
+                    router.push(`/kb?${params.toString()}`);
+                  }}
+                  disabled={loading}
+                >
+                  在知识库查看该笔记
                 </button>
               ) : null}
             </div>

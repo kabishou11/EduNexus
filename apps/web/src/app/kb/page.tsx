@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { KbDemo } from "@/components/kb-demo";
 import { GalaxyHero } from "@/components/galaxy-ui";
 
@@ -27,7 +28,9 @@ export default function KbPage() {
 
         <article className="panel wide">
           <h3>检索与文档详情</h3>
-          <KbDemo />
+          <Suspense fallback={<div className="result-box">正在加载知识库...</div>}>
+            <KbDemo />
+          </Suspense>
         </article>
         <article className="panel half">
           <h3>当前能力边界</h3>
