@@ -1,7 +1,7 @@
-import { ChatOpenAI } from "@langchain/openai";
 import { END, START, StateGraph } from "@langchain/langgraph";
 import { searchVault } from "./kb-lite";
 import { buildSocraticGuidance } from "./socratic";
+import { getModelscopeClient } from "./modelscope";
 
 type AgentRunInput = {
   sessionId?: string;
@@ -103,24 +103,6 @@ const GRAPH_CHANNELS = {
 };
 
 let compiledGraph: AgentGraph | null = null;
-
-function toText(value: unknown) {
-  if (typeof value === "string") return value;
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (item && typeof item === "object" && "text" in item) {
-          const text = (item as { text?: unknown }).text;
-          return typeof text === "string" ? text : "";
-        }
-        return "";
-      })
-      .filter(Boolean)
-      .join("\n");
-  }
-  return "";
-}
 
 function detectIntent(userInput: string) {
   const normalized = userInput.toLowerCase();
@@ -228,52 +210,44 @@ function buildModelStreamPrompt(input: {
   ].join("\n");
 }
 
-function buildModelscopeLangChainClient() {
-  const apiKey = process.env.MODELSCOPE_API_KEY;
-  if (!apiKey) {
-    return null;
-  }
-
-  return new ChatOpenAI({
-    apiKey,
-    model: process.env.MODELSCOPE_CHAT_MODEL ?? "deepseek-ai/DeepSeek-V3.2",
-    temperature: 0.25,
-    maxTokens: 800,
-    configuration: {
-      baseURL: process.env.MODELSCOPE_BASE_URL ?? "https://api-inference.modelscope.cn/v1"
-    },
-    modelKwargs: {
-      extra_body: {
-        enable_thinking: true
-      }
-    }
-  });
-}
-
 async function buildGuidanceWithModel(input: {
   intent: string;
   userInput: string;
   currentLevel: number;
   contextSummary: string;
 }): Promise<ModelGuidance | null> {
-  const llm = buildModelscopeLangChainClient();
-  if (!llm) {
+  if (!process.env.MODELSCOPE_API_KEY) {
     return null;
   }
-  const prompt = buildModelJsonPrompt(input);
 
   try {
-    const message = await llm.invoke([
+    const client = getModelscopeClient();
+    const model = process.env.MODELSCOPE_CHAT_MODEL ?? "deepseek-ai/DeepSeek-V3.2";
+    const response = await client.chat.completions.create(
       {
-        role: "system",
-        content: "你是严谨的中文学习教练，输出必须是合法 JSON。"
+        model,
+        messages: [
+          {
+            role: "system",
+            content: "你是严谨的中文学习教练，输出必须是合法 JSON。"
+          },
+          {
+            role: "user",
+            content: buildModelJsonPrompt(input)
+          }
+        ],
+        temperature: 0.25,
+        max_tokens: 800
       },
       {
-        role: "user",
-        content: prompt
+        body: {
+          extra_body: {
+            enable_thinking: true
+          }
+        } as Record<string, unknown>
       }
-    ]);
-    const raw = normalizeModelJson(toText(message.content));
+    );
+    const raw = normalizeModelJson(response.choices[0]?.message?.content ?? "");
     return safeJsonParseModelResponse(raw);
   } catch {
     return null;
@@ -412,29 +386,42 @@ export async function* streamLangGraphAgent(
     }
   };
 
-  const llm = buildModelscopeLangChainClient();
   let modelStreamText = "";
-  if (llm) {
+  if (process.env.MODELSCOPE_API_KEY) {
     try {
-      const prompt = buildModelStreamPrompt({
-        intent: state.intent,
-        userInput: state.userInput,
-        currentLevel: state.currentLevel,
-        contextSummary: state.contextSummary
-      });
-      const stream = await llm.stream([
+      const client = getModelscopeClient();
+      const model = process.env.MODELSCOPE_CHAT_MODEL ?? "deepseek-ai/DeepSeek-V3.2";
+      const stream = await client.chat.completions.create(
         {
-          role: "system",
-          content: "你是严谨的中文学习教练，只输出学习引导文本。"
+          model,
+          messages: [
+            {
+              role: "system",
+              content: "你是严谨的中文学习教练，只输出学习引导文本。"
+            },
+            {
+              role: "user",
+              content: buildModelStreamPrompt({
+                intent: state.intent,
+                userInput: state.userInput,
+                currentLevel: state.currentLevel,
+                contextSummary: state.contextSummary
+              })
+            }
+          ],
+          temperature: 0.25,
+          stream: true
         },
         {
-          role: "user",
-          content: prompt
+          body: {
+            extra_body: {
+              enable_thinking: true
+            }
+          } as Record<string, unknown>
         }
-      ]);
-
+      );
       for await (const chunk of stream) {
-        const delta = toText(chunk.content);
+        const delta = chunk.choices?.[0]?.delta?.content ?? "";
         if (!delta.trim()) continue;
         modelStreamText += delta;
         yield {
