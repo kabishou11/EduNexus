@@ -572,6 +572,87 @@ html[data-theme="aurora"] .panel {
   accent-color: #61c7ff;
 }
 
+.settings-search-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.settings-search-input {
+  flex: 1;
+  min-width: 260px;
+  display: grid;
+  gap: 4px;
+}
+
+.settings-search-input span {
+  font-size: 11px;
+  color: #9ec5e6;
+}
+
+.settings-search-input input {
+  width: 100%;
+  border: 1px solid rgba(97, 132, 178, 0.36);
+  border-radius: 10px;
+  background: rgba(10, 16, 27, 0.58);
+  color: #d8f2ff;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+.settings-search-clear {
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 10px;
+  background: rgba(10, 16, 27, 0.62);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.settings-anchor-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settings-anchor-row button {
+  border: 1px solid rgba(97, 132, 178, 0.38);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.56);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-anchor-row button em {
+  font-style: normal;
+  font-size: 10px;
+  color: #9fc7ee;
+  border: 1px solid rgba(97, 132, 178, 0.34);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.settings-anchor-row button.active {
+  border-color: rgba(159, 255, 210, 0.56);
+  background: rgba(97, 199, 255, 0.13);
+  color: #dbfff0;
+}
+
+.settings-anchor-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
 .workspace-layout[data-view="learn"] .workspace-section-sessions,
 .workspace-layout[data-view="replay"] .workspace-section-sessions {
   display: none;
@@ -660,6 +741,39 @@ html[data-theme="aurora"] .settings-view-switcher-row button.active {
 
 html[data-theme="aurora"] .settings-novice-toggle {
   color: #5c7fad;
+}
+
+html[data-theme="aurora"] .settings-search-input span {
+  color: #688cb7;
+}
+
+html[data-theme="aurora"] .settings-search-input input {
+  border-color: rgba(118, 154, 216, 0.44);
+  background: rgba(255, 255, 255, 0.86);
+  color: #2f5e8d;
+}
+
+html[data-theme="aurora"] .settings-search-clear {
+  border-color: rgba(118, 154, 216, 0.44);
+  background: rgba(255, 255, 255, 0.86);
+  color: #4f719f;
+}
+
+html[data-theme="aurora"] .settings-anchor-row button {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.86);
+  color: #4f719f;
+}
+
+html[data-theme="aurora"] .settings-anchor-row button em {
+  border-color: rgba(118, 154, 216, 0.4);
+  color: #688cb7;
+}
+
+html[data-theme="aurora"] .settings-anchor-row button.active {
+  border-color: rgba(64, 174, 138, 0.45);
+  background: rgba(103, 210, 174, 0.2);
+  color: #245c4a;
 }
 
 html[data-theme="aurora"] .page-head-cta a:first-child {
@@ -815,6 +929,47 @@ html[data-theme="aurora"] .page-head-cta a:first-child {
   margin-top: 10px;
 }
 
+.workspace-message-list-meta {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
+.workspace-message-list-meta span {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(97, 132, 178, 0.34);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #9fc7ee;
+  background: rgba(10, 16, 27, 0.52);
+}
+
+.workspace-message-list {
+  max-height: 520px;
+  overflow: auto;
+  position: relative;
+  padding-right: 4px;
+}
+
+.workspace-message-virtual {
+  position: relative;
+}
+
+.workspace-message-window {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  display: grid;
+  gap: 10px;
+  will-change: transform;
+}
+
+.workspace-message-item {
+  min-height: 116px;
+}
+
 .card-item {
   border: 1px solid rgba(97, 132, 178, 0.32);
   border-radius: 12px;
@@ -828,6 +983,12 @@ html[data-theme="aurora"] .obsidian-mini-card,
 html[data-theme="aurora"] .obsidian-focus-card {
   border-color: rgba(118, 154, 216, 0.4);
   background: rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme="aurora"] .workspace-message-list-meta span {
+  border-color: rgba(118, 154, 216, 0.44);
+  background: rgba(255, 255, 255, 0.84);
+  color: #678cb7;
 }
 
 html[data-theme="aurora"] .hero-metric-card {
@@ -5414,6 +5575,60 @@ html[data-theme="aurora"] .config-diff-values em {
   padding: 12px;
 }
 
+.graph-insight-toggle-bar {
+  border: 1px solid rgba(97, 132, 178, 0.34);
+  border-radius: 12px;
+  background: rgba(8, 13, 22, 0.56);
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph-insight-toggle-bar span {
+  font-size: 12px;
+  color: #9fc7ee;
+}
+
+.graph-insight-toggle-bar button {
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.62);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.graph-insight-toggle-bar button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.graph-insight-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.graph-insight-card-head button {
+  border: 1px solid rgba(97, 132, 178, 0.4);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.62);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+
+.graph-insight-card.collapsed {
+  border-style: dashed;
+}
+
 .graph-canvas-head {
   display: flex;
   flex-wrap: wrap;
@@ -7602,6 +7817,26 @@ html[data-theme="aurora"] .graph-domain-collapse button.collapsed {
   color: #8a5a2a;
 }
 
+html[data-theme="aurora"] .graph-insight-toggle-bar {
+  border-color: rgba(118, 154, 216, 0.42);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+html[data-theme="aurora"] .graph-insight-toggle-bar span {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .graph-insight-toggle-bar button,
+html[data-theme="aurora"] .graph-insight-card-head button {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  color: #4f719f;
+}
+
+html[data-theme="aurora"] .graph-insight-card.collapsed {
+  border-color: rgba(118, 154, 216, 0.5);
+}
+
 html[data-theme="aurora"] .graph-canvas-panel,
 html[data-theme="aurora"] .graph-insight-card,
 html[data-theme="aurora"] .graph-roadmap-item {
@@ -9344,6 +9579,14 @@ html[data-theme="aurora"] .stream-guidance {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .settings-search-input {
+    min-width: 0;
+  }
+
+  .settings-anchor-row {
+    gap: 8px;
+  }
+
   .galaxy-spotlight {
     flex-direction: column;
     align-items: flex-start;
@@ -9380,6 +9623,10 @@ html[data-theme="aurora"] .stream-guidance {
   }
 
   .graph-domain-collapse {
+    align-items: flex-start;
+  }
+
+  .graph-insight-toggle-bar {
     align-items: flex-start;
   }
 
@@ -9431,6 +9678,15 @@ html[data-theme="aurora"] .stream-guidance {
 
   .settings-novice-toggle {
     align-items: flex-start;
+  }
+
+  .settings-search-tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-search-clear {
+    align-self: flex-start;
   }
 
   .graph-canvas-head {

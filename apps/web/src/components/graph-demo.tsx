@@ -126,6 +126,14 @@ type BridgeReplayNodeStat = {
 type GraphLensMode = "full" | "bridge_focus";
 type BridgeReplaySpeed = "1x" | "1.5x" | "2x";
 type GraphWorkbenchView = "overview" | "bridge" | "history";
+type GraphInsightSectionKey =
+  | "domain_cluster"
+  | "risk_top"
+  | "active_focus"
+  | "bridge_suggestions"
+  | "bridge_timeline"
+  | "replay_history"
+  | "graph_timeline";
 
 type CreateWorkspaceSessionResponse = {
   session: {
@@ -175,6 +183,20 @@ type ReplayHistoryPresetKey =
   | "single_frame"
   | "batch_queue"
   | "repush_focus";
+
+const GRAPH_INSIGHT_SECTIONS: Array<{
+  key: GraphInsightSectionKey;
+  label: string;
+  view: GraphWorkbenchView | "all";
+}> = [
+  { key: "domain_cluster", label: "领域聚类", view: "overview" },
+  { key: "risk_top", label: "高风险节点", view: "overview" },
+  { key: "active_focus", label: "当前焦点", view: "overview" },
+  { key: "bridge_suggestions", label: "关系链建议", view: "bridge" },
+  { key: "bridge_timeline", label: "关系链回放", view: "bridge" },
+  { key: "replay_history", label: "回放批次历史", view: "history" },
+  { key: "graph_timeline", label: "图谱演化", view: "history" }
+];
 
 function resolveRiskTone(risk: number) {
   if (risk >= 0.65) {
@@ -381,6 +403,9 @@ export function GraphDemo() {
   const [graphLensMode, setGraphLensMode] = useState<GraphLensMode>("full");
   const [graphWorkbenchView, setGraphWorkbenchView] =
     useState<GraphWorkbenchView>("overview");
+  const [collapsedInsightSections, setCollapsedInsightSections] = useState<
+    GraphInsightSectionKey[]
+  >([]);
   const [bridgeLensCrossDomainOnly, setBridgeLensCrossDomainOnly] = useState(false);
   const [savingHoverSuggestion, setSavingHoverSuggestion] = useState(false);
   const [hoverSaveMode, setHoverSaveMode] = useState<HoverSaveMode>("create_new");
@@ -967,6 +992,24 @@ export function GraphDemo() {
   const collapsedDomainSet = useMemo(
     () => new Set(collapsedDomains),
     [collapsedDomains]
+  );
+  const collapsedInsightSectionSet = useMemo(
+    () => new Set(collapsedInsightSections),
+    [collapsedInsightSections]
+  );
+  const visibleInsightSections = useMemo(
+    () =>
+      GRAPH_INSIGHT_SECTIONS.filter(
+        (section) => section.view === "all" || section.view === graphWorkbenchView
+      ),
+    [graphWorkbenchView]
+  );
+  const visibleCollapsedInsightCount = useMemo(
+    () =>
+      visibleInsightSections.filter((item) =>
+        collapsedInsightSectionSet.has(item.key)
+      ).length,
+    [collapsedInsightSectionSet, visibleInsightSections]
   );
 
   useEffect(() => {
@@ -2976,64 +3019,169 @@ export function GraphDemo() {
           </article>
 
           <aside className="graph-insight-panel">
-            <div className="graph-insight-card graph-section-overview">
-              <strong>领域聚类概览</strong>
-              <p className="muted">按知识域聚合风险，点击可直接切换到该域深挖。</p>
-              {domainClusterOverview.length > 0 ? (
-                <div className="graph-domain-cluster-list">
-                  {domainClusterOverview.map((cluster) => (
-                    <button
-                      type="button"
-                      key={`cluster_${cluster.domain}`}
-                      className={`graph-domain-cluster-item${
-                        domainFilter === cluster.domain ? " active" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedBridgeId("");
-                        setDomainFilter(cluster.domain);
-                      }}
-                    >
-                      <strong>{cluster.domain}</strong>
-                      <span>
-                        节点 {cluster.nodeCount} · 关系 {cluster.relationCount} · 高风险{" "}
-                        {cluster.highRiskCount}
-                      </span>
-                      <em>
-                        平均风险 {toPercent(cluster.averageRisk)} · 掌握度{" "}
-                        {toPercent(cluster.averageMastery)}
-                      </em>
-                    </button>
-                  ))}
-                </div>
+            <div className="graph-insight-toggle-bar">
+              <span>
+                侧栏分组：已折叠 {visibleCollapsedInsightCount}/{visibleInsightSections.length}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setCollapsedInsightSections((prev) => {
+                    const next = new Set(prev);
+                    visibleInsightSections.forEach((item) => {
+                      next.delete(item.key);
+                    });
+                    return Array.from(next);
+                  })
+                }
+                disabled={visibleCollapsedInsightCount === 0}
+              >
+                展开当前视图
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setCollapsedInsightSections((prev) => {
+                    const next = new Set(prev);
+                    visibleInsightSections.forEach((item) => next.add(item.key));
+                    return Array.from(next);
+                  })
+                }
+                disabled={
+                  visibleInsightSections.length > 0 &&
+                  visibleCollapsedInsightCount === visibleInsightSections.length
+                }
+              >
+                折叠当前视图
+              </button>
+            </div>
+
+            <div
+              className={`graph-insight-card graph-section-overview${
+                collapsedInsightSectionSet.has("domain_cluster") ? " collapsed" : ""
+              }`}
+            >
+              <header className="graph-insight-card-head">
+                <strong>领域聚类概览</strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedInsightSections((prev) =>
+                      prev.includes("domain_cluster")
+                        ? prev.filter((item) => item !== "domain_cluster")
+                        : [...prev, "domain_cluster"]
+                    )
+                  }
+                >
+                  {collapsedInsightSectionSet.has("domain_cluster") ? "展开" : "收起"}
+                </button>
+              </header>
+              {collapsedInsightSectionSet.has("domain_cluster") ? (
+                <p className="muted">该分组已折叠，展开后可查看领域聚类明细。</p>
               ) : (
-                <p className="muted">当前筛选下暂无聚类数据。</p>
+                <>
+                  <p className="muted">按知识域聚合风险，点击可直接切换到该域深挖。</p>
+                  {domainClusterOverview.length > 0 ? (
+                    <div className="graph-domain-cluster-list">
+                      {domainClusterOverview.map((cluster) => (
+                        <button
+                          type="button"
+                          key={`cluster_${cluster.domain}`}
+                          className={`graph-domain-cluster-item${
+                            domainFilter === cluster.domain ? " active" : ""
+                          }`}
+                          onClick={() => {
+                            setSelectedBridgeId("");
+                            setDomainFilter(cluster.domain);
+                          }}
+                        >
+                          <strong>{cluster.domain}</strong>
+                          <span>
+                            节点 {cluster.nodeCount} · 关系 {cluster.relationCount} · 高风险{" "}
+                            {cluster.highRiskCount}
+                          </span>
+                          <em>
+                            平均风险 {toPercent(cluster.averageRisk)} · 掌握度{" "}
+                            {toPercent(cluster.averageMastery)}
+                          </em>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">当前筛选下暂无聚类数据。</p>
+                  )}
+                </>
               )}
             </div>
 
-            <div className="graph-insight-card graph-section-overview">
-              <strong>高风险节点 Top 6</strong>
-              <p className="muted">优先复习这些节点，先补关系再做题。</p>
-              <div className="graph-risk-list">
-                {highRiskNodes.map((node) => (
-                  <button
-                    key={`risk_${node.id}`}
-                    type="button"
-                    className={`graph-risk-row${activeNode?.id === node.id ? " active" : ""}`}
-                    onClick={() => setActiveNodeId(node.id)}
-                  >
-                    <span>{node.label}</span>
-                    <em>{toPercent(node.risk)}</em>
-                  </button>
-                ))}
-                {highRiskNodes.length === 0 ? (
-                  <p className="muted">当前筛选下暂无节点。</p>
-                ) : null}
-              </div>
+            <div
+              className={`graph-insight-card graph-section-overview${
+                collapsedInsightSectionSet.has("risk_top") ? " collapsed" : ""
+              }`}
+            >
+              <header className="graph-insight-card-head">
+                <strong>高风险节点 Top 6</strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedInsightSections((prev) =>
+                      prev.includes("risk_top")
+                        ? prev.filter((item) => item !== "risk_top")
+                        : [...prev, "risk_top"]
+                    )
+                  }
+                >
+                  {collapsedInsightSectionSet.has("risk_top") ? "展开" : "收起"}
+                </button>
+              </header>
+              {collapsedInsightSectionSet.has("risk_top") ? (
+                <p className="muted">该分组已折叠，展开后可查看高风险节点。</p>
+              ) : (
+                <>
+                  <p className="muted">优先复习这些节点，先补关系再做题。</p>
+                  <div className="graph-risk-list">
+                    {highRiskNodes.map((node) => (
+                      <button
+                        key={`risk_${node.id}`}
+                        type="button"
+                        className={`graph-risk-row${activeNode?.id === node.id ? " active" : ""}`}
+                        onClick={() => setActiveNodeId(node.id)}
+                      >
+                        <span>{node.label}</span>
+                        <em>{toPercent(node.risk)}</em>
+                      </button>
+                    ))}
+                    {highRiskNodes.length === 0 ? (
+                      <p className="muted">当前筛选下暂无节点。</p>
+                    ) : null}
+                  </div>
+                </>
+              )}
             </div>
 
-            <div className="graph-insight-card graph-section-overview">
-              <strong>当前焦点</strong>
-              {activeNode ? (
+            <div
+              className={`graph-insight-card graph-section-overview${
+                collapsedInsightSectionSet.has("active_focus") ? " collapsed" : ""
+              }`}
+            >
+              <header className="graph-insight-card-head">
+                <strong>当前焦点</strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedInsightSections((prev) =>
+                      prev.includes("active_focus")
+                        ? prev.filter((item) => item !== "active_focus")
+                        : [...prev, "active_focus"]
+                    )
+                  }
+                >
+                  {collapsedInsightSectionSet.has("active_focus") ? "展开" : "收起"}
+                </button>
+              </header>
+              {collapsedInsightSectionSet.has("active_focus") ? (
+                <p className="muted">该分组已折叠，展开后可查看当前焦点及邻接关系。</p>
+              ) : activeNode ? (
                 <div className="graph-focus-box">
                   <h4>{activeNode.label}</h4>
                   <p>
@@ -3077,56 +3225,106 @@ export function GraphDemo() {
               )}
             </div>
 
-            <div className="graph-insight-card graph-section-bridge">
-              <strong>高风险关系链建议</strong>
-              <p className="muted">优先修复这些关系链，可显著降低“会做单点、不会迁移”的风险。</p>
-              {riskBridgeSuggestions.length > 0 ? (
-                <div className="graph-bridge-list">
-                  {riskBridgeSuggestions.map((bridge) => (
-                    <article
-                      key={`bridge_${bridge.id}`}
-                      className={`graph-bridge-item risk-${resolveRiskTone(bridge.risk)}${
-                        selectedBridgeId === bridge.id ? " active" : ""
-                      }`}
-                    >
-                      <header>
-                        <strong>
-                          {bridge.source.label} ↔ {bridge.target.label}
-                        </strong>
-                        <span>风险 {toPercent(bridge.risk)}</span>
-                      </header>
-                      <p>{bridge.summary}</p>
-                      <div className="graph-bridge-tools">
-                        <button
-                          type="button"
-                          onClick={() => handleFocusBridge(bridge)}
-                        >
-                          聚焦主节点
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handlePushBridgeToPath(bridge)}
-                        >
-                          推送路径建议
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handlePushBridgeToWorkspace(bridge)}
-                        >
-                          推送工作区
-                        </button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+            <div
+              className={`graph-insight-card graph-section-bridge${
+                collapsedInsightSectionSet.has("bridge_suggestions") ? " collapsed" : ""
+              }`}
+            >
+              <header className="graph-insight-card-head">
+                <strong>高风险关系链建议</strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedInsightSections((prev) =>
+                      prev.includes("bridge_suggestions")
+                        ? prev.filter((item) => item !== "bridge_suggestions")
+                        : [...prev, "bridge_suggestions"]
+                    )
+                  }
+                >
+                  {collapsedInsightSectionSet.has("bridge_suggestions") ? "展开" : "收起"}
+                </button>
+              </header>
+              {collapsedInsightSectionSet.has("bridge_suggestions") ? (
+                <p className="muted">该分组已折叠，展开后可查看关系链干预建议。</p>
               ) : (
-                <p className="muted">当前筛选下暂无高风险关系链。</p>
+                <>
+                  <p className="muted">
+                    优先修复这些关系链，可显著降低“会做单点、不会迁移”的风险。
+                  </p>
+                  {riskBridgeSuggestions.length > 0 ? (
+                    <div className="graph-bridge-list">
+                      {riskBridgeSuggestions.map((bridge) => (
+                        <article
+                          key={`bridge_${bridge.id}`}
+                          className={`graph-bridge-item risk-${resolveRiskTone(bridge.risk)}${
+                            selectedBridgeId === bridge.id ? " active" : ""
+                          }`}
+                        >
+                          <header>
+                            <strong>
+                              {bridge.source.label} ↔ {bridge.target.label}
+                            </strong>
+                            <span>风险 {toPercent(bridge.risk)}</span>
+                          </header>
+                          <p>{bridge.summary}</p>
+                          <div className="graph-bridge-tools">
+                            <button
+                              type="button"
+                              onClick={() => handleFocusBridge(bridge)}
+                            >
+                              聚焦主节点
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePushBridgeToPath(bridge)}
+                            >
+                              推送路径建议
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handlePushBridgeToWorkspace(bridge)}
+                            >
+                              推送工作区
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">当前筛选下暂无高风险关系链。</p>
+                  )}
+                </>
               )}
             </div>
 
-            <div className="graph-insight-card graph-section-bridge">
-              <strong>关系链回放时间轴</strong>
-              <p className="muted">记录每次图谱刷新后的关系链风险波动，用于回看干预是否生效。</p>
+            <div
+              className={`graph-insight-card graph-section-bridge${
+                collapsedInsightSectionSet.has("bridge_timeline") ? " collapsed" : ""
+              }`}
+            >
+              <header className="graph-insight-card-head">
+                <strong>关系链回放时间轴</strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedInsightSections((prev) =>
+                      prev.includes("bridge_timeline")
+                        ? prev.filter((item) => item !== "bridge_timeline")
+                        : [...prev, "bridge_timeline"]
+                    )
+                  }
+                >
+                  {collapsedInsightSectionSet.has("bridge_timeline") ? "展开" : "收起"}
+                </button>
+              </header>
+              {collapsedInsightSectionSet.has("bridge_timeline") ? (
+                <p className="muted">该分组已折叠，展开后可查看关系链回放控制与时间轴。</p>
+              ) : (
+                <>
+                  <p className="muted">
+                    记录每次图谱刷新后的关系链风险波动，用于回看干预是否生效。
+                  </p>
               <div className="graph-bridge-timeline-mode">
                 <button
                   type="button"
@@ -3362,13 +3560,37 @@ export function GraphDemo() {
               ) : (
                 <p className="muted">暂无关系链回放记录，请先刷新图谱或调整筛选。</p>
               )}
+                </>
+              )}
             </div>
 
-            <div className="graph-insight-card graph-section-history">
-              <strong>回放批次历史</strong>
-              <p className="muted">记录最近从回放推送的批次，支持一键复推到路径或工作区。</p>
-              {replayPushHistory.length > 0 ? (
+            <div
+              className={`graph-insight-card graph-section-history${
+                collapsedInsightSectionSet.has("replay_history") ? " collapsed" : ""
+              }`}
+            >
+              <header className="graph-insight-card-head">
+                <strong>回放批次历史</strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedInsightSections((prev) =>
+                      prev.includes("replay_history")
+                        ? prev.filter((item) => item !== "replay_history")
+                        : [...prev, "replay_history"]
+                    )
+                  }
+                >
+                  {collapsedInsightSectionSet.has("replay_history") ? "展开" : "收起"}
+                </button>
+              </header>
+              {collapsedInsightSectionSet.has("replay_history") ? (
+                <p className="muted">该分组已折叠，展开后可查看回放批次筛选与复推。</p>
+              ) : (
                 <>
+                  <p className="muted">记录最近从回放推送的批次，支持一键复推到路径或工作区。</p>
+                  {replayPushHistory.length > 0 ? (
+                    <>
                   <div className="graph-replay-history-head">
                     <span>最近 {replayPushHistory.length} 条</span>
                     <div className="graph-replay-history-head-actions">
@@ -3733,84 +3955,112 @@ export function GraphDemo() {
                   ) : (
                     <p className="muted">当前筛选下暂无历史批次，尝试切换筛选条件。</p>
                   )}
+                    </>
+                  ) : (
+                    <p className="muted">暂无回放推送历史，先执行一次“推送当前帧”或“批量推送”。</p>
+                  )}
                 </>
-              ) : (
-                <p className="muted">暂无回放推送历史，先执行一次“推送当前帧”或“批量推送”。</p>
               )}
             </div>
 
-            <div className="graph-insight-card graph-section-history">
-              <strong>图谱演化时间轴</strong>
-              <p className="muted">持续记录结构变化，便于回看知识网络是否在收敛。</p>
-              {activeTimeline ? (
-                <div className="graph-timeline-current">
-                  <p>
-                    最新快照：{formatDateTime(activeTimeline.at)} · 节点{" "}
-                    {activeTimeline.nodeCount} · 关系 {activeTimeline.edgeCount}
-                  </p>
-                  <p>
-                    高风险 {activeTimeline.highRiskCount} · 孤立节点{" "}
-                    {activeTimeline.isolatedNodeCount} · 平均掌握度{" "}
-                    {toPercent(activeTimeline.averageMastery)}
-                  </p>
-                  <p>当前最高风险节点：{activeTimeline.topRiskNodeLabel}</p>
-                  {timelineDelta ? (
-                    <div className="graph-timeline-delta-row">
-                      <span>节点 {formatDelta(timelineDelta.nodeDelta)}</span>
-                      <span>关系 {formatDelta(timelineDelta.edgeDelta)}</span>
-                      <span>掌握度 {formatDelta(timelineDelta.masteryDelta, { precision: 2 })}</span>
-                      <span>高风险 {formatDelta(timelineDelta.riskDelta)}</span>
+            <div
+              className={`graph-insight-card graph-section-history${
+                collapsedInsightSectionSet.has("graph_timeline") ? " collapsed" : ""
+              }`}
+            >
+              <header className="graph-insight-card-head">
+                <strong>图谱演化时间轴</strong>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setCollapsedInsightSections((prev) =>
+                      prev.includes("graph_timeline")
+                        ? prev.filter((item) => item !== "graph_timeline")
+                        : [...prev, "graph_timeline"]
+                    )
+                  }
+                >
+                  {collapsedInsightSectionSet.has("graph_timeline") ? "展开" : "收起"}
+                </button>
+              </header>
+              {collapsedInsightSectionSet.has("graph_timeline") ? (
+                <p className="muted">该分组已折叠，展开后可查看图谱演化与闭环事件。</p>
+              ) : (
+                <>
+                  <p className="muted">持续记录结构变化，便于回看知识网络是否在收敛。</p>
+                  {activeTimeline ? (
+                    <div className="graph-timeline-current">
+                      <p>
+                        最新快照：{formatDateTime(activeTimeline.at)} · 节点{" "}
+                        {activeTimeline.nodeCount} · 关系 {activeTimeline.edgeCount}
+                      </p>
+                      <p>
+                        高风险 {activeTimeline.highRiskCount} · 孤立节点{" "}
+                        {activeTimeline.isolatedNodeCount} · 平均掌握度{" "}
+                        {toPercent(activeTimeline.averageMastery)}
+                      </p>
+                      <p>当前最高风险节点：{activeTimeline.topRiskNodeLabel}</p>
+                      {timelineDelta ? (
+                        <div className="graph-timeline-delta-row">
+                          <span>节点 {formatDelta(timelineDelta.nodeDelta)}</span>
+                          <span>关系 {formatDelta(timelineDelta.edgeDelta)}</span>
+                          <span>
+                            掌握度 {formatDelta(timelineDelta.masteryDelta, { precision: 2 })}
+                          </span>
+                          <span>高风险 {formatDelta(timelineDelta.riskDelta)}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="muted">暂无历史快照。</p>
+                  )}
+
+                  {graphHistory.length > 0 ? (
+                    <div className="graph-timeline-list">
+                      {graphHistory.map((item) => (
+                        <div className="graph-timeline-item" key={item.id}>
+                          <strong>{formatDateTime(item.at)}</strong>
+                          <span>
+                            N{item.nodeCount} · E{item.edgeCount} · 风险{item.highRiskCount}
+                          </span>
+                        </div>
+                      ))}
                     </div>
                   ) : null}
-                </div>
-              ) : (
-                <p className="muted">暂无历史快照。</p>
+
+                  {graphActivities.length > 0 ? (
+                    <div className="graph-activity-list">
+                      <strong>闭环事件</strong>
+                      {graphActivities.slice(0, 6).map((event) => (
+                        <div
+                          className={`graph-activity-item${
+                            focusedActivityId === event.id ? " active" : ""
+                          } risk-${resolveActivityRiskTone(
+                            resolveGraphActivityRiskScore(event)
+                          )}`}
+                          key={event.id}
+                        >
+                          <p>
+                            {event.source === "path_feedback" ? "路径反馈" : "工作区推进"} ·{" "}
+                            {event.nodeLabel}
+                          </p>
+                          <span className="graph-activity-risk">
+                            风险 {Math.round(resolveGraphActivityRiskScore(event) * 100)}%
+                          </span>
+                          <span>{formatDateTime(event.at)}</span>
+                          <em>{event.detail}</em>
+                          <button
+                            type="button"
+                            onClick={() => handleFocusGraphActivity(event)}
+                          >
+                            定位到节点
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </>
               )}
-
-              {graphHistory.length > 0 ? (
-                <div className="graph-timeline-list">
-                  {graphHistory.map((item) => (
-                    <div className="graph-timeline-item" key={item.id}>
-                      <strong>{formatDateTime(item.at)}</strong>
-                      <span>
-                        N{item.nodeCount} · E{item.edgeCount} · 风险{item.highRiskCount}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              {graphActivities.length > 0 ? (
-                <div className="graph-activity-list">
-                  <strong>闭环事件</strong>
-                  {graphActivities.slice(0, 6).map((event) => (
-                    <div
-                      className={`graph-activity-item${
-                        focusedActivityId === event.id ? " active" : ""
-                      } risk-${resolveActivityRiskTone(
-                        resolveGraphActivityRiskScore(event)
-                      )}`}
-                      key={event.id}
-                    >
-                      <p>
-                        {event.source === "path_feedback" ? "路径反馈" : "工作区推进"} ·{" "}
-                        {event.nodeLabel}
-                      </p>
-                      <span className="graph-activity-risk">
-                        风险 {Math.round(resolveGraphActivityRiskScore(event) * 100)}%
-                      </span>
-                      <span>{formatDateTime(event.at)}</span>
-                      <em>{event.detail}</em>
-                      <button
-                        type="button"
-                        onClick={() => handleFocusGraphActivity(event)}
-                      >
-                        定位到节点
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
             </div>
           </aside>
         </div>

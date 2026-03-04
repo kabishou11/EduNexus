@@ -206,6 +206,8 @@ const REPLAY_PANEL_PRESETS: Record<
 
 const WORKSPACE_AUTO_APPLY_FOCUS_PROMPT_STORAGE_KEY =
   "edunexus_workspace_auto_apply_focus_prompt";
+const MESSAGE_VIRTUAL_ITEM_HEIGHT = 132;
+const MESSAGE_VIRTUAL_OVERSCAN = 5;
 
 function buildStreamMarkdownContent(snapshot: StreamMarkdownSnapshot) {
   return [
@@ -530,6 +532,9 @@ export function WorkspaceDemo() {
   const autoExportReplaySummaryRef = useRef(true);
   const hasAppliedGraphFocusRef = useRef(false);
   const appliedQuerySessionIdRef = useRef("");
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+  const [messageScrollTop, setMessageScrollTop] = useState(0);
+  const [messageViewportHeight, setMessageViewportHeight] = useState(420);
   const querySessionId = useMemo(
     () => searchParams.get("sessionId")?.trim() ?? "",
     [searchParams]
@@ -648,6 +653,32 @@ export function WorkspaceDemo() {
     () => sortReplayPushHistory(replayPushHistoryEntries, "latest").slice(0, 6),
     [replayPushHistoryEntries]
   );
+  const virtualMessageWindow = useMemo(() => {
+    if (messages.length === 0) {
+      return { startIndex: 0, endIndex: 0 };
+    }
+    const viewportHeight = Math.max(messageViewportHeight, MESSAGE_VIRTUAL_ITEM_HEIGHT);
+    const startIndex = Math.max(
+      0,
+      Math.floor(messageScrollTop / MESSAGE_VIRTUAL_ITEM_HEIGHT) - MESSAGE_VIRTUAL_OVERSCAN
+    );
+    const visibleCount =
+      Math.ceil(viewportHeight / MESSAGE_VIRTUAL_ITEM_HEIGHT) + MESSAGE_VIRTUAL_OVERSCAN * 2;
+    const endIndex = Math.min(messages.length, startIndex + visibleCount);
+    return { startIndex, endIndex };
+  }, [messageScrollTop, messageViewportHeight, messages.length]);
+  const virtualMessageItems = useMemo(
+    () =>
+      messages
+        .slice(virtualMessageWindow.startIndex, virtualMessageWindow.endIndex)
+        .map((item, offset) => ({
+          item,
+          index: virtualMessageWindow.startIndex + offset
+        })),
+    [messages, virtualMessageWindow.endIndex, virtualMessageWindow.startIndex]
+  );
+  const virtualMessageOffsetTop = virtualMessageWindow.startIndex * MESSAGE_VIRTUAL_ITEM_HEIGHT;
+  const virtualMessageTotalHeight = messages.length * MESSAGE_VIRTUAL_ITEM_HEIGHT;
 
   const loadReplayPushHistory = useCallback(() => {
     setReplayPushHistoryEntries(
@@ -767,6 +798,39 @@ export function WorkspaceDemo() {
     window.addEventListener("focus", loadReplayPushHistory);
     return () => window.removeEventListener("focus", loadReplayPushHistory);
   }, [loadReplayPushHistory]);
+
+  useEffect(() => {
+    const listElement = messageListRef.current;
+    if (!listElement) {
+      return;
+    }
+    const syncViewport = () =>
+      setMessageViewportHeight(
+        Math.max(listElement.clientHeight, MESSAGE_VIRTUAL_ITEM_HEIGHT)
+      );
+    syncViewport();
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(() => syncViewport());
+    observer.observe(listElement);
+    return () => observer.disconnect();
+  }, [messages.length, workspaceViewMode]);
+
+  useEffect(() => {
+    const listElement = messageListRef.current;
+    if (!listElement) {
+      return;
+    }
+    const maxScrollTop = Math.max(
+      0,
+      messages.length * MESSAGE_VIRTUAL_ITEM_HEIGHT - messageViewportHeight
+    );
+    if (listElement.scrollTop > maxScrollTop) {
+      listElement.scrollTop = maxScrollTop;
+      setMessageScrollTop(maxScrollTop);
+    }
+  }, [messageViewportHeight, messages.length]);
 
   useEffect(() => {
     if (hasAppliedGraphFocusRef.current) {
@@ -2363,19 +2427,45 @@ export function WorkspaceDemo() {
 
       <div className="panel half workspace-section workspace-section-learn workspace-section-replay">
         <h3>会话记录</h3>
-        <div className="card-list">
+        <div className="workspace-message-list-meta">
+          <span>
+            共 {messages.length} 条 · 当前渲染 {virtualMessageItems.length} 条
+          </span>
+        </div>
+        <div
+          className="card-list workspace-message-list"
+          ref={messageListRef}
+          onScroll={(event) => setMessageScrollTop(event.currentTarget.scrollTop)}
+        >
           {messages.length === 0 ? (
             <div className="card-item muted">当前暂无会话记录。</div>
           ) : (
-            messages.map((item, index) => (
-              <div className="card-item" key={`${item.role}_${index}_${item.createdAt}`}>
-                <strong>
-                  {item.role === "assistant" ? "AI 引导" : item.role === "user" ? "我的输入" : "系统提示"}
-                </strong>
-                <p>{item.content}</p>
-                <p className="muted">{formatTime(item.createdAt)}</p>
+            <div
+              className="workspace-message-virtual"
+              style={{ height: `${virtualMessageTotalHeight}px` }}
+            >
+              <div
+                className="workspace-message-window"
+                style={{ transform: `translateY(${virtualMessageOffsetTop}px)` }}
+              >
+                {virtualMessageItems.map(({ item, index }) => (
+                  <div
+                    className="card-item workspace-message-item"
+                    key={`${item.role}_${index}_${item.createdAt}`}
+                  >
+                    <strong>
+                      {item.role === "assistant"
+                        ? "AI 引导"
+                        : item.role === "user"
+                          ? "我的输入"
+                          : "系统提示"}
+                    </strong>
+                    <p>{item.content}</p>
+                    <p className="muted">{formatTime(item.createdAt)}</p>
+                  </div>
+                ))}
               </div>
-            ))
+            </div>
           )}
         </div>
 

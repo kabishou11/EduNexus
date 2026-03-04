@@ -224,11 +224,77 @@ const buildImportAuditRollbackPreview = createImportAuditRollbackPreviewBuilder(
 });
 
 type SettingsViewMode = "basic" | "advanced" | "import";
+type SettingsAnchorView = SettingsViewMode | "all";
+type SettingsAnchorItem = {
+  id: string;
+  label: string;
+  keywords: string[];
+  view: SettingsAnchorView;
+};
+
+const SETTINGS_ANCHOR_ITEMS: SettingsAnchorItem[] = [
+  {
+    id: "settings_global_actions",
+    label: "全局操作",
+    keywords: ["保存", "导出", "恢复默认", "本地读取", "全局"],
+    view: "all"
+  },
+  {
+    id: "settings_profile",
+    label: "策略画像管理",
+    keywords: ["画像", "策略", "美学", "命名", "配置版本"],
+    view: "basic"
+  },
+  {
+    id: "settings_template_pack",
+    label: "一键模板包",
+    keywords: ["模板", "套件", "快速配置", "初始化"],
+    view: "basic"
+  },
+  {
+    id: "settings_dashboard_params",
+    label: "Dashboard 预警参数",
+    keywords: ["dashboard", "预警", "阈值", "策略档位"],
+    view: "basic"
+  },
+  {
+    id: "settings_workspace_params",
+    label: "Workspace 回放参数",
+    keywords: ["workspace", "回放", "书签", "倍速", "摘要导出"],
+    view: "basic"
+  },
+  {
+    id: "settings_kb_params",
+    label: "KB 章节参数",
+    keywords: ["kb", "章节", "子图", "关键节点", "趋势行"],
+    view: "basic"
+  },
+  {
+    id: "settings_history_rollback",
+    label: "变更历史与回滚",
+    keywords: ["历史", "回滚", "差异", "快照", "审计"],
+    view: "advanced"
+  },
+  {
+    id: "settings_import_json",
+    label: "JSON 导入区",
+    keywords: ["json", "导入", "冲突", "预览", "覆盖"],
+    view: "import"
+  },
+  {
+    id: "settings_import_audit",
+    label: "导入审计日志",
+    keywords: ["审计", "回滚", "导出", "日志", "记录"],
+    view: "import"
+  }
+];
 
 export default function SettingsPage() {
   const [settingsViewMode, setSettingsViewMode] =
     useState<SettingsViewMode>("basic");
   const [noviceMode, setNoviceMode] = useState(true);
+  const [settingsSearchKeyword, setSettingsSearchKeyword] = useState("");
+  const [activeAnchorId, setActiveAnchorId] = useState("");
   const [bundle, setBundle] = useState<ConfigBundle>(buildDefaultBundle());
   const [configHistory, setConfigHistory] = useState<ConfigHistoryItem[]>([]);
   const [importAuditLog, setImportAuditLog] = useState<ImportAuditItem[]>([]);
@@ -787,6 +853,41 @@ export default function SettingsPage() {
     canImportProfileStoreFromJson,
     hint: jsonActionHint
   } = jsonImportActionState;
+  const normalizedSettingsSearchKeyword = useMemo(
+    () => settingsSearchKeyword.trim().toLowerCase(),
+    [settingsSearchKeyword]
+  );
+  const visibleSettingsAnchors = useMemo(() => {
+    const baseAnchors = SETTINGS_ANCHOR_ITEMS.filter(
+      (item) => item.view === "all" || item.view === settingsViewMode
+    );
+    if (!normalizedSettingsSearchKeyword) {
+      return baseAnchors.slice(0, 7);
+    }
+    return SETTINGS_ANCHOR_ITEMS.filter((item) => {
+      const labelText = item.label.toLowerCase();
+      if (labelText.includes(normalizedSettingsSearchKeyword)) {
+        return true;
+      }
+      return item.keywords.some((keyword) =>
+        keyword.toLowerCase().includes(normalizedSettingsSearchKeyword)
+      );
+    }).slice(0, 12);
+  }, [normalizedSettingsSearchKeyword, settingsViewMode]);
+
+  const jumpToSettingsAnchor = (anchor: SettingsAnchorItem) => {
+    setActiveAnchorId(anchor.id);
+    const scrollToAnchor = () => {
+      const section = document.getElementById(anchor.id);
+      section?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+    if (anchor.view !== "all" && settingsViewMode !== anchor.view) {
+      setSettingsViewMode(anchor.view);
+      window.setTimeout(scrollToAnchor, 120);
+      return;
+    }
+    scrollToAnchor();
+  };
 
   if (!hasMounted) {
     return (
@@ -871,9 +972,55 @@ export default function SettingsPage() {
               新手模式（默认开启）：隐藏高级阈值和细粒度参数，先保证流程可用
             </span>
           </label>
+          <div className="settings-search-tools">
+            <label className="settings-search-input">
+              <span>参数搜索</span>
+              <input
+                value={settingsSearchKeyword}
+                onChange={(event) => setSettingsSearchKeyword(event.target.value)}
+                placeholder="例如：阈值 / 回放 / 导入 / 回滚 / 模板"
+              />
+            </label>
+            {settingsSearchKeyword ? (
+              <button
+                type="button"
+                className="settings-search-clear"
+                onClick={() => setSettingsSearchKeyword("")}
+              >
+                清空
+              </button>
+            ) : null}
+          </div>
+          <div className="settings-anchor-row">
+            {visibleSettingsAnchors.map((anchor) => (
+              <button
+                type="button"
+                key={anchor.id}
+                className={activeAnchorId === anchor.id ? "active" : ""}
+                onClick={() => jumpToSettingsAnchor(anchor)}
+              >
+                {anchor.label}
+                <em>
+                  {anchor.view === "all"
+                    ? "全局"
+                    : anchor.view === "basic"
+                      ? "常用"
+                      : anchor.view === "advanced"
+                        ? "高级"
+                        : "导入"}
+                </em>
+              </button>
+            ))}
+            {visibleSettingsAnchors.length === 0 ? (
+              <span className="settings-anchor-empty">无匹配项，请换个关键词。</span>
+            ) : null}
+          </div>
         </article>
 
-        <article className="panel wide settings-section settings-section-common">
+        <article
+          id="settings_global_actions"
+          className="panel wide settings-section settings-section-common"
+        >
           <h3>全局操作</h3>
           <div className="config-toolbar">
             <button type="button" onClick={handleReloadFromStorage}>
@@ -894,7 +1041,10 @@ export default function SettingsPage() {
           </p>
         </article>
 
-        <article className="panel half settings-section settings-section-basic">
+        <article
+          id="settings_profile"
+          className="panel half settings-section settings-section-basic"
+        >
           <h3>策略画像管理</h3>
           <div className="demo-form">
             <label>切换画像</label>
@@ -1029,7 +1179,10 @@ export default function SettingsPage() {
           </div>
         </article>
 
-        <article className="panel half settings-section settings-section-basic">
+        <article
+          id="settings_template_pack"
+          className="panel half settings-section settings-section-basic"
+        >
           <h3>一键模板包</h3>
           <div className="config-pack-grid">
             {CONFIG_TEMPLATE_PACKS.map((item) => (
@@ -1052,7 +1205,10 @@ export default function SettingsPage() {
           </div>
         </article>
 
-        <article className="panel half settings-section settings-section-advanced">
+        <article
+          id="settings_history_rollback"
+          className="panel half settings-section settings-section-advanced"
+        >
           <h3>变更历史与回滚</h3>
           <div className="config-history-head">
             <span>最近 {configHistory.length} 条</span>
@@ -1152,7 +1308,10 @@ export default function SettingsPage() {
           )}
         </article>
 
-        <article className="panel half settings-section settings-section-basic">
+        <article
+          id="settings_dashboard_params"
+          className="panel half settings-section settings-section-basic"
+        >
           <h3>Dashboard 预警参数</h3>
           <div className="demo-form">
             <label>策略档位</label>
@@ -1282,7 +1441,10 @@ export default function SettingsPage() {
           </div>
         </article>
 
-        <article className="panel half settings-section settings-section-basic">
+        <article
+          id="settings_workspace_params"
+          className="panel half settings-section settings-section-basic"
+        >
           <h3>Workspace 回放参数</h3>
           <div className="demo-form">
             <div className="config-preset-row">
@@ -1389,7 +1551,10 @@ export default function SettingsPage() {
           </div>
         </article>
 
-        <article className="panel half settings-section settings-section-basic">
+        <article
+          id="settings_kb_params"
+          className="panel half settings-section settings-section-basic"
+        >
           <h3>KB 章节参数</h3>
           <div className="demo-form">
             <div className="config-preset-row">
@@ -1496,7 +1661,10 @@ export default function SettingsPage() {
           </div>
         </article>
 
-        <div className="settings-section settings-section-import">
+        <div
+          id="settings_import_json"
+          className="settings-section settings-section-import"
+        >
           <JsonImportPanel
             jsonDraft={jsonDraft}
             onJsonDraftChange={setJsonDraft}
@@ -1531,7 +1699,10 @@ export default function SettingsPage() {
           />
         </div>
 
-        <div className="settings-section settings-section-import">
+        <div
+          id="settings_import_audit"
+          className="settings-section settings-section-import"
+        >
           <ImportAuditLogPanel
             log={importAuditLog}
             filteredLog={filteredImportAuditLog}
