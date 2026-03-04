@@ -562,6 +562,53 @@ export function WorkspaceDemo() {
   const hasMatchedQuerySession = Boolean(querySessionId) && sessionId === querySessionId;
 
   const canUnlock = useMemo(() => nextData?.canUnlockFinal ?? false, [nextData]);
+  const learningChecklist = useMemo(
+    () => [
+      {
+        id: "session",
+        label: "会话准备",
+        done: Boolean(sessionId),
+        hint: sessionId ? `已就绪：${sessionId}` : "先创建或恢复会话"
+      },
+      {
+        id: "thinking",
+        label: "写出当前思路",
+        done: userInput.trim().length >= 16,
+        hint: userInput.trim().length >= 16 ? "思路内容已填写" : "建议补充关键条件与步骤"
+      },
+      {
+        id: "guidance",
+        label: "完成一轮引导",
+        done: messages.some((item) => item.role === "assistant"),
+        hint: messages.some((item) => item.role === "assistant")
+          ? "已有引导反馈"
+          : "点击“请求下一层引导”开始"
+      },
+      {
+        id: "reflection",
+        label: "记录反思",
+        done: reflection.trim().length >= 12,
+        hint:
+          reflection.trim().length >= 12
+            ? "反思已记录"
+            : "建议补充错因与后续改进动作"
+      },
+      {
+        id: "evidence",
+        label: "形成证据沉淀",
+        done: Boolean(saveResult) || Boolean(nextData) || Boolean(agentData),
+        hint:
+          saveResult || nextData || agentData
+            ? "已形成可回看证据"
+            : "可先运行工作流并沉淀为本地笔记"
+      }
+    ],
+    [agentData, messages, nextData, reflection, saveResult, sessionId, userInput]
+  );
+  const learningChecklistDoneCount = useMemo(
+    () => learningChecklist.filter((item) => item.done).length,
+    [learningChecklist]
+  );
   const activeGraphFocusQueueIndex = useMemo(() => {
     if (graphFocusQueue.length === 0) {
       return -1;
@@ -2111,165 +2158,206 @@ export function WorkspaceDemo() {
 
       <div className="panel half workspace-section workspace-section-learn workspace-section-replay">
         <h3>输入与控制</h3>
-        {graphFocusHint ? <div className="result-box info">{graphFocusHint}</div> : null}
-        {graphFocusSummary ? (
-          <div className="workspace-focus-card">
-            <strong>图谱焦点联动</strong>
-            <p>
-              节点：{graphFocus?.nodeLabel} · 风险：{graphFocusSummary.risk} · 掌握度：
-              {graphFocusSummary.mastery}
-            </p>
-            {graphFocusSummary.replayBatchId ? (
-              <p>
-                回放批次：{graphFocusSummary.replayBatchId}
-                {graphFocusSummary.replaySlot
-                  ? `（${graphFocusSummary.replaySlot}）`
-                  : ""}
-                {graphFocusSummary.replayMode
-                  ? ` · 模式 ${graphFocusSummary.replayMode}`
-                  : ""}
-              </p>
-            ) : null}
-            {graphFocusQueue.length > 1 ? (
-              <div className="workspace-focus-queue">
-                <div className="workspace-focus-queue-head">
-                  <span>批量关系链队列（{graphFocusQueue.length}）</span>
-                  <div className="workspace-focus-queue-nav">
-                    <button type="button" onClick={() => stepGraphFocusQueue(-1)} disabled={loading}>
-                      上一条
-                    </button>
-                    <span>
-                      {Math.max(1, activeGraphFocusQueueIndex + 1)}/{graphFocusQueue.length}
-                    </span>
-                    <button type="button" onClick={() => stepGraphFocusQueue(1)} disabled={loading}>
-                      下一条
-                    </button>
-                  </div>
-                </div>
-                <small className="workspace-focus-queue-tip">
-                  快捷键：`[` / `]`，或 Alt + 上/下方向键
-                </small>
-                <label className="workspace-focus-auto-apply">
-                  <input
-                    type="checkbox"
-                    checked={autoApplyGraphFocusPrompt}
-                    onChange={(event) => setAutoApplyGraphFocusPrompt(event.target.checked)}
-                  />
-                  <span>切换队列时自动应用提示词</span>
-                </label>
-                <div className="workspace-focus-queue-list">
-                  {graphFocusQueue.map((item, index) => {
-                    const queueKey = buildFocusQueueKey(item);
-                    const active =
-                      activeGraphFocusQueueKey === queueKey ||
-                      (graphFocus ? buildFocusQueueKey(graphFocus) === queueKey : false);
-                    return (
-                      <button
-                        type="button"
-                        key={`workspace_focus_queue_${queueKey}_${index}`}
-                        className={active ? "active" : ""}
-                        onClick={() => switchGraphFocusFromQueue(item, index)}
-                        disabled={loading}
-                      >
-                        <span>
-                          {index + 1}. {item.nodeLabel}
-                          {item.bridgePartnerLabel ? ` ↔ ${item.bridgePartnerLabel}` : ""}
-                        </span>
-                        <em>风险 {Math.round(item.risk * 100)}%</em>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-            <div className="workspace-replay-history">
-              <header>
-                <strong>回放批次历史入口</strong>
-                <span>一键载入为当前工作区关系链队列</span>
-              </header>
-              {replayPushHistoryPreview.length > 0 ? (
-                <div className="workspace-replay-history-list">
-                  {replayPushHistoryPreview.map((entry) => (
-                    <article key={entry.id} className="workspace-replay-history-item">
-                      <p>
-                        <strong>{entry.batchId}</strong> · {entry.count} 条 · 原目标{" "}
-                        {resolveReplayPushTargetLabel(entry.target)}
-                      </p>
-                      <span>
-                        {resolveReplayPushSourceLabel(entry.source)}
-                        {entry.mode ? ` · 模式 ${entry.mode}` : ""}
-                      </span>
-                      <div className="workspace-replay-history-actions">
-                        <button
-                          type="button"
-                          onClick={() => applyReplayHistoryToWorkspace(entry)}
-                        >
-                          载入到工作区
+        <div className="workspace-learn-grid">
+          <aside className="workspace-task-card">
+            <header>
+              <strong>学习任务清单</strong>
+              <span>
+                {learningChecklistDoneCount}/{learningChecklist.length}
+              </span>
+            </header>
+            <div className="workspace-task-progress">
+              <span
+                style={{
+                  width: `${(learningChecklistDoneCount / Math.max(1, learningChecklist.length)) * 100}%`
+                }}
+              />
+            </div>
+            <div className="workspace-task-list">
+              {learningChecklist.map((item, index) => (
+                <article
+                  key={`workspace_task_${item.id}`}
+                  className={`workspace-task-item ${item.done ? "done" : ""}`}
+                >
+                  <strong>
+                    {index + 1}. {item.label}
+                  </strong>
+                  <p>{item.hint}</p>
+                </article>
+              ))}
+            </div>
+            <div className="workspace-task-actions">
+              <button type="button" onClick={() => setWorkspaceViewMode("sessions")}>
+                打开会话管理
+              </button>
+              <button type="button" onClick={() => setWorkspaceViewMode("replay")}>
+                打开链路回放
+              </button>
+            </div>
+          </aside>
+
+          <div className="workspace-control-stack">
+            {graphFocusHint ? <div className="result-box info">{graphFocusHint}</div> : null}
+            {graphFocusSummary ? (
+              <div className="workspace-focus-card">
+                <strong>图谱焦点联动</strong>
+                <p>
+                  节点：{graphFocus?.nodeLabel} · 风险：{graphFocusSummary.risk} · 掌握度：
+                  {graphFocusSummary.mastery}
+                </p>
+                {graphFocusSummary.replayBatchId ? (
+                  <p>
+                    回放批次：{graphFocusSummary.replayBatchId}
+                    {graphFocusSummary.replaySlot
+                      ? `（${graphFocusSummary.replaySlot}）`
+                      : ""}
+                    {graphFocusSummary.replayMode
+                      ? ` · 模式 ${graphFocusSummary.replayMode}`
+                      : ""}
+                  </p>
+                ) : null}
+                {graphFocusQueue.length > 1 ? (
+                  <div className="workspace-focus-queue">
+                    <div className="workspace-focus-queue-head">
+                      <span>批量关系链队列（{graphFocusQueue.length}）</span>
+                      <div className="workspace-focus-queue-nav">
+                        <button type="button" onClick={() => stepGraphFocusQueue(-1)} disabled={loading}>
+                          上一条
                         </button>
-                        <button type="button" onClick={() => openReplayBatchInGraph(entry)}>
-                          回图谱定位
+                        <span>
+                          {Math.max(1, activeGraphFocusQueueIndex + 1)}/{graphFocusQueue.length}
+                        </span>
+                        <button type="button" onClick={() => stepGraphFocusQueue(1)} disabled={loading}>
+                          下一条
                         </button>
                       </div>
-                    </article>
-                  ))}
+                    </div>
+                    <small className="workspace-focus-queue-tip">
+                      快捷键：`[` / `]`，或 Alt + 上/下方向键
+                    </small>
+                    <label className="workspace-focus-auto-apply">
+                      <input
+                        type="checkbox"
+                        checked={autoApplyGraphFocusPrompt}
+                        onChange={(event) => setAutoApplyGraphFocusPrompt(event.target.checked)}
+                      />
+                      <span>切换队列时自动应用提示词</span>
+                    </label>
+                    <div className="workspace-focus-queue-list">
+                      {graphFocusQueue.map((item, index) => {
+                        const queueKey = buildFocusQueueKey(item);
+                        const active =
+                          activeGraphFocusQueueKey === queueKey ||
+                          (graphFocus ? buildFocusQueueKey(graphFocus) === queueKey : false);
+                        return (
+                          <button
+                            type="button"
+                            key={`workspace_focus_queue_${queueKey}_${index}`}
+                            className={active ? "active" : ""}
+                            onClick={() => switchGraphFocusFromQueue(item, index)}
+                            disabled={loading}
+                          >
+                            <span>
+                              {index + 1}. {item.nodeLabel}
+                              {item.bridgePartnerLabel ? ` ↔ ${item.bridgePartnerLabel}` : ""}
+                            </span>
+                            <em>风险 {Math.round(item.risk * 100)}%</em>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="workspace-replay-history">
+                  <header>
+                    <strong>回放批次历史入口</strong>
+                    <span>一键载入为当前工作区关系链队列</span>
+                  </header>
+                  {replayPushHistoryPreview.length > 0 ? (
+                    <div className="workspace-replay-history-list">
+                      {replayPushHistoryPreview.map((entry) => (
+                        <article key={entry.id} className="workspace-replay-history-item">
+                          <p>
+                            <strong>{entry.batchId}</strong> · {entry.count} 条 · 原目标{" "}
+                            {resolveReplayPushTargetLabel(entry.target)}
+                          </p>
+                          <span>
+                            {resolveReplayPushSourceLabel(entry.source)}
+                            {entry.mode ? ` · 模式 ${entry.mode}` : ""}
+                          </span>
+                          <div className="workspace-replay-history-actions">
+                            <button
+                              type="button"
+                              onClick={() => applyReplayHistoryToWorkspace(entry)}
+                            >
+                              载入到工作区
+                            </button>
+                            <button type="button" onClick={() => openReplayBatchInGraph(entry)}>
+                              回图谱定位
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="muted">暂无回放批次历史，可先在图谱页执行批量推送。</p>
+                  )}
                 </div>
-              ) : (
-                <p className="muted">暂无回放批次历史，可先在图谱页执行批量推送。</p>
-              )}
+                <p>关联节点：{graphFocusSummary.related}</p>
+                <button type="button" onClick={applyGraphFocusPrompt} disabled={loading}>
+                  重新应用图谱焦点提示词
+                </button>
+              </div>
+            ) : null}
+            <div className="demo-form">
+              <label>当前会话 ID</label>
+              <input value={sessionId} readOnly placeholder="请先创建或恢复会话" />
+
+              <label>会话标题（可重命名）</label>
+              <input
+                value={sessionTitle}
+                onChange={(event) => setSessionTitle(event.target.value)}
+                placeholder="输入会话标题"
+              />
+              <button type="button" onClick={renameCurrentSession} disabled={loading || !sessionId}>
+                重命名当前会话
+              </button>
+
+              <label>我的当前思路</label>
+              <textarea
+                rows={4}
+                value={userInput}
+                onChange={(event) => setUserInput(event.target.value)}
+              />
+
+              <button type="button" onClick={requestNext} disabled={loading || !sessionId}>
+                请求下一层引导（当前 Level {currentLevel}）
+              </button>
+
+              <label>反思内容（用于最终答案门控）</label>
+              <textarea
+                rows={3}
+                value={reflection}
+                onChange={(event) => setReflection(event.target.value)}
+              />
+
+              <button type="button" onClick={unlockFinal} disabled={loading || !canUnlock || !sessionId}>
+                尝试解锁最终答案
+              </button>
+              <button type="button" onClick={runLangGraphAgent} disabled={loading || !sessionId}>
+                运行 LangGraph 学习工作流
+              </button>
+              <button type="button" onClick={runLangGraphAgentStream} disabled={loading || !sessionId}>
+                流式运行 LangGraph
+              </button>
+              <button type="button" onClick={startStream} disabled={loading || !sessionId}>
+                触发流式引导输出
+              </button>
+              <button type="button" onClick={saveNote} disabled={loading || messages.length === 0}>
+                沉淀为本地笔记
+              </button>
             </div>
-            <p>关联节点：{graphFocusSummary.related}</p>
-            <button type="button" onClick={applyGraphFocusPrompt} disabled={loading}>
-              重新应用图谱焦点提示词
-            </button>
           </div>
-        ) : null}
-        <div className="demo-form">
-          <label>当前会话 ID</label>
-          <input value={sessionId} readOnly placeholder="请先创建或恢复会话" />
-
-          <label>会话标题（可重命名）</label>
-          <input
-            value={sessionTitle}
-            onChange={(event) => setSessionTitle(event.target.value)}
-            placeholder="输入会话标题"
-          />
-          <button type="button" onClick={renameCurrentSession} disabled={loading || !sessionId}>
-            重命名当前会话
-          </button>
-
-          <label>我的当前思路</label>
-          <textarea
-            rows={4}
-            value={userInput}
-            onChange={(event) => setUserInput(event.target.value)}
-          />
-
-          <button type="button" onClick={requestNext} disabled={loading || !sessionId}>
-            请求下一层引导（当前 Level {currentLevel}）
-          </button>
-
-          <label>反思内容（用于最终答案门控）</label>
-          <textarea
-            rows={3}
-            value={reflection}
-            onChange={(event) => setReflection(event.target.value)}
-          />
-
-          <button type="button" onClick={unlockFinal} disabled={loading || !canUnlock || !sessionId}>
-            尝试解锁最终答案
-          </button>
-          <button type="button" onClick={runLangGraphAgent} disabled={loading || !sessionId}>
-            运行 LangGraph 学习工作流
-          </button>
-          <button type="button" onClick={runLangGraphAgentStream} disabled={loading || !sessionId}>
-            流式运行 LangGraph
-          </button>
-          <button type="button" onClick={startStream} disabled={loading || !sessionId}>
-            触发流式引导输出
-          </button>
-          <button type="button" onClick={saveNote} disabled={loading || messages.length === 0}>
-            沉淀为本地笔记
-          </button>
         </div>
       </div>
 

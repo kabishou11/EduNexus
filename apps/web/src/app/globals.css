@@ -560,6 +560,18 @@ html[data-theme="aurora"] .panel {
   color: var(--text-dim);
 }
 
+.settings-novice-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.settings-novice-toggle input[type="checkbox"] {
+  accent-color: #61c7ff;
+}
+
 .workspace-layout[data-view="learn"] .workspace-section-sessions,
 .workspace-layout[data-view="replay"] .workspace-section-sessions {
   display: none;
@@ -644,6 +656,10 @@ html[data-theme="aurora"] .settings-view-switcher-row button.active {
   border-color: rgba(64, 174, 138, 0.46);
   background: rgba(103, 210, 174, 0.22);
   color: #245c4a;
+}
+
+html[data-theme="aurora"] .settings-novice-toggle {
+  color: #5c7fad;
 }
 
 html[data-theme="aurora"] .page-head-cta a:first-child {
@@ -3809,6 +3825,16 @@ html[data-theme="aurora"] .demo-form select {
   accent-color: #61c7ff;
 }
 
+.config-novice-hint {
+  margin: 0;
+  border: 1px dashed rgba(97, 132, 178, 0.42);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: rgba(10, 16, 27, 0.48);
+  color: #9fc7ee;
+  font-size: 12px;
+}
+
 .config-json {
   min-height: 280px;
   white-space: pre;
@@ -4699,6 +4725,12 @@ html[data-theme="aurora"] .config-check-label input[type="checkbox"] {
   accent-color: #4c93ff;
 }
 
+html[data-theme="aurora"] .config-novice-hint {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.82);
+  color: #5c7fad;
+}
+
 html[data-theme="aurora"] .config-import-hint {
   color: #698db8;
 }
@@ -5325,6 +5357,45 @@ html[data-theme="aurora"] .config-diff-values em {
   border-color: rgba(159, 255, 210, 0.58);
   background: rgba(97, 199, 255, 0.15);
   color: #def7ff;
+}
+
+.graph-domain-collapse {
+  border: 1px solid rgba(97, 132, 178, 0.36);
+  border-radius: 11px;
+  background: rgba(8, 13, 22, 0.48);
+  padding: 7px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.graph-domain-collapse span {
+  font-size: 12px;
+  color: #9fc7ee;
+}
+
+.graph-domain-collapse button {
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.62);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 9px;
+  cursor: pointer;
+}
+
+.graph-domain-collapse button.active {
+  border-color: rgba(159, 255, 210, 0.56);
+  color: #dbfff0;
+  background: rgba(159, 255, 210, 0.14);
+}
+
+.graph-domain-collapse button.collapsed {
+  border-color: rgba(236, 168, 92, 0.52);
+  color: #ffd7aa;
+  background: rgba(236, 168, 92, 0.14);
 }
 
 .graph-workbench-grid {
@@ -7110,6 +7181,104 @@ html[data-theme="aurora"] .config-diff-values em {
   cursor: not-allowed;
 }
 
+.workspace-learn-grid {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) minmax(0, 1.6fr);
+  gap: 10px;
+}
+
+.workspace-task-card {
+  border: 1px solid rgba(97, 132, 178, 0.36);
+  border-radius: 12px;
+  padding: 10px;
+  background:
+    radial-gradient(circle at 86% 10%, rgba(97, 199, 255, 0.14), transparent 36%),
+    rgba(8, 13, 22, 0.58);
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.workspace-task-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.workspace-task-card header strong {
+  font-size: 13px;
+}
+
+.workspace-task-card header span {
+  font-size: 12px;
+  color: #9fc7ee;
+}
+
+.workspace-task-progress {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(97, 132, 178, 0.26);
+  overflow: hidden;
+}
+
+.workspace-task-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(97, 199, 255, 0.9), rgba(159, 255, 210, 0.92));
+}
+
+.workspace-task-list {
+  display: grid;
+  gap: 7px;
+}
+
+.workspace-task-item {
+  border: 1px solid rgba(97, 132, 178, 0.34);
+  border-radius: 10px;
+  padding: 8px;
+  background: rgba(10, 16, 27, 0.5);
+}
+
+.workspace-task-item strong {
+  display: block;
+  font-size: 12px;
+}
+
+.workspace-task-item p {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.workspace-task-item.done {
+  border-color: rgba(159, 255, 210, 0.52);
+  background: rgba(159, 255, 210, 0.14);
+}
+
+.workspace-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.workspace-task-actions button {
+  border: 1px solid rgba(97, 132, 178, 0.42);
+  border-radius: 999px;
+  background: rgba(10, 16, 27, 0.56);
+  color: #d8efff;
+  font: inherit;
+  font-size: 11px;
+  padding: 3px 8px;
+  cursor: pointer;
+}
+
+.workspace-control-stack {
+  display: grid;
+  gap: 10px;
+}
+
 .workspace-focus-card {
   border: 1px solid rgba(97, 132, 178, 0.36);
   border-radius: 12px;
@@ -7404,6 +7573,33 @@ html[data-theme="aurora"] .graph-domain-switch button.active {
   border-color: rgba(84, 155, 255, 0.52);
   background: rgba(122, 187, 255, 0.2);
   color: #214b78;
+}
+
+html[data-theme="aurora"] .graph-domain-collapse {
+  border-color: rgba(118, 154, 216, 0.42);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+html[data-theme="aurora"] .graph-domain-collapse span {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .graph-domain-collapse button {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  color: #4f719f;
+}
+
+html[data-theme="aurora"] .graph-domain-collapse button.active {
+  border-color: rgba(64, 174, 138, 0.46);
+  background: rgba(103, 210, 174, 0.2);
+  color: #245c4a;
+}
+
+html[data-theme="aurora"] .graph-domain-collapse button.collapsed {
+  border-color: rgba(228, 164, 82, 0.48);
+  background: rgba(255, 226, 186, 0.46);
+  color: #8a5a2a;
 }
 
 html[data-theme="aurora"] .graph-canvas-panel,
@@ -8143,6 +8339,37 @@ html[data-theme="aurora"] .workspace-graph-context-guide {
 }
 
 html[data-theme="aurora"] .workspace-graph-context-actions button {
+  border-color: rgba(118, 154, 216, 0.46);
+  background: rgba(255, 255, 255, 0.88);
+  color: #4f719f;
+}
+
+html[data-theme="aurora"] .workspace-task-card {
+  border-color: rgba(118, 154, 216, 0.4);
+  background:
+    radial-gradient(circle at 86% 10%, rgba(122, 187, 255, 0.18), transparent 36%),
+    rgba(255, 255, 255, 0.84);
+}
+
+html[data-theme="aurora"] .workspace-task-card header span {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .workspace-task-item {
+  border-color: rgba(118, 154, 216, 0.38);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+html[data-theme="aurora"] .workspace-task-item p {
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .workspace-task-item.done {
+  border-color: rgba(64, 174, 138, 0.46);
+  background: rgba(103, 210, 174, 0.2);
+}
+
+html[data-theme="aurora"] .workspace-task-actions button {
   border-color: rgba(118, 154, 216, 0.46);
   background: rgba(255, 255, 255, 0.88);
   color: #4f719f;
@@ -9140,12 +9367,20 @@ html[data-theme="aurora"] .stream-guidance {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .workspace-learn-grid {
+    grid-template-columns: 1fr;
+  }
+
   .graph-control-bar {
     grid-template-columns: 1fr;
   }
 
   .graph-view-switcher {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .graph-domain-collapse {
+    align-items: flex-start;
   }
 
   .graph-workbench-grid {
@@ -9192,6 +9427,10 @@ html[data-theme="aurora"] .stream-guidance {
   .dashboard-view-switcher-row,
   .settings-view-switcher-row {
     grid-template-columns: 1fr;
+  }
+
+  .settings-novice-toggle {
+    align-items: flex-start;
   }
 
   .graph-canvas-head {

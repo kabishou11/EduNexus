@@ -360,6 +360,7 @@ export function GraphDemo() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [domainFilter, setDomainFilter] = useState("all");
+  const [collapsedDomains, setCollapsedDomains] = useState<string[]>([]);
   const [nodeKeyword, setNodeKeyword] = useState("");
   const [activeNodeId, setActiveNodeId] = useState("");
   const [graphHistory, setGraphHistory] = useState<GraphHistorySnapshot[]>([]);
@@ -963,6 +964,16 @@ export function GraphDemo() {
     () => buildDomainBuckets(payload?.nodes ?? []),
     [payload?.nodes]
   );
+  const collapsedDomainSet = useMemo(
+    () => new Set(collapsedDomains),
+    [collapsedDomains]
+  );
+
+  useEffect(() => {
+    setCollapsedDomains((prev) =>
+      prev.filter((domain) => domainBuckets.some((item) => item.domain === domain))
+    );
+  }, [domainBuckets]);
 
   const filteredNodes = useMemo(() => {
     if (!payload) {
@@ -971,7 +982,11 @@ export function GraphDemo() {
     const keyword = nodeKeyword.trim().toLowerCase();
     const riskThreshold = riskThresholdPercent / 100;
     return payload.nodes.filter((node) => {
-      if (domainFilter !== "all" && (node.domain ?? "general") !== domainFilter) {
+      const nodeDomain = node.domain ?? "general";
+      if (collapsedDomainSet.has(nodeDomain)) {
+        return false;
+      }
+      if (domainFilter !== "all" && nodeDomain !== domainFilter) {
         return false;
       }
       if (resolveNodeRisk(node) < riskThreshold) {
@@ -983,10 +998,10 @@ export function GraphDemo() {
       return (
         node.label.toLowerCase().includes(keyword) ||
         node.id.toLowerCase().includes(keyword) ||
-        (node.domain ?? "").toLowerCase().includes(keyword)
+        nodeDomain.toLowerCase().includes(keyword)
       );
     });
-  }, [domainFilter, nodeKeyword, payload, riskThresholdPercent]);
+  }, [collapsedDomainSet, domainFilter, nodeKeyword, payload, riskThresholdPercent]);
 
   const filteredNodeIds = useMemo(
     () => new Set(filteredNodes.map((node) => node.id)),
@@ -2581,6 +2596,7 @@ export function GraphDemo() {
               setCanvasZoomPercent(100);
               setNodeKeyword("");
               setDomainFilter("all");
+              setCollapsedDomains([]);
               setSelectedBridgeId("");
               setGraphLensMode("full");
               setBridgeLensCrossDomainOnly(false);
@@ -2589,6 +2605,36 @@ export function GraphDemo() {
             重置图谱筛选
           </button>
         </div>
+      </div>
+      <div className="graph-domain-collapse">
+        <span>域组折叠</span>
+        <button
+          type="button"
+          className={collapsedDomains.length === 0 ? "active" : ""}
+          onClick={() => setCollapsedDomains([])}
+          disabled={collapsedDomains.length === 0}
+        >
+          全部展开
+        </button>
+        {domainBuckets.map((bucket) => {
+          const collapsed = collapsedDomainSet.has(bucket.domain);
+          return (
+            <button
+              type="button"
+              key={`collapse_${bucket.domain}`}
+              className={collapsed ? "collapsed" : ""}
+              onClick={() =>
+                setCollapsedDomains((prev) =>
+                  prev.includes(bucket.domain)
+                    ? prev.filter((item) => item !== bucket.domain)
+                    : [...prev, bucket.domain]
+                )
+              }
+            >
+              {collapsed ? "展开" : "折叠"} {bucket.domain}（{bucket.count}）
+            </button>
+          );
+        })}
       </div>
       <div className="graph-view-switcher">
         <button

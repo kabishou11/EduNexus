@@ -114,6 +114,7 @@ const CONFIG_PROFILE_STORE_VERSION = 1;
 const CONFIG_PROFILE_LIMIT = 12;
 const IMPORT_AUDIT_STORAGE_KEY = "edunexus_config_import_audit";
 const IMPORT_AUDIT_LIMIT = 12;
+const SETTINGS_NOVICE_MODE_STORAGE_KEY = "edunexus_settings_novice_mode";
 const {
   normalizeConfigBundleMeta,
   buildDefaultBundle,
@@ -227,6 +228,7 @@ type SettingsViewMode = "basic" | "advanced" | "import";
 export default function SettingsPage() {
   const [settingsViewMode, setSettingsViewMode] =
     useState<SettingsViewMode>("basic");
+  const [noviceMode, setNoviceMode] = useState(true);
   const [bundle, setBundle] = useState<ConfigBundle>(buildDefaultBundle());
   const [configHistory, setConfigHistory] = useState<ConfigHistoryItem[]>([]);
   const [importAuditLog, setImportAuditLog] = useState<ImportAuditItem[]>([]);
@@ -287,6 +289,16 @@ export default function SettingsPage() {
     );
     setProfileLabelDraft(activeBundle.meta.profileLabel);
     setJsonDraft(JSON.stringify(activeBundle, null, 2));
+    try {
+      const rawNovice = window.localStorage.getItem(SETTINGS_NOVICE_MODE_STORAGE_KEY);
+      if (rawNovice === "0") {
+        setNoviceMode(false);
+      } else if (rawNovice === "1") {
+        setNoviceMode(true);
+      }
+    } catch {
+      // ignore novice mode read failures
+    }
 
     let initialStatus = "";
     if (initialResult.migratedFrom !== null || historyResult.migratedCount > 0) {
@@ -323,6 +335,20 @@ export default function SettingsPage() {
     }
     setHasMounted(true);
   }, [setStatusMessage]);
+
+  useEffect(() => {
+    if (!hasMounted) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(
+        SETTINGS_NOVICE_MODE_STORAGE_KEY,
+        noviceMode ? "1" : "0"
+      );
+    } catch {
+      // ignore novice mode persistence failures
+    }
+  }, [hasMounted, noviceMode]);
 
   const formattedBundleUpdatedAt = useMemo(
     () => formatTime(bundle.updatedAt),
@@ -835,6 +861,16 @@ export default function SettingsPage() {
               <em>{filteredImportAuditLog.length} 条审计记录</em>
             </button>
           </div>
+          <label className="settings-novice-toggle">
+            <input
+              type="checkbox"
+              checked={noviceMode}
+              onChange={(event) => setNoviceMode(event.target.checked)}
+            />
+            <span>
+              新手模式（默认开启）：隐藏高级阈值和细粒度参数，先保证流程可用
+            </span>
+          </label>
         </article>
 
         <article className="panel wide settings-section settings-section-common">
@@ -1166,76 +1202,83 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-
-            <label>
-              依赖高风险阈值：{bundle.dashboard.riskConfig.dependencyHighThreshold}
-            </label>
-            <input
-              type="range"
-              min={35}
-              max={55}
-              step={1}
-              value={bundle.dashboard.riskConfig.dependencyHighThreshold}
-              onChange={(event) =>
-                updateBundle({
-                  ...bundle,
-                  dashboard: {
-                    ...bundle.dashboard,
-                    riskPreset: "custom",
-                    riskConfig: normalizeDashboardRiskConfig({
-                      ...bundle.dashboard.riskConfig,
-                      dependencyHighThreshold: Number(event.target.value)
+            {noviceMode ? (
+              <p className="config-novice-hint">
+                新手模式已隐藏阈值滑杆。可先使用上方预设，后续再切换到专业模式精调。
+              </p>
+            ) : (
+              <>
+                <label>
+                  依赖高风险阈值：{bundle.dashboard.riskConfig.dependencyHighThreshold}
+                </label>
+                <input
+                  type="range"
+                  min={35}
+                  max={55}
+                  step={1}
+                  value={bundle.dashboard.riskConfig.dependencyHighThreshold}
+                  onChange={(event) =>
+                    updateBundle({
+                      ...bundle,
+                      dashboard: {
+                        ...bundle.dashboard,
+                        riskPreset: "custom",
+                        riskConfig: normalizeDashboardRiskConfig({
+                          ...bundle.dashboard.riskConfig,
+                          dependencyHighThreshold: Number(event.target.value)
+                        })
+                      }
                     })
                   }
-                })
-              }
-            />
+                />
 
-            <label>
-              独立率高风险阈值：{bundle.dashboard.riskConfig.independentHighThreshold}
-            </label>
-            <input
-              type="range"
-              min={42}
-              max={60}
-              step={1}
-              value={bundle.dashboard.riskConfig.independentHighThreshold}
-              onChange={(event) =>
-                updateBundle({
-                  ...bundle,
-                  dashboard: {
-                    ...bundle.dashboard,
-                    riskPreset: "custom",
-                    riskConfig: normalizeDashboardRiskConfig({
-                      ...bundle.dashboard.riskConfig,
-                      independentHighThreshold: Number(event.target.value)
+                <label>
+                  独立率高风险阈值：{bundle.dashboard.riskConfig.independentHighThreshold}
+                </label>
+                <input
+                  type="range"
+                  min={42}
+                  max={60}
+                  step={1}
+                  value={bundle.dashboard.riskConfig.independentHighThreshold}
+                  onChange={(event) =>
+                    updateBundle({
+                      ...bundle,
+                      dashboard: {
+                        ...bundle.dashboard,
+                        riskPreset: "custom",
+                        riskConfig: normalizeDashboardRiskConfig({
+                          ...bundle.dashboard.riskConfig,
+                          independentHighThreshold: Number(event.target.value)
+                        })
+                      }
                     })
                   }
-                })
-              }
-            />
+                />
 
-            <label>时间线条数：{bundle.dashboard.riskConfig.historyLimit}</label>
-            <input
-              type="range"
-              min={3}
-              max={12}
-              step={1}
-              value={bundle.dashboard.riskConfig.historyLimit}
-              onChange={(event) =>
-                updateBundle({
-                  ...bundle,
-                  dashboard: {
-                    ...bundle.dashboard,
-                    riskPreset: "custom",
-                    riskConfig: normalizeDashboardRiskConfig({
-                      ...bundle.dashboard.riskConfig,
-                      historyLimit: Number(event.target.value)
+                <label>时间线条数：{bundle.dashboard.riskConfig.historyLimit}</label>
+                <input
+                  type="range"
+                  min={3}
+                  max={12}
+                  step={1}
+                  value={bundle.dashboard.riskConfig.historyLimit}
+                  onChange={(event) =>
+                    updateBundle({
+                      ...bundle,
+                      dashboard: {
+                        ...bundle.dashboard,
+                        riskPreset: "custom",
+                        riskConfig: normalizeDashboardRiskConfig({
+                          ...bundle.dashboard.riskConfig,
+                          historyLimit: Number(event.target.value)
+                        })
+                      }
                     })
                   }
-                })
-              }
-            />
+                />
+              </>
+            )}
           </div>
         </article>
 
@@ -1271,50 +1314,57 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-
-            <label>书签上限：{bundle.workspace.replayConfig.maxBookmarks}</label>
-            <input
-              type="range"
-              min={8}
-              max={24}
-              step={1}
-              value={bundle.workspace.replayConfig.maxBookmarks}
-              onChange={(event) =>
-                updateBundle({
-                  ...bundle,
-                  workspace: {
-                    ...bundle.workspace,
-                    replayPreset: "custom",
-                    replayConfig: normalizeReplayPanelConfig({
-                      ...bundle.workspace.replayConfig,
-                      maxBookmarks: Number(event.target.value)
+            {noviceMode ? (
+              <p className="config-novice-hint">
+                新手模式下使用回放预设即可，专业模式可调整书签上限和默认倍速。
+              </p>
+            ) : (
+              <>
+                <label>书签上限：{bundle.workspace.replayConfig.maxBookmarks}</label>
+                <input
+                  type="range"
+                  min={8}
+                  max={24}
+                  step={1}
+                  value={bundle.workspace.replayConfig.maxBookmarks}
+                  onChange={(event) =>
+                    updateBundle({
+                      ...bundle,
+                      workspace: {
+                        ...bundle.workspace,
+                        replayPreset: "custom",
+                        replayConfig: normalizeReplayPanelConfig({
+                          ...bundle.workspace.replayConfig,
+                          maxBookmarks: Number(event.target.value)
+                        })
+                      }
                     })
                   }
-                })
-              }
-            />
+                />
 
-            <label>默认倍速</label>
-            <select
-              value={bundle.workspace.replayConfig.defaultSpeed}
-              onChange={(event) =>
-                updateBundle({
-                  ...bundle,
-                  workspace: {
-                    ...bundle.workspace,
-                    replayPreset: "custom",
-                    replayConfig: normalizeReplayPanelConfig({
-                      ...bundle.workspace.replayConfig,
-                      defaultSpeed: event.target.value as ReplaySpeedKey
+                <label>默认倍速</label>
+                <select
+                  value={bundle.workspace.replayConfig.defaultSpeed}
+                  onChange={(event) =>
+                    updateBundle({
+                      ...bundle,
+                      workspace: {
+                        ...bundle.workspace,
+                        replayPreset: "custom",
+                        replayConfig: normalizeReplayPanelConfig({
+                          ...bundle.workspace.replayConfig,
+                          defaultSpeed: event.target.value as ReplaySpeedKey
+                        })
+                      }
                     })
                   }
-                })
-              }
-            >
-              <option value="1x">1x</option>
-              <option value="1.5x">1.5x</option>
-              <option value="2x">2x</option>
-            </select>
+                >
+                  <option value="1x">1x</option>
+                  <option value="1.5x">1.5x</option>
+                  <option value="2x">2x</option>
+                </select>
+              </>
+            )}
 
             <label className="config-check-label">
               <input
@@ -1371,50 +1421,57 @@ export default function SettingsPage() {
                 </button>
               ))}
             </div>
-
-            <label>关键节点上限：{bundle.kb.chapterConfig.topNodesLimit}</label>
-            <input
-              type="range"
-              min={2}
-              max={8}
-              step={1}
-              value={bundle.kb.chapterConfig.topNodesLimit}
-              onChange={(event) =>
-                updateBundle({
-                  ...bundle,
-                  kb: {
-                    ...bundle.kb,
-                    chapterPreset: "custom",
-                    chapterConfig: normalizeChapterPanelConfig({
-                      ...bundle.kb.chapterConfig,
-                      topNodesLimit: Number(event.target.value)
+            {noviceMode ? (
+              <p className="config-novice-hint">
+                新手模式已隐藏节点/趋势数量微调，先使用预设观察效果。
+              </p>
+            ) : (
+              <>
+                <label>关键节点上限：{bundle.kb.chapterConfig.topNodesLimit}</label>
+                <input
+                  type="range"
+                  min={2}
+                  max={8}
+                  step={1}
+                  value={bundle.kb.chapterConfig.topNodesLimit}
+                  onChange={(event) =>
+                    updateBundle({
+                      ...bundle,
+                      kb: {
+                        ...bundle.kb,
+                        chapterPreset: "custom",
+                        chapterConfig: normalizeChapterPanelConfig({
+                          ...bundle.kb.chapterConfig,
+                          topNodesLimit: Number(event.target.value)
+                        })
+                      }
                     })
                   }
-                })
-              }
-            />
+                />
 
-            <label>趋势行上限：{bundle.kb.chapterConfig.trendRowsLimit}</label>
-            <input
-              type="range"
-              min={3}
-              max={8}
-              step={1}
-              value={bundle.kb.chapterConfig.trendRowsLimit}
-              onChange={(event) =>
-                updateBundle({
-                  ...bundle,
-                  kb: {
-                    ...bundle.kb,
-                    chapterPreset: "custom",
-                    chapterConfig: normalizeChapterPanelConfig({
-                      ...bundle.kb.chapterConfig,
-                      trendRowsLimit: Number(event.target.value)
+                <label>趋势行上限：{bundle.kb.chapterConfig.trendRowsLimit}</label>
+                <input
+                  type="range"
+                  min={3}
+                  max={8}
+                  step={1}
+                  value={bundle.kb.chapterConfig.trendRowsLimit}
+                  onChange={(event) =>
+                    updateBundle({
+                      ...bundle,
+                      kb: {
+                        ...bundle.kb,
+                        chapterPreset: "custom",
+                        chapterConfig: normalizeChapterPanelConfig({
+                          ...bundle.kb.chapterConfig,
+                          trendRowsLimit: Number(event.target.value)
+                        })
+                      }
                     })
                   }
-                })
-              }
-            />
+                />
+              </>
+            )}
 
             <label>默认子图模式</label>
             <select
