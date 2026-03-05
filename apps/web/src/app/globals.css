@@ -4243,6 +4243,12 @@ html[data-theme="aurora"] .tag {
   color: #9fc7ee;
 }
 
+.demo-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .demo-anchor-nav {
   border: 1px solid rgba(97, 132, 178, 0.34);
   border-radius: 10px;
@@ -4304,6 +4310,22 @@ html[data-theme="aurora"] .tag {
   border-color: rgba(159, 255, 210, 0.62);
   background: rgba(159, 255, 210, 0.16);
   color: #e4fff4;
+}
+
+.demo-form .demo-anchor-chip.disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.demo-reset-toggle {
+  border-color: rgba(231, 189, 117, 0.48);
+  color: #f0dfbc;
+  background: rgba(40, 27, 8, 0.44);
+}
+
+.demo-reset-toggle:hover {
+  border-color: rgba(241, 205, 144, 0.7);
+  color: #fff4dd;
 }
 
 .demo-compact-toggle {
@@ -4527,6 +4549,12 @@ html[data-theme="aurora"] .demo-toolbar span {
   color: #5e81ad;
 }
 
+html[data-theme="aurora"] .demo-reset-toggle {
+  border-color: rgba(205, 166, 105, 0.44);
+  color: #8a6a39;
+  background: rgba(255, 244, 224, 0.76);
+}
+
 html[data-theme="aurora"] .demo-anchor-nav {
   border-color: rgba(118, 154, 216, 0.38);
   background:
@@ -4704,6 +4732,23 @@ html[data-theme="aurora"] .collapsible-panel-toggle-indicator {
 
 .teacher-result-panel .card-item {
   border-color: rgba(97, 132, 178, 0.38);
+}
+
+.panel-surface,
+.collapsible-panel,
+.result-box {
+  animation: demo-panel-rise 0.24s ease both;
+}
+
+@keyframes demo-panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .config-toolbar {
@@ -10570,6 +10615,15 @@ html[data-theme="aurora"] .stream-guidance {
   .demo-anchor-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .demo-toolbar-actions {
+    width: 100%;
+  }
+
+  .demo-toolbar-actions button {
+    flex: 1;
+    min-width: 0;
   }
 
   .demo-anchor-tools {

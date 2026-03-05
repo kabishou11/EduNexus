@@ -90,6 +90,18 @@ export function TeacherPlanDemo() {
     }
   }, [compactMode]);
 
+  function resetTeacherLayout() {
+    try {
+      window.localStorage.removeItem("edunexus_teacher_compact_ui");
+      window.localStorage.removeItem("edunexus_anchor_nav_teacher_demo");
+      window.localStorage.removeItem("edunexus_collapsible_teacher_template_panel");
+      window.localStorage.removeItem("edunexus_collapsible_teacher_result_panel");
+    } catch {
+      // ignore persistence failures
+    }
+    window.location.reload();
+  }
+
   async function loadTemplates(targetSubject = subject) {
     setTemplateLoading(true);
     try {
@@ -195,13 +207,18 @@ export function TeacherPlanDemo() {
     <div className={`demo-form demo-form-teacher${compactMode ? " is-compact" : ""}`}>
       <div className="demo-toolbar">
         <span>教师备课工作台</span>
-        <button
-          type="button"
-          className={`demo-compact-toggle${compactMode ? " active" : ""}`}
-          onClick={() => setCompactMode((prev) => !prev)}
-        >
-          {compactMode ? "紧凑模式" : "舒展模式"}
-        </button>
+        <div className="demo-toolbar-actions">
+          <button
+            type="button"
+            className={`demo-compact-toggle${compactMode ? " active" : ""}`}
+            onClick={() => setCompactMode((prev) => !prev)}
+          >
+            {compactMode ? "紧凑模式" : "舒展模式"}
+          </button>
+          <button type="button" className="demo-reset-toggle" onClick={resetTeacherLayout}>
+            重置分区
+          </button>
+        </div>
       </div>
       <SectionAnchorNav
         title="备课分区导航"
@@ -264,7 +281,7 @@ export function TeacherPlanDemo() {
         subtitle="自动根据学科匹配，可刷新并一键套用"
         storageKey="teacher_template_panel"
         className="card-item teacher-template-panel anchor-target"
-        defaultExpanded
+        defaultExpanded={false}
       >
         <button type="button" onClick={() => void loadTemplates(subject)} disabled={templateLoading}>
           {templateLoading ? "模板加载中..." : "刷新模板"}

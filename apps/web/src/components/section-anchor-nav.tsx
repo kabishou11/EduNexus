@@ -16,6 +16,7 @@ type SectionAnchorNavProps = {
 export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavProps) {
   const [activeId, setActiveId] = useState(items[0]?.id ?? "");
   const [collapsed, setCollapsed] = useState(false);
+  const [availableIds, setAvailableIds] = useState<string[]>([]);
 
   const normalizedItems = useMemo(
     () => items.filter((item) => item.id.trim().length > 0),
@@ -45,8 +46,24 @@ export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavP
     if (normalizedItems.length === 0) {
       return;
     }
-    const elements = normalizedItems
-      .map((item) => document.getElementById(item.id))
+    const updateAvailableIds = () => {
+      const hits = normalizedItems
+        .map((item) => item.id)
+        .filter((id) => document.getElementById(id));
+      setAvailableIds(hits);
+    };
+    updateAvailableIds();
+    const mutationObserver = new MutationObserver(updateAvailableIds);
+    mutationObserver.observe(document.body, { childList: true, subtree: true });
+    return () => mutationObserver.disconnect();
+  }, [normalizedItems]);
+
+  useEffect(() => {
+    if (availableIds.length === 0) {
+      return;
+    }
+    const elements = availableIds
+      .map((id) => document.getElementById(id))
       .filter((item): item is HTMLElement => item instanceof HTMLElement);
     if (elements.length === 0) {
       return;
@@ -69,13 +86,14 @@ export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavP
     );
     elements.forEach((item) => observer.observe(item));
     return () => observer.disconnect();
-  }, [normalizedItems]);
+  }, [availableIds]);
 
   if (normalizedItems.length === 0) {
     return null;
   }
 
   const visibleItems = collapsed ? normalizedItems.slice(0, 4) : normalizedItems;
+  const availableIdSet = new Set(availableIds);
 
   return (
     <nav className="demo-anchor-nav" aria-label={`${title}区块导航`}>
@@ -100,7 +118,10 @@ export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavP
           <button
             type="button"
             key={item.id}
-            className={`demo-anchor-chip ${activeId === item.id ? "active" : ""}`}
+            className={`demo-anchor-chip ${activeId === item.id ? "active" : ""} ${
+              availableIdSet.has(item.id) ? "" : "disabled"
+            }`}
+            disabled={!availableIdSet.has(item.id)}
             onClick={() => {
               const element = document.getElementById(item.id);
               if (!element) {

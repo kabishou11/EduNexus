@@ -314,6 +314,20 @@ export function KbDemo() {
     }
   }, [compactMode]);
 
+  function resetKbLayout() {
+    try {
+      window.localStorage.removeItem("edunexus_kb_compact_ui");
+      window.localStorage.removeItem("edunexus_anchor_nav_kb_demo");
+      window.localStorage.removeItem("edunexus_collapsible_kb_candidates_panel");
+      window.localStorage.removeItem("edunexus_collapsible_kb_doc_panel");
+      window.localStorage.removeItem("edunexus_collapsible_kb_graph_panel");
+      window.localStorage.removeItem("edunexus_collapsible_kb_index_panel");
+    } catch {
+      // ignore persistence failures
+    }
+    window.location.reload();
+  }
+
   async function loadTags() {
     try {
       const data = await requestJson<{ tags: TagStat[] }>("/api/kb/tags");
@@ -1190,13 +1204,18 @@ export function KbDemo() {
     <div className={`demo-form demo-form-kb${compactMode ? " is-compact" : ""}`}>
       <div className="demo-toolbar">
         <span>知识库检索工作台</span>
-        <button
-          type="button"
-          className={`demo-compact-toggle${compactMode ? " active" : ""}`}
-          onClick={() => setCompactMode((prev) => !prev)}
-        >
-          {compactMode ? "紧凑模式" : "舒展模式"}
-        </button>
+        <div className="demo-toolbar-actions">
+          <button
+            type="button"
+            className={`demo-compact-toggle${compactMode ? " active" : ""}`}
+            onClick={() => setCompactMode((prev) => !prev)}
+          >
+            {compactMode ? "紧凑模式" : "舒展模式"}
+          </button>
+          <button type="button" className="demo-reset-toggle" onClick={resetKbLayout}>
+            重置分区
+          </button>
+        </div>
       </div>
       <SectionAnchorNav
         title="知识库分区导航"
@@ -1367,7 +1386,7 @@ export function KbDemo() {
           subtitle="按语义召回评分排序，支持快速打开详情"
           storageKey="kb_candidates_panel"
           className="anchor-target"
-          defaultExpanded
+          defaultExpanded={false}
         >
           <div className="card-list kb-candidate-list">
             {candidates.map((candidate) => (
@@ -2113,7 +2132,7 @@ export function KbDemo() {
         subtitle="节点关系摘要与热度分布"
         storageKey="kb_graph_panel"
         className="kb-graph-panel panel-surface anchor-target"
-        defaultExpanded
+        defaultExpanded={false}
       >
         {graph ? (
           <div className="card-list">
@@ -2158,7 +2177,7 @@ export function KbDemo() {
         subtitle="记录文档规模、类型分布与领域覆盖"
         storageKey="kb_index_panel"
         className="kb-index-panel panel-surface anchor-target"
-        defaultExpanded
+        defaultExpanded={false}
       >
         {indexSummary ? (
           <div className="result-box">

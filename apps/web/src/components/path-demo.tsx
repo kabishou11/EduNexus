@@ -289,6 +289,18 @@ export function PathDemo() {
     }
   }, [compactMode]);
 
+  function resetPathLayout() {
+    try {
+      window.localStorage.removeItem("edunexus_path_compact_ui");
+      window.localStorage.removeItem("edunexus_anchor_nav_path_demo");
+      window.localStorage.removeItem("edunexus_collapsible_path_focus_panel");
+      window.localStorage.removeItem("edunexus_collapsible_path_plan_panel");
+    } catch {
+      // ignore persistence failures
+    }
+    window.location.reload();
+  }
+
   useEffect(() => {
     if (prefilledRef.current) {
       return;
@@ -993,13 +1005,18 @@ export function PathDemo() {
     <div className={`demo-form demo-form-path${compactMode ? " is-compact" : ""}`}>
       <div className="demo-toolbar">
         <span>路径执行工作台</span>
-        <button
-          type="button"
-          className={`demo-compact-toggle${compactMode ? " active" : ""}`}
-          onClick={() => setCompactMode((prev) => !prev)}
-        >
-          {compactMode ? "紧凑模式" : "舒展模式"}
-        </button>
+        <div className="demo-toolbar-actions">
+          <button
+            type="button"
+            className={`demo-compact-toggle${compactMode ? " active" : ""}`}
+            onClick={() => setCompactMode((prev) => !prev)}
+          >
+            {compactMode ? "紧凑模式" : "舒展模式"}
+          </button>
+          <button type="button" className="demo-reset-toggle" onClick={resetPathLayout}>
+            重置分区
+          </button>
+        </div>
       </div>
       <SectionAnchorNav
         title="路径分区导航"
