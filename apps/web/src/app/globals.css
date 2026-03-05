@@ -4953,18 +4953,26 @@ html[data-theme="aurora"] .collapsible-panel-toggle-indicator {
 .kb-doc-panel .obsidian-board {
   margin-top: 2px;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
-  max-height: 74vh;
+  max-height: 68vh;
 }
 
 .kb-doc-panel .obsidian-focus-card {
-  max-height: 72vh;
+  max-height: 66vh;
   overflow: auto;
 }
 
 .kb-doc-panel .obsidian-rail {
-  max-height: 72vh;
+  max-height: 66vh;
   overflow: auto;
   align-content: flex-start;
+}
+
+.graph-context-links {
+  margin-top: -2px;
+}
+
+.graph-metric-strip {
+  margin-top: -2px;
 }
 
 .kb-graph-panel .result-box,
@@ -6402,6 +6410,10 @@ html[data-theme="aurora"] .config-diff-values em {
   display: grid;
   grid-template-columns: auto 1fr minmax(200px, 260px) minmax(220px, 280px);
   gap: 8px;
+  position: sticky;
+  top: 10px;
+  z-index: 5;
+  backdrop-filter: blur(6px);
 }
 
 .graph-view-switcher {
@@ -10958,6 +10970,7 @@ html[data-theme="aurora"] .stream-guidance {
 
   .graph-control-bar {
     grid-template-columns: 1fr;
+    position: static;
   }
 
   .graph-view-switcher {

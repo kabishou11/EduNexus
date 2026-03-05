@@ -2660,10 +2660,21 @@ export function GraphDemo() {
     [payload]
   );
 
+  const graphNodeCount = payload?.nodes.length ?? 0;
+  const graphEdgeCount = payload?.edges.length ?? 0;
+  const graphActiveNodeCount = filteredNodes.length;
+  const graphActiveEdgeCount = filteredEdges.length;
+  const graphViewLabel =
+    graphWorkbenchView === "overview"
+      ? "图谱总览"
+      : graphWorkbenchView === "bridge"
+        ? "关系回放"
+        : "历史审计";
+
   return (
     <div className="graph-workbench" data-view={graphWorkbenchView}>
       <div id="graph_controls" className="graph-control-bar anchor-target">
-        <button type="button" onClick={loadGraph} disabled={loading}>
+        <button type="button" className="demo-btn-primary" onClick={loadGraph} disabled={loading}>
           {loading ? "正在同步图谱..." : "刷新图谱"}
         </button>
         <div className="graph-domain-switch">
@@ -2763,7 +2774,7 @@ export function GraphDemo() {
           </div>
           <button
             type="button"
-            className="graph-control-reset"
+            className="graph-control-reset demo-btn-neutral"
             onClick={() => {
               setRiskThresholdPercent(0);
               setEnableEdgeHeatmap(true);
@@ -2778,6 +2789,43 @@ export function GraphDemo() {
           >
             重置图谱筛选
           </button>
+        </div>
+      </div>
+      <div className="demo-context-links graph-context-links">
+        <button type="button" className="demo-link-chip" onClick={() => router.push("/path?from=graph")}>
+          进入学习路径
+        </button>
+        <button
+          type="button"
+          className="demo-link-chip"
+          onClick={() => router.push("/workspace?from=graph")}
+        >
+          进入学习工作区
+        </button>
+        <button type="button" className="demo-link-chip" onClick={() => router.push("/kb?from=graph")}>
+          打开知识库检索
+        </button>
+      </div>
+      <div className="demo-metric-strip graph-metric-strip">
+        <div className="demo-metric-chip">
+          <span>总节点/边</span>
+          <strong>
+            {graphNodeCount}/{graphEdgeCount}
+          </strong>
+        </div>
+        <div className="demo-metric-chip">
+          <span>当前筛选</span>
+          <strong>
+            {graphActiveNodeCount}/{graphActiveEdgeCount}
+          </strong>
+        </div>
+        <div className="demo-metric-chip">
+          <span>工作台视图</span>
+          <strong>{graphViewLabel}</strong>
+        </div>
+        <div className="demo-metric-chip">
+          <span>镜头模式</span>
+          <strong>{graphLensMode === "full" ? "全局图" : "关系链聚焦"}</strong>
         </div>
       </div>
       <div className="graph-domain-collapse">
