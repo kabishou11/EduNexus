@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GalaxyHero } from "@/components/galaxy-ui";
 import { PageHeader } from "@/components/page-header";
+import { PageQuickNav } from "@/components/page-quick-nav";
 import { ImportAuditLogPanel } from "@/components/settings/import-audit-log-panel";
 import { ImportExecutionConfirmModal } from "@/components/settings/import-execution-confirm-modal";
 import { JsonImportPanel } from "@/components/settings/json-import-panel";
@@ -288,6 +289,18 @@ const SETTINGS_ANCHOR_ITEMS: SettingsAnchorItem[] = [
     view: "import"
   }
 ];
+
+const SETTINGS_QUICK_NAV_ITEMS = [
+  { href: "#settings_global_actions", label: "全局操作", hint: "读取/保存/导出" },
+  { href: "#settings_profile", label: "策略画像", hint: "画像与美学" },
+  { href: "#settings_template_pack", label: "模板包", hint: "一键策略" },
+  { href: "#settings_dashboard_params", label: "Dashboard 参数", hint: "预警策略" },
+  { href: "#settings_workspace_params", label: "Workspace 参数", hint: "回放策略" },
+  { href: "#settings_kb_params", label: "KB 参数", hint: "章节策略" },
+  { href: "#settings_history_rollback", label: "历史回滚", hint: "快照差异" },
+  { href: "#settings_import_json", label: "JSON 导入", hint: "冲突预览" },
+  { href: "#settings_import_audit", label: "导入审计", hint: "日志与回滚" }
+] as const;
 
 export default function SettingsPage() {
   const [settingsViewMode, setSettingsViewMode] =
@@ -936,6 +949,9 @@ export default function SettingsPage() {
         description="在一个页面管理 Dashboard、Workspace、KB 的策略参数与画像版本。"
         tags={["模板切换", "JSON 导入导出", "历史回滚", "参数广播"]}
       />
+      <div className="panel-grid">
+        <PageQuickNav title="配置中心快速导航" items={[...SETTINGS_QUICK_NAV_ITEMS]} />
+      </div>
 
       <div className="panel-grid settings-layout" data-view={settingsViewMode}>
         <GalaxyHero
@@ -1096,7 +1112,7 @@ export default function SettingsPage() {
 
         <article
           id="settings_global_actions"
-          className="panel wide settings-section settings-section-common"
+          className="panel wide settings-section settings-section-common anchor-target"
         >
           <h3>全局操作</h3>
           <div className="config-toolbar">
@@ -1120,7 +1136,7 @@ export default function SettingsPage() {
 
         <article
           id="settings_profile"
-          className="panel half settings-section settings-section-basic"
+          className="panel half settings-section settings-section-basic anchor-target"
         >
           <h3>策略画像管理</h3>
           <div className="demo-form">
@@ -1258,7 +1274,7 @@ export default function SettingsPage() {
 
         <article
           id="settings_template_pack"
-          className="panel half settings-section settings-section-basic"
+          className="panel half settings-section settings-section-basic anchor-target"
         >
           <h3>一键模板包</h3>
           <div className="config-pack-grid">
@@ -1284,7 +1300,7 @@ export default function SettingsPage() {
 
         <article
           id="settings_history_rollback"
-          className="panel half settings-section settings-section-advanced"
+          className="panel half settings-section settings-section-advanced anchor-target"
         >
           <h3>变更历史与回滚</h3>
           <div className="config-history-head">
@@ -1387,7 +1403,7 @@ export default function SettingsPage() {
 
         <article
           id="settings_dashboard_params"
-          className="panel half settings-section settings-section-basic"
+          className="panel half settings-section settings-section-basic anchor-target"
         >
           <h3>Dashboard 预警参数</h3>
           <div className="demo-form">
@@ -1520,7 +1536,7 @@ export default function SettingsPage() {
 
         <article
           id="settings_workspace_params"
-          className="panel half settings-section settings-section-basic"
+          className="panel half settings-section settings-section-basic anchor-target"
         >
           <h3>Workspace 回放参数</h3>
           <div className="demo-form">
@@ -1630,7 +1646,7 @@ export default function SettingsPage() {
 
         <article
           id="settings_kb_params"
-          className="panel half settings-section settings-section-basic"
+          className="panel half settings-section settings-section-basic anchor-target"
         >
           <h3>KB 章节参数</h3>
           <div className="demo-form">
@@ -1740,7 +1756,7 @@ export default function SettingsPage() {
 
         <div
           id="settings_import_json"
-          className="settings-section settings-section-import"
+          className="settings-section settings-section-import anchor-target"
         >
           <JsonImportPanel
             jsonDraft={jsonDraft}
@@ -1778,7 +1794,7 @@ export default function SettingsPage() {
 
         <div
           id="settings_import_audit"
-          className="settings-section settings-section-import"
+          className="settings-section settings-section-import anchor-target"
         >
           <ImportAuditLogPanel
             log={importAuditLog}

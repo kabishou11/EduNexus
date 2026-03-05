@@ -2662,7 +2662,7 @@ export function GraphDemo() {
 
   return (
     <div className="graph-workbench" data-view={graphWorkbenchView}>
-      <div className="graph-control-bar">
+      <div id="graph_controls" className="graph-control-bar anchor-target">
         <button type="button" onClick={loadGraph} disabled={loading}>
           {loading ? "正在同步图谱..." : "刷新图谱"}
         </button>
@@ -2810,7 +2810,7 @@ export function GraphDemo() {
           );
         })}
       </div>
-      <div className="graph-view-switcher">
+      <div id="graph_view_switcher" className="graph-view-switcher anchor-target">
         <button
           type="button"
           className={graphWorkbenchView === "overview" ? "active" : ""}
@@ -2868,7 +2868,7 @@ export function GraphDemo() {
 
       {payload ? (
         <div className="graph-workbench-grid">
-          <article className="graph-canvas-panel">
+          <article id="graph_canvas_panel" className="graph-canvas-panel anchor-target">
             <header className="graph-canvas-head">
               <strong>知识网络画布</strong>
               <span>
@@ -3188,9 +3188,10 @@ export function GraphDemo() {
             </div>
 
             <div
+              id="graph_overview_panel"
               className={`graph-insight-card graph-section-overview${
                 collapsedInsightSectionSet.has("domain_cluster") ? " collapsed" : ""
-              }`}
+              } anchor-target`}
             >
               <header className="graph-insight-card-head">
                 <strong>领域聚类概览</strong>
@@ -3365,9 +3366,10 @@ export function GraphDemo() {
             </div>
 
             <div
+              id="graph_bridge_panel"
               className={`graph-insight-card graph-section-bridge${
                 collapsedInsightSectionSet.has("bridge_suggestions") ? " collapsed" : ""
-              }`}
+              } anchor-target`}
             >
               <header className="graph-insight-card-head">
                 <strong>高风险关系链建议</strong>
@@ -3704,9 +3706,10 @@ export function GraphDemo() {
             </div>
 
             <div
+              id="graph_history_panel"
               className={`graph-insight-card graph-section-history${
                 collapsedInsightSectionSet.has("replay_history") ? " collapsed" : ""
-              }`}
+              } anchor-target`}
             >
               <header className="graph-insight-card-head">
                 <strong>回放批次历史</strong>

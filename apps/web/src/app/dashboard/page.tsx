@@ -127,6 +127,7 @@ const DASHBOARD_QUICK_NAV_ITEMS = [
   { href: "#dashboard_ratio_rings", label: "比例环图", hint: "关键比例概览" },
   { href: "#dashboard_ops_actions", label: "运营动作建议", hint: "下一步动作" }
 ] as const;
+const DASHBOARD_COMPACT_MODE_STORAGE_KEY = "edunexus_dashboard_compact_mode";
 
 const PERIOD_METRICS: Record<PeriodKey, PeriodMetrics> = {
   "7d": {
@@ -601,6 +602,8 @@ export default function DashboardPage() {
   );
   const [riskConfigPreset, setRiskConfigPreset] = useState<AlertConfigPreset>("balanced");
   const [isRiskConfigReady, setIsRiskConfigReady] = useState(false);
+  const [dashboardCompactMode, setDashboardCompactMode] = useState(false);
+  const [isDashboardCompactReady, setIsDashboardCompactReady] = useState(false);
   const [graphActivityEvents, setGraphActivityEvents] = useState<GraphActivityEvent[]>([]);
   const [activitySourceFilter, setActivitySourceFilter] =
     useState<ActivitySourceFilter>("all");
@@ -745,6 +748,16 @@ export default function DashboardPage() {
   }, []);
 
   useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DASHBOARD_COMPACT_MODE_STORAGE_KEY);
+      setDashboardCompactMode(raw === "1");
+    } catch {
+      setDashboardCompactMode(false);
+    }
+    setIsDashboardCompactReady(true);
+  }, []);
+
+  useEffect(() => {
     const loadGraphActivityEvents = () => {
       try {
         const raw = window.localStorage.getItem(GRAPH_ACTIVITY_STORAGE_KEY);
@@ -833,6 +846,16 @@ export default function DashboardPage() {
     );
     window.localStorage.setItem("edunexus_dashboard_risk_preset", riskConfigPreset);
   }, [isRiskConfigReady, riskConfig, riskConfigPreset]);
+
+  useEffect(() => {
+    if (!isDashboardCompactReady) {
+      return;
+    }
+    window.localStorage.setItem(
+      DASHBOARD_COMPACT_MODE_STORAGE_KEY,
+      dashboardCompactMode ? "1" : "0"
+    );
+  }, [dashboardCompactMode, isDashboardCompactReady]);
 
   useEffect(() => {
     setLinkedHoverIndex(null);
@@ -1587,7 +1610,11 @@ export default function DashboardPage() {
         <PageQuickNav title="看板快速导航" items={[...DASHBOARD_QUICK_NAV_ITEMS]} />
       </div>
 
-      <div className="panel-grid dashboard-layout" data-view={dashboardViewMode}>
+      <div
+        className="panel-grid dashboard-layout"
+        data-view={dashboardViewMode}
+        data-compact={dashboardCompactMode ? "true" : "false"}
+      >
         <GalaxyHero
           badge="生态指标 · 实时快照"
           title="用指标追踪“学会了多少”，而不只是“做了多少题”"
@@ -1637,6 +1664,22 @@ export default function DashboardPage() {
             >
               闭环事件
               <em>{graphActivitySummary.displayedCount} 条事件</em>
+            </button>
+          </div>
+          <div className="dashboard-focus-tools">
+            <button
+              type="button"
+              className={`dashboard-compact-toggle${
+                dashboardCompactMode ? " active" : ""
+              }`}
+              onClick={() => setDashboardCompactMode((prev) => !prev)}
+            >
+              {dashboardCompactMode ? "紧凑模式已开启" : "紧凑模式已关闭"}
+              <em>
+                {dashboardCompactMode
+                  ? "已隐藏次要卡片，聚焦趋势、关系链与闭环事件。"
+                  : "开启后将隐藏风险提示、系统状态、比例环图与运营动作建议。"}
+              </em>
             </button>
           </div>
         </article>
@@ -2142,7 +2185,7 @@ export default function DashboardPage() {
           </div>
         </article>
 
-        <article className="panel half dashboard-section dashboard-section-decision">
+        <article className="panel half dashboard-section dashboard-section-decision dashboard-compact-hide">
           <h3>风险提示</h3>
           <div className="card-list">
             <div className="card-item">
@@ -2395,7 +2438,7 @@ export default function DashboardPage() {
           </div>
         </article>
 
-        <article className="panel half dashboard-section dashboard-section-decision">
+        <article className="panel half dashboard-section dashboard-section-decision dashboard-compact-hide">
           <h3>系统状态</h3>
           <ul>
             <li>ModelScope API：正常</li>
@@ -2555,7 +2598,7 @@ export default function DashboardPage() {
 
         <article
           id="dashboard_ratio_rings"
-          className="panel half dashboard-section dashboard-section-decision anchor-target"
+          className="panel half dashboard-section dashboard-section-decision dashboard-compact-hide anchor-target"
         >
           <h3>关键比例环图</h3>
           <div className="ring-grid">
@@ -2572,7 +2615,7 @@ export default function DashboardPage() {
 
         <article
           id="dashboard_ops_actions"
-          className="panel wide dashboard-section dashboard-section-decision anchor-target"
+          className="panel wide dashboard-section dashboard-section-decision dashboard-compact-hide anchor-target"
         >
           <h3>运营动作建议</h3>
           <div className="spotlight-list">
