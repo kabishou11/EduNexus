@@ -174,32 +174,34 @@ export function TeacherPlanDemo() {
 
   return (
     <div className="demo-form">
-      <label>学科</label>
-      <input value={subject} onChange={(event) => setSubject(event.target.value)} />
+      <div id="teacher_input_panel" className="anchor-target">
+        <label>学科</label>
+        <input value={subject} onChange={(event) => setSubject(event.target.value)} />
 
-      <label>主题</label>
-      <input value={topic} onChange={(event) => setTopic(event.target.value)} />
+        <label>主题</label>
+        <input value={topic} onChange={(event) => setTopic(event.target.value)} />
 
-      <label>学段/年级</label>
-      <input value={grade} onChange={(event) => setGrade(event.target.value)} />
+        <label>学段/年级</label>
+        <input value={grade} onChange={(event) => setGrade(event.target.value)} />
 
-      <label>难度</label>
-      <select
-        value={difficulty}
-        onChange={(event) => setDifficulty(event.target.value as "基础" | "中等" | "提升")}
-      >
-        <option value="基础">基础</option>
-        <option value="中等">中等</option>
-        <option value="提升">提升</option>
-      </select>
+        <label>难度</label>
+        <select
+          value={difficulty}
+          onChange={(event) => setDifficulty(event.target.value as "基础" | "中等" | "提升")}
+        >
+          <option value="基础">基础</option>
+          <option value="中等">中等</option>
+          <option value="提升">提升</option>
+        </select>
 
-      <label>班级薄弱点（可选）</label>
-      <textarea
-        rows={3}
-        value={classWeakness}
-        onChange={(event) => setClassWeakness(event.target.value)}
-      />
-      <div className="card-item">
+        <label>班级薄弱点（可选）</label>
+        <textarea
+          rows={3}
+          value={classWeakness}
+          onChange={(event) => setClassWeakness(event.target.value)}
+        />
+      </div>
+      <div id="teacher_template_panel" className="card-item anchor-target">
         <strong>薄弱点模板（当前：{templateSubject}）</strong>
         <p className="muted">自动根据学科匹配，可点击“刷新模板”手动重载。</p>
         <button type="button" onClick={() => void loadTemplates(subject)} disabled={templateLoading}>
@@ -233,7 +235,7 @@ export function TeacherPlanDemo() {
       </button>
 
       {result ? (
-        <div className="card-list">
+        <div id="teacher_result_panel" className="card-list anchor-target">
           <div className="result-box">
             <strong>{result.title}</strong>
             {"\n"}
@@ -279,7 +281,11 @@ export function TeacherPlanDemo() {
         </div>
       ) : null}
 
-      {error ? <div className="result-box danger">{error}</div> : null}
+      {error ? (
+        <div id="teacher_error_panel" className="result-box danger anchor-target">
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 }

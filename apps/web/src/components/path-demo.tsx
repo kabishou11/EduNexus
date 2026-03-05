@@ -974,7 +974,7 @@ export function PathDemo() {
     <div className="demo-form">
       {focusHint ? <div className="result-box info">{focusHint}</div> : null}
       {focusSummary ? (
-        <div className="path-focus-summary">
+        <div id="path_focus_panel" className="path-focus-summary anchor-target">
           <strong>图谱联动焦点</strong>
           <p>
             节点：{focusPayload?.nodeLabel} · 域：{focusPayload?.domain} · 风险：
@@ -1191,17 +1191,19 @@ export function PathDemo() {
           ) : null}
         </div>
       ) : null}
-      <label>学习目标</label>
-      <input value={goal} onChange={(event) => setGoal(event.target.value)} />
-      <button type="button" onClick={generatePath} disabled={loading}>
-        {focusPayload ? "生成 7 日定向计划" : "生成 7 日计划"}
-      </button>
-      <button type="button" onClick={replan} disabled={loading || !data}>
-        依据新情况重排计划
-      </button>
+      <div id="path_goal_panel" className="anchor-target">
+        <label>学习目标</label>
+        <input value={goal} onChange={(event) => setGoal(event.target.value)} />
+        <button type="button" onClick={generatePath} disabled={loading}>
+          {focusPayload ? "生成 7 日定向计划" : "生成 7 日计划"}
+        </button>
+        <button type="button" onClick={replan} disabled={loading || !data}>
+          依据新情况重排计划
+        </button>
+      </div>
 
       {data ? (
-        <div className="card-list">
+        <div id="path_plan_panel" className="card-list anchor-target">
           <div className="result-box">
             <strong>计划 ID：</strong> {data.planId}
             {"\n"}
@@ -1256,7 +1258,11 @@ export function PathDemo() {
         </div>
       ) : null}
 
-      {error ? <div className="result-box danger">{error}</div> : null}
+      {error ? (
+        <div id="path_error_panel" className="result-box danger anchor-target">
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 }

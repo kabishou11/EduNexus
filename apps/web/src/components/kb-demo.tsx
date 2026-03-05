@@ -1169,136 +1169,138 @@ export function KbDemo() {
 
   return (
     <div className="demo-form">
-      <label>检索关键词</label>
-      <input
-        value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        placeholder="例如：等差数列 / 单调性 / 复盘"
-      />
-      <label>类型过滤（可选）</label>
-      <input
-        value={typeFilter}
-        onChange={(event) => setTypeFilter(event.target.value)}
-        placeholder="note / source / playbook / skill / daily"
-      />
-      <label>领域过滤（可选）</label>
-      <input
-        value={domainFilter}
-        onChange={(event) => setDomainFilter(event.target.value)}
-        placeholder="math / physics / general"
-      />
-      <label>标签过滤（可选）</label>
-      <input
-        value={tagFilter}
-        onChange={(event) => setTagFilter(event.target.value)}
-        placeholder="例如：复盘"
-      />
-      <button type="button" onClick={() => void search()} disabled={loading}>
-        搜索知识库
-      </button>
-      <button type="button" onClick={rebuildIndex} disabled={loading}>
-        重建索引摘要
-      </button>
-      {externalContextHint ? (
-        <div className="result-box info">
-          <strong>外部回看上下文</strong>
-          <p>{externalContextHint}</p>
-          <div className="result-box-actions">
-            {presetNoteId ? (
+      <div id="kb_search_panel" className="anchor-target">
+        <label>检索关键词</label>
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="例如：等差数列 / 单调性 / 复盘"
+        />
+        <label>类型过滤（可选）</label>
+        <input
+          value={typeFilter}
+          onChange={(event) => setTypeFilter(event.target.value)}
+          placeholder="note / source / playbook / skill / daily"
+        />
+        <label>领域过滤（可选）</label>
+        <input
+          value={domainFilter}
+          onChange={(event) => setDomainFilter(event.target.value)}
+          placeholder="math / physics / general"
+        />
+        <label>标签过滤（可选）</label>
+        <input
+          value={tagFilter}
+          onChange={(event) => setTagFilter(event.target.value)}
+          placeholder="例如：复盘"
+        />
+        <button type="button" onClick={() => void search()} disabled={loading}>
+          搜索知识库
+        </button>
+        <button type="button" onClick={rebuildIndex} disabled={loading}>
+          重建索引摘要
+        </button>
+        {externalContextHint ? (
+          <div className="result-box info">
+            <strong>外部回看上下文</strong>
+            <p>{externalContextHint}</p>
+            <div className="result-box-actions">
+              {presetNoteId ? (
+                <button
+                  type="button"
+                  onClick={() => void loadDoc(presetNoteId)}
+                  disabled={loading}
+                >
+                  打开目标笔记详情
+                </button>
+              ) : null}
               <button
                 type="button"
-                onClick={() => void loadDoc(presetNoteId)}
+                onClick={() =>
+                  void search({
+                    query: presetQuery || presetNoteId || query,
+                    typeFilter: "",
+                    domainFilter: "",
+                    tagFilter: ""
+                  })
+                }
                 disabled={loading}
               >
-                打开目标笔记详情
+                按上下文重跑检索
               </button>
-            ) : null}
-            <button
-              type="button"
-              onClick={() =>
-                void search({
-                  query: presetQuery || presetNoteId || query,
-                  typeFilter: "",
-                  domainFilter: "",
-                  tagFilter: ""
-                })
-              }
-              disabled={loading}
-            >
-              按上下文重跑检索
-            </button>
-            {presetSessionId ? (
-              <button
-                type="button"
-                onClick={() => {
-                  const params = new URLSearchParams({
-                    sessionId: presetSessionId,
-                    from: "kb_backlink"
-                  });
-                  if (presetNoteId) {
-                    params.set("noteId", presetNoteId);
-                  }
-                  router.push(`/workspace?${params.toString()}`);
-                }}
-                disabled={loading}
-              >
-                返回工作区会话
-              </button>
-            ) : null}
+              {presetSessionId ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const params = new URLSearchParams({
+                      sessionId: presetSessionId,
+                      from: "kb_backlink"
+                    });
+                    if (presetNoteId) {
+                      params.set("noteId", presetNoteId);
+                    }
+                    router.push(`/workspace?${params.toString()}`);
+                  }}
+                  disabled={loading}
+                >
+                  返回工作区会话
+                </button>
+              ) : null}
+            </div>
           </div>
-        </div>
-      ) : null}
-      <div className="card-item">
-        <strong>沉浸阅读模式</strong>
-        <p className="muted">融合 Obsidian 双链结构与 NotebookLM 摘录卡片风格。</p>
-        <div className="btn-row btn-row-top">
-          <button type="button" onClick={() => setReadingMode("cards")} disabled={loading}>
-            卡片视图
-          </button>
-          <button type="button" onClick={() => setReadingMode("plain")} disabled={loading}>
-            原文视图
-          </button>
-        </div>
-      </div>
-      <label>反链图节点上限（10-300）</label>
-      <input
-        type="number"
-        min={10}
-        max={300}
-        step={10}
-        value={graphLimit}
-        onChange={(event) => {
-          const value = Number(event.target.value);
-          if (Number.isFinite(value)) {
-            setGraphLimit(Math.min(300, Math.max(10, value)));
-          }
-        }}
-      />
-
-      {tags.length > 0 ? (
+        ) : null}
         <div className="card-item">
-          <strong>标签聚合（点击可快速过滤）</strong>
+          <strong>沉浸阅读模式</strong>
+          <p className="muted">融合 Obsidian 双链结构与 NotebookLM 摘录卡片风格。</p>
           <div className="btn-row btn-row-top">
-            {tags.slice(0, 20).map((item) => (
-              <button
-                type="button"
-                key={item.tag}
-                onClick={() => applyTag(item.tag)}
-                disabled={loading}
-                className="note-chip"
-              >
-                {item.tag} ({item.count})
-              </button>
-            ))}
+            <button type="button" onClick={() => setReadingMode("cards")} disabled={loading}>
+              卡片视图
+            </button>
+            <button type="button" onClick={() => setReadingMode("plain")} disabled={loading}>
+              原文视图
+            </button>
           </div>
         </div>
-      ) : null}
+        <label>反链图节点上限（10-300）</label>
+        <input
+          type="number"
+          min={10}
+          max={300}
+          step={10}
+          value={graphLimit}
+          onChange={(event) => {
+            const value = Number(event.target.value);
+            if (Number.isFinite(value)) {
+              setGraphLimit(Math.min(300, Math.max(10, value)));
+            }
+          }}
+        />
 
-      <div className="card-item">
-        <strong>当前过滤器</strong>
-        <p>
-          {`q=${query || "无"} · type=${typeFilter || "无"} · domain=${domainFilter || "无"} · tag=${tagFilter || "无"}`}
-        </p>
+        {tags.length > 0 ? (
+          <div className="card-item">
+            <strong>标签聚合（点击可快速过滤）</strong>
+            <div className="btn-row btn-row-top">
+              {tags.slice(0, 20).map((item) => (
+                <button
+                  type="button"
+                  key={item.tag}
+                  onClick={() => applyTag(item.tag)}
+                  disabled={loading}
+                  className="note-chip"
+                >
+                  {item.tag} ({item.count})
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="card-item">
+          <strong>当前过滤器</strong>
+          <p>
+            {`q=${query || "无"} · type=${typeFilter || "无"} · domain=${domainFilter || "无"} · tag=${tagFilter || "无"}`}
+          </p>
+        </div>
       </div>
 
       {candidates.length > 0 ? (
@@ -1317,8 +1319,9 @@ export function KbDemo() {
         </div>
       ) : null}
 
-      {selectedDoc && readingMode === "cards" ? (
-        <div className="obsidian-board">
+      <div id="kb_doc_panel" className="anchor-target">
+        {selectedDoc && readingMode === "cards" ? (
+          <div className="obsidian-board">
           <article className="obsidian-focus-card">
             <header>
               <h4>{selectedDoc.title}</h4>
@@ -1980,11 +1983,11 @@ export function KbDemo() {
               </div>
             ) : null}
           </aside>
-        </div>
-      ) : null}
+          </div>
+        ) : null}
 
-      {selectedDoc && readingMode === "plain" ? (
-        <div className="result-box">
+        {selectedDoc && readingMode === "plain" ? (
+          <div className="result-box">
           <strong>文档：{selectedDoc.title}</strong>
           {"\n"}
           id: {selectedDoc.id}
@@ -2005,8 +2008,9 @@ export function KbDemo() {
                 {"\n"}
               </span>
             ))}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
 
       {selectedDoc && selectedDoc.backlinks.length > 0 ? (
         <div className="card-list">
@@ -2030,8 +2034,9 @@ export function KbDemo() {
         </div>
       ) : null}
 
-      {graph ? (
-        <div className="card-list">
+      <div id="kb_graph_panel" className="anchor-target">
+        {graph ? (
+          <div className="card-list">
           <div className="result-box">
             <strong>反链图摘要 {graph.focusDocId ? `(焦点：${graph.focusDocId})` : "(全局)"}</strong>
             {"\n"}
@@ -2063,11 +2068,13 @@ export function KbDemo() {
               })}
             </div>
           ) : null}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+      </div>
 
-      {indexSummary ? (
-        <div className="result-box">
+      <div id="kb_index_panel" className="anchor-target">
+        {indexSummary ? (
+          <div className="result-box">
           <strong>索引重建完成</strong>
           {"\n"}
           生成时间：{indexSummary.generatedAt}
@@ -2077,10 +2084,15 @@ export function KbDemo() {
           类型统计：{JSON.stringify(indexSummary.byType)}
           {"\n"}
           领域统计：{JSON.stringify(indexSummary.byDomain)}
+          </div>
+        ) : null}
+      </div>
+
+      {error ? (
+        <div id="kb_error_panel" className="result-box danger anchor-target">
+          {error}
         </div>
       ) : null}
-
-      {error ? <div className="result-box danger">{error}</div> : null}
     </div>
   );
 }
