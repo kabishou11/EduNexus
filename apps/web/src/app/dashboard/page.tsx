@@ -617,10 +617,14 @@ export default function DashboardPage() {
   const [bridgeSortMode, setBridgeSortMode] = useState<BridgeSortMode>("risk_desc");
   const [bridgeRelationMode, setBridgeRelationMode] =
     useState<BridgeRelationMode>("all");
+  const [bridgeKeyword, setBridgeKeyword] = useState("");
+  const [bridgeRiskOnly, setBridgeRiskOnly] = useState(false);
   const [selectedBridgeIds, setSelectedBridgeIds] = useState<string[]>([]);
   const [selectedBridgeOrderIds, setSelectedBridgeOrderIds] = useState<string[]>([]);
   const [bridgeBatchHint, setBridgeBatchHint] = useState("");
   const [isBridgeBatchPreviewOpen, setIsBridgeBatchPreviewOpen] = useState(false);
+  const [activityKeyword, setActivityKeyword] = useState("");
+  const [activityRiskOnly, setActivityRiskOnly] = useState(false);
 
   const refreshBridgeRiskRows = useCallback(async () => {
     try {
@@ -893,6 +897,7 @@ export default function DashboardPage() {
   }, [activitySourceFilter, graphActivityEvents]);
 
   const filteredGraphActivityEvents = useMemo(() => {
+    const keyword = activityKeyword.trim().toLowerCase();
     const filtered = graphActivityEvents.filter((event) => {
       if (activitySourceFilter !== "all" && event.source !== activitySourceFilter) {
         return false;
@@ -900,7 +905,19 @@ export default function DashboardPage() {
       if (activityNodeFilter !== "all" && event.nodeLabel !== activityNodeFilter) {
         return false;
       }
-      return true;
+      if (activityRiskOnly && resolveGraphActivityRiskScore(event) < 0.65) {
+        return false;
+      }
+      if (!keyword) {
+        return true;
+      }
+      const normalizedAt = formatDateTime(event.at).toLowerCase();
+      return (
+        event.nodeLabel.toLowerCase().includes(keyword) ||
+        event.title.toLowerCase().includes(keyword) ||
+        event.detail.toLowerCase().includes(keyword) ||
+        normalizedAt.includes(keyword)
+      );
     });
     if (activitySortMode === "latest") {
       return filtered;
@@ -911,7 +928,9 @@ export default function DashboardPage() {
       return activitySortMode === "risk_desc" ? scoreB - scoreA : scoreA - scoreB;
     });
   }, [
+    activityKeyword,
     activityNodeFilter,
+    activityRiskOnly,
     activitySortMode,
     activitySourceFilter,
     graphActivityEvents
@@ -947,14 +966,37 @@ export default function DashboardPage() {
   );
 
   const filteredBridgeRiskRows = useMemo(() => {
+    const keyword = bridgeKeyword.trim().toLowerCase();
     const filtered = graphBridgeRiskRows.filter((row) => {
-      if (bridgeDomainFilter === "all") {
+      if (
+        bridgeDomainFilter !== "all" &&
+        row.sourceDomain !== bridgeDomainFilter &&
+        row.targetDomain !== bridgeDomainFilter
+      ) {
+        return false;
+      }
+      if (bridgeRiskOnly && row.risk < 0.65) {
+        return false;
+      }
+      if (!keyword) {
         return true;
       }
-      return row.sourceDomain === bridgeDomainFilter || row.targetDomain === bridgeDomainFilter;
+      return (
+        row.sourceLabel.toLowerCase().includes(keyword) ||
+        row.targetLabel.toLowerCase().includes(keyword) ||
+        row.sourceDomain.toLowerCase().includes(keyword) ||
+        row.targetDomain.toLowerCase().includes(keyword)
+      );
     });
     return sortBridgeRiskRows(filtered, bridgeSortMode, bridgeRelationMode);
-  }, [bridgeDomainFilter, bridgeRelationMode, bridgeSortMode, graphBridgeRiskRows]);
+  }, [
+    bridgeDomainFilter,
+    bridgeKeyword,
+    bridgeRelationMode,
+    bridgeRiskOnly,
+    bridgeSortMode,
+    graphBridgeRiskRows
+  ]);
 
   const selectedBridgeRowMap = useMemo(
     () => new Map(filteredBridgeRiskRows.map((row) => [row.id, row])),
@@ -1002,6 +1044,28 @@ export default function DashboardPage() {
       sameDomainCount: Math.max(0, selectedBridgeRows.length - crossDomainCount)
     };
   }, [selectedBridgeFocusBatch, selectedBridgeRows]);
+
+  const dashboardViewMainSectionId = useMemo(() => {
+    if (dashboardViewMode === "bridge") {
+      return "dashboard_bridge_risk";
+    }
+    if (dashboardViewMode === "events") {
+      return "dashboard_events";
+    }
+    return "dashboard_trend_center";
+  }, [dashboardViewMode]);
+
+  const bridgeHighRiskCount = useMemo(
+    () => filteredBridgeRiskRows.filter((row) => row.risk >= 0.65).length,
+    [filteredBridgeRiskRows]
+  );
+
+  const activityHighRiskCount = useMemo(
+    () =>
+      filteredGraphActivityEvents.filter((event) => resolveGraphActivityRiskScore(event) >= 0.65)
+        .length,
+    [filteredGraphActivityEvents]
+  );
 
   useEffect(() => {
     if (activityNodeFilter === "all") {
@@ -1599,6 +1663,28 @@ export default function DashboardPage() {
     setRiskConfig(DASHBOARD_RISK_PRESETS[preset]);
   }
 
+  function scrollToDashboardSection(sectionId: string) {
+    const section = document.getElementById(sectionId);
+    section?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function resetBridgeFilters() {
+    setBridgeDomainFilter("all");
+    setBridgeSortMode("risk_desc");
+    setBridgeRelationMode("all");
+    setBridgeKeyword("");
+    setBridgeRiskOnly(false);
+  }
+
+  function resetActivityFilters() {
+    setActivitySourceFilter("all");
+    setActivityNodeFilter("all");
+    setActivitySortMode("latest");
+    setActivityKeyword("");
+    setActivityRiskOnly(false);
+    setSelectedActivityId("");
+  }
+
   return (
     <section className="ecosystem-page">
       <PageHeader
@@ -1683,6 +1769,36 @@ export default function DashboardPage() {
                   : "开启后将隐藏风险提示、系统状态、比例环图与运营动作建议。"}
               </em>
             </button>
+            <div className="dashboard-quick-actions">
+              <button
+                type="button"
+                className="active"
+                onClick={() => scrollToDashboardSection(dashboardViewMainSectionId)}
+              >
+                聚焦当前视图
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToDashboardSection("dashboard_trend_center")}
+              >
+                趋势中心
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollToDashboardSection("dashboard_bridge_risk")}
+              >
+                关系链风险榜
+              </button>
+              <button type="button" onClick={() => scrollToDashboardSection("dashboard_events")}>
+                闭环事件
+              </button>
+              <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+              >
+                回到顶部
+              </button>
+            </div>
           </div>
         </article>
 
@@ -2246,6 +2362,37 @@ export default function DashboardPage() {
                   <option value="same_priority">同域优先</option>
                 </select>
               </label>
+              <label className="dashboard-bridge-search">
+                关键词
+                <input
+                  type="search"
+                  value={bridgeKeyword}
+                  placeholder="节点/域关键词"
+                  onChange={(event) => setBridgeKeyword(event.target.value)}
+                />
+              </label>
+              <label className="dashboard-bridge-risk-toggle">
+                <input
+                  type="checkbox"
+                  checked={bridgeRiskOnly}
+                  onChange={(event) => setBridgeRiskOnly(event.target.checked)}
+                />
+                仅高风险链
+              </label>
+              <span>命中 {filteredBridgeRiskRows.length} 条 · 高风险 {bridgeHighRiskCount} 条</span>
+              <button
+                type="button"
+                onClick={resetBridgeFilters}
+                disabled={
+                  bridgeDomainFilter === "all" &&
+                  bridgeSortMode === "risk_desc" &&
+                  bridgeRelationMode === "all" &&
+                  bridgeKeyword.trim().length === 0 &&
+                  !bridgeRiskOnly
+                }
+              >
+                清空筛选
+              </button>
             </div>
             <button
               type="button"
@@ -2505,6 +2652,39 @@ export default function DashboardPage() {
                   <option value="risk_asc">按风险升序</option>
                 </select>
               </label>
+              <label className="dashboard-activity-search">
+                关键词
+                <input
+                  type="search"
+                  value={activityKeyword}
+                  placeholder="节点/描述关键词"
+                  onChange={(event) => setActivityKeyword(event.target.value)}
+                />
+              </label>
+              <label className="dashboard-activity-risk-toggle">
+                <input
+                  type="checkbox"
+                  checked={activityRiskOnly}
+                  onChange={(event) => setActivityRiskOnly(event.target.checked)}
+                />
+                仅高风险事件
+              </label>
+              <span>
+                命中 {filteredGraphActivityEvents.length} 条 · 高风险 {activityHighRiskCount} 条
+              </span>
+              <button
+                type="button"
+                onClick={resetActivityFilters}
+                disabled={
+                  activitySourceFilter === "all" &&
+                  activityNodeFilter === "all" &&
+                  activitySortMode === "latest" &&
+                  activityKeyword.trim().length === 0 &&
+                  !activityRiskOnly
+                }
+              >
+                清空筛选
+              </button>
             </div>
             {filteredGraphActivityEvents.length > 0 ? (
               <div
