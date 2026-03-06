@@ -7585,6 +7585,34 @@ html[data-theme="aurora"] .config-diff-values em {
   overflow: auto;
 }
 
+.graph-bridge-replay-summary {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.graph-bridge-replay-summary span {
+  border: 1px solid rgba(97, 132, 178, 0.36);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 12% 10%, rgba(97, 199, 255, 0.2), transparent 48%),
+    rgba(8, 13, 22, 0.54);
+  color: #b3d8f6;
+  font-size: 11px;
+  padding: 4px 9px;
+}
+
+.graph-bridge-replay-compact-note {
+  margin: 6px 0 0;
+  border: 1px dashed rgba(97, 132, 178, 0.34);
+  border-radius: 9px;
+  background: rgba(8, 13, 22, 0.38);
+  color: #9fc7ee;
+  font-size: 11px;
+  padding: 7px 9px;
+}
+
 .graph-bridge-timeline-mode {
   margin-top: 8px;
   display: flex;
@@ -7791,6 +7819,42 @@ html[data-theme="aurora"] .config-diff-values em {
 .graph-bridge-replay-batch button:disabled {
   opacity: 0.52;
   cursor: not-allowed;
+}
+
+.graph-bridge-timeline-list.compact {
+  gap: 5px;
+  max-height: 192px;
+  scroll-padding-top: 6px;
+}
+
+.graph-bridge-timeline-list.compact .graph-bridge-timeline-item {
+  border-color: rgba(97, 132, 178, 0.34);
+  background: rgba(8, 13, 22, 0.56);
+  padding: 6px 7px;
+  gap: 2px;
+}
+
+.graph-bridge-timeline-list.compact .graph-bridge-timeline-item strong,
+.graph-bridge-timeline-list.compact .graph-bridge-timeline-item span,
+.graph-bridge-timeline-list.compact .graph-bridge-timeline-item em {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.graph-bridge-timeline-list.compact .graph-bridge-timeline-item strong {
+  font-size: 11px;
+}
+
+.graph-bridge-timeline-list.compact .graph-bridge-timeline-item span,
+.graph-bridge-timeline-list.compact .graph-bridge-timeline-item em {
+  font-size: 10px;
+}
+
+.graph-bridge-replay-compact-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #9fc7ee;
 }
 
 .graph-replay-history-head {
@@ -9537,6 +9601,20 @@ html[data-theme="aurora"] .graph-bridge-summary-row span {
   color: #5c7fad;
 }
 
+html[data-theme="aurora"] .graph-bridge-replay-summary span {
+  border-color: rgba(118, 154, 216, 0.44);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(122, 187, 255, 0.2), transparent 48%),
+    rgba(255, 255, 255, 0.88);
+  color: #5c7fad;
+}
+
+html[data-theme="aurora"] .graph-bridge-replay-compact-note {
+  border-color: rgba(118, 154, 216, 0.4);
+  background: rgba(255, 255, 255, 0.78);
+  color: #5c7fad;
+}
+
 html[data-theme="aurora"] .graph-bridge-batch-toolbar {
   border-color: rgba(118, 154, 216, 0.38);
   background: rgba(255, 255, 255, 0.74);
@@ -9544,7 +9622,8 @@ html[data-theme="aurora"] .graph-bridge-batch-toolbar {
 
 html[data-theme="aurora"] .graph-bridge-batch-toolbar label,
 html[data-theme="aurora"] .graph-bridge-batch-toolbar span,
-html[data-theme="aurora"] .graph-bridge-compact-hint {
+html[data-theme="aurora"] .graph-bridge-compact-hint,
+html[data-theme="aurora"] .graph-bridge-replay-compact-hint {
   color: #5c7fad;
 }
 
@@ -9701,6 +9780,11 @@ html[data-theme="aurora"] .graph-bridge-replay-batch button:first-of-type {
 html[data-theme="aurora"] .graph-bridge-replay-batch button:last-of-type {
   border-color: rgba(64, 174, 138, 0.46);
   background: rgba(103, 210, 174, 0.2);
+}
+
+html[data-theme="aurora"] .graph-bridge-timeline-list.compact .graph-bridge-timeline-item {
+  border-color: rgba(118, 154, 216, 0.4);
+  background: rgba(255, 255, 255, 0.88);
 }
 
 html[data-theme="aurora"] .graph-replay-history-head span,
@@ -11593,13 +11677,23 @@ html[data-theme="aurora"] .stream-guidance {
   }
 
   .graph-bridge-summary-row,
-  .graph-bridge-batch-toolbar {
+  .graph-bridge-batch-toolbar,
+  .graph-bridge-replay-summary {
     width: 100%;
   }
 
   .graph-bridge-batch-toolbar button {
     flex: 1;
     min-width: 0;
+  }
+
+  .graph-bridge-replay-summary span {
+    width: calc(50% - 3px);
+    min-width: 0;
+  }
+
+  .graph-bridge-timeline-list.compact {
+    max-height: 224px;
   }
 
   .dashboard-bridge-filter,

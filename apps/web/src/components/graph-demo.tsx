@@ -69,6 +69,7 @@ const GRAPH_HISTORY_COMPACT_STORAGE_KEY = "edunexus_graph_history_compact_mode";
 const GRAPH_SYNC_LAYOUT_STORAGE_KEY = "edunexus_graph_sync_layout_mode";
 const GRAPH_INSIGHT_COMPACT_STORAGE_KEY = "edunexus_graph_insight_compact_mode";
 const GRAPH_BRIDGE_BATCH_LIMIT_STORAGE_KEY = "edunexus_graph_bridge_batch_limit";
+const GRAPH_BRIDGE_REPLAY_COMPACT_STORAGE_KEY = "edunexus_graph_bridge_replay_compact_mode";
 const GRAPH_BRIDGE_HISTORY_LIMIT = 14;
 const BRIDGE_REPLAY_INTERVAL_MS: Record<BridgeReplaySpeed, number> = {
   "1x": 1300,
@@ -463,6 +464,7 @@ export function GraphDemo() {
   const [historyCompactMode, setHistoryCompactMode] = useState(true);
   const [syncLayoutMode, setSyncLayoutMode] = useState(true);
   const [insightCompactMode, setInsightCompactMode] = useState(true);
+  const [bridgeReplayCompactMode, setBridgeReplayCompactMode] = useState(true);
   const [bridgeSuggestionBatchLimit, setBridgeSuggestionBatchLimit] = useState(3);
   const [replayHistoryPreset, setReplayHistoryPreset] =
     useState<ReplayHistoryPresetKey>("all");
@@ -1065,6 +1067,14 @@ export function GraphDemo() {
           setBridgeSuggestionBatchLimit(parsed);
         }
       }
+      const rawBridgeReplayCompact = window.localStorage.getItem(
+        GRAPH_BRIDGE_REPLAY_COMPACT_STORAGE_KEY
+      );
+      if (rawBridgeReplayCompact === "0") {
+        setBridgeReplayCompactMode(false);
+      } else if (rawBridgeReplayCompact === "1") {
+        setBridgeReplayCompactMode(true);
+      }
     } catch {
       // ignore storage read errors
     }
@@ -1100,11 +1110,16 @@ export function GraphDemo() {
         GRAPH_BRIDGE_BATCH_LIMIT_STORAGE_KEY,
         String(bridgeSuggestionBatchLimit)
       );
+      window.localStorage.setItem(
+        GRAPH_BRIDGE_REPLAY_COMPACT_STORAGE_KEY,
+        bridgeReplayCompactMode ? "1" : "0"
+      );
     } catch {
       // ignore storage write errors
     }
   }, [
     bridgeSuggestionBatchLimit,
+    bridgeReplayCompactMode,
     canvasZoomPercent,
     enableEdgeHeatmap,
     historyCompactMode,
@@ -1767,6 +1782,35 @@ export function GraphDemo() {
       ),
     [displayedBridgeReplayFrames]
   );
+  const renderBridgeReplayFrames = useMemo(
+    () =>
+      bridgeReplayCompactMode
+        ? displayedBridgeReplayFrames.slice(0, 8)
+        : displayedBridgeReplayFrames,
+    [bridgeReplayCompactMode, displayedBridgeReplayFrames]
+  );
+  const bridgeReplaySummary = useMemo(() => {
+    if (displayedBridgeReplayFrames.length === 0) {
+      return { highRiskCount: 0, averageRisk: 0, latestAt: "" };
+    }
+    const highRiskCount = displayedBridgeReplayFrames.filter(
+      (item) => item.bridge.risk >= 0.65
+    ).length;
+    const averageRisk = Number(
+      (
+        displayedBridgeReplayFrames.reduce((sum, item) => sum + item.bridge.risk, 0) /
+        displayedBridgeReplayFrames.length
+      ).toFixed(2)
+    );
+    const latestAt =
+      [...displayedBridgeReplayFrames]
+        .sort((a, b) => b.at.localeCompare(a.at, "zh-CN"))[0]?.at ?? "";
+    return {
+      highRiskCount,
+      averageRisk,
+      latestAt
+    };
+  }, [displayedBridgeReplayFrames]);
 
   const activeBridgeReplayFrame = useMemo(() => {
     if (orderedBridgeReplayFrames.length === 0) {
@@ -3493,6 +3537,15 @@ export function GraphDemo() {
               <span>
                 侧栏分组：已折叠 {visibleCollapsedInsightCount}/{visibleInsightSections.length}
               </span>
+              {graphWorkbenchView === "bridge" ? (
+                <button
+                  type="button"
+                  className={`demo-btn-secondary${bridgeReplayCompactMode ? " active" : ""}`}
+                  onClick={() => setBridgeReplayCompactMode((prev) => !prev)}
+                >
+                  {bridgeReplayCompactMode ? "回放精简开" : "回放精简关"}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className={`demo-btn-secondary${syncLayoutMode ? " active" : ""}`}
@@ -3933,241 +3986,282 @@ export function GraphDemo() {
                   <p className="muted">
                     记录每次图谱刷新后的关系链风险波动，用于回看干预是否生效。
                   </p>
-              <div className="graph-bridge-timeline-mode">
-                <button
-                  type="button"
-                  className={bridgeReplayMode === "focus" ? "active" : ""}
-                  onClick={() => {
-                    setBridgeReplayMode("focus");
-                    setBridgeReplayCursor(0);
-                    setIsBridgeReplayPlaying(false);
-                  }}
-                >
-                  仅看当前关系链
-                </button>
-                <button
-                  type="button"
-                  className={bridgeReplayMode === "all" ? "active" : ""}
-                  onClick={() => {
-                    setBridgeReplayMode("all");
-                    setBridgeReplayCursor(0);
-                    setIsBridgeReplayPlaying(false);
-                  }}
-                >
-                  查看全部关系链
-                </button>
-                <span>
-                  当前 {displayedBridgeReplayFrames.length} 条 · 模式
-                  {bridgeReplayMode === "focus" ? " 焦点回放" : " 全量回放"} · 进度{" "}
-                  {bridgeReplayProgressPercent}%
-                </span>
-              </div>
-              <div className="graph-bridge-timeline-filter">
-                <label>
-                  节点筛选
-                  <select
-                    value={bridgeReplayNodeFilter}
-                    onChange={(event) => setBridgeReplayNodeFilter(event.target.value)}
-                  >
-                    <option value="all">全部节点</option>
-                    {bridgeReplayNodeOptions.map((nodeLabel) => (
-                      <option key={`bridge_replay_node_${nodeLabel}`} value={nodeLabel}>
-                        {nodeLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-              {orderedBridgeReplayFrames.length > 0 ? (
-                <div className="graph-bridge-replay-controller">
-                  <div className="graph-bridge-replay-actions">
-                    <button
-                      type="button"
-                      onClick={() => handleBridgeReplayStep(-1)}
-                      disabled={bridgeReplayCursor <= 0}
-                    >
-                      上一帧
-                    </button>
-                    <button
-                      type="button"
-                      onClick={toggleBridgeReplayPlay}
-                      disabled={orderedBridgeReplayFrames.length <= 1}
-                    >
-                      {isBridgeReplayPlaying ? "暂停回放" : "播放回放"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleBridgeReplayStep(1)}
-                      disabled={
-                        bridgeReplayCursor >= orderedBridgeReplayFrames.length - 1
-                      }
-                    >
-                      下一帧
-                    </button>
-                    <button
-                      type="button"
-                      onClick={restartBridgeReplay}
-                      disabled={bridgeReplayCursor === 0}
-                    >
-                      回到首帧
-                    </button>
+                  <div className="graph-bridge-replay-summary">
+                    <span>可见帧 {displayedBridgeReplayFrames.length}</span>
+                    <span>高风险帧 {bridgeReplaySummary.highRiskCount}</span>
+                    <span>平均风险 {toPercent(bridgeReplaySummary.averageRisk)}</span>
+                    <span>
+                      最近时间{" "}
+                      {bridgeReplaySummary.latestAt
+                        ? formatDateTime(bridgeReplaySummary.latestAt)
+                        : "无"}
+                    </span>
                   </div>
-                  <div className="graph-bridge-replay-speed">
-                    <span>回放速度</span>
-                    {(["1x", "1.5x", "2x"] as BridgeReplaySpeed[]).map((speed) => (
-                      <button
-                        type="button"
-                        key={`bridge_replay_speed_${speed}`}
-                        className={bridgeReplaySpeed === speed ? "active" : ""}
-                        onClick={() => setBridgeReplaySpeed(speed)}
-                      >
-                        {speed}
-                      </button>
-                    ))}
-                  </div>
-                  <label className="graph-bridge-replay-slider">
-                    帧位 {Math.min(bridgeReplayCursor + 1, orderedBridgeReplayFrames.length)}/
-                    {orderedBridgeReplayFrames.length}
-                    <input
-                      type="range"
-                      min={0}
-                      max={Math.max(0, orderedBridgeReplayFrames.length - 1)}
-                      step={1}
-                      value={Math.min(
-                        bridgeReplayCursor,
-                        orderedBridgeReplayFrames.length - 1
-                      )}
-                      onChange={(event) => {
-                        setIsBridgeReplayPlaying(false);
-                        setBridgeReplayCursor(Number(event.target.value));
-                      }}
-                    />
-                  </label>
-                  {activeBridgeReplayFrame ? (
-                    <p className="graph-bridge-replay-current">
-                      当前帧：{activeBridgeReplayFrame.bridge.sourceLabel} ↔{" "}
-                      {activeBridgeReplayFrame.bridge.targetLabel} · 风险{" "}
-                      {toPercent(activeBridgeReplayFrame.bridge.risk)} ·{" "}
-                      {formatDateTime(activeBridgeReplayFrame.at)}
+                  {bridgeReplayCompactMode ? (
+                    <p className="graph-bridge-replay-compact-note">
+                      回放精简模式已开启，仅保留核心回放与当前帧推送。关闭后可使用高级筛选、速度与统计。
                     </p>
                   ) : null}
-                  {activeBridgeReplayFrame ? (
-                    <div className="graph-bridge-replay-jump">
-                      <button
-                        type="button"
-                        onClick={handlePushActiveReplayBridgeToPath}
-                        disabled={!activeReplayBridgeSuggestion}
-                      >
-                        推送当前帧到路径
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handlePushActiveReplayBridgeToWorkspace}
-                        disabled={!activeReplayBridgeSuggestion}
-                      >
-                        推送当前帧到工作区
-                      </button>
-                    </div>
-                  ) : null}
-                  {orderedBridgeReplayFrames.length > 0 ? (
-                    <div className="graph-bridge-replay-batch">
+                  <div className="graph-bridge-timeline-mode">
+                    <button
+                      type="button"
+                      className={bridgeReplayMode === "focus" ? "active" : ""}
+                      onClick={() => {
+                        setBridgeReplayMode("focus");
+                        setBridgeReplayCursor(0);
+                        setIsBridgeReplayPlaying(false);
+                      }}
+                    >
+                      仅看当前关系链
+                    </button>
+                    <button
+                      type="button"
+                      className={bridgeReplayMode === "all" ? "active" : ""}
+                      onClick={() => {
+                        setBridgeReplayMode("all");
+                        setBridgeReplayCursor(0);
+                        setIsBridgeReplayPlaying(false);
+                      }}
+                    >
+                      查看全部关系链
+                    </button>
+                    <span>
+                      当前 {displayedBridgeReplayFrames.length} 条 · 模式
+                      {bridgeReplayMode === "focus" ? " 焦点回放" : " 全量回放"} · 进度{" "}
+                      {bridgeReplayProgressPercent}%
+                    </span>
+                  </div>
+                  {!bridgeReplayCompactMode ? (
+                    <div className="graph-bridge-timeline-filter">
                       <label>
-                        批量条数
+                        节点筛选
                         <select
-                          value={bridgeReplayBatchLimit}
-                          onChange={(event) =>
-                            setBridgeReplayBatchLimit(Number(event.target.value))
-                          }
+                          value={bridgeReplayNodeFilter}
+                          onChange={(event) => setBridgeReplayNodeFilter(event.target.value)}
                         >
-                          {[3, 4, 6, 8].map((item) => (
-                            <option key={`bridge_replay_batch_${item}`} value={item}>
-                              Top {item}
+                          <option value="all">全部节点</option>
+                          {bridgeReplayNodeOptions.map((nodeLabel) => (
+                            <option key={`bridge_replay_node_${nodeLabel}`} value={nodeLabel}>
+                              {nodeLabel}
                             </option>
                           ))}
                         </select>
                       </label>
-                      <span>当前可推送 {replayBatchFocuses.length} 条</span>
-                      <button
-                        type="button"
-                        onClick={handlePushReplayBatchToPath}
-                        disabled={replayBatchFocuses.length < 2}
-                      >
-                        批量推送到路径
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handlePushReplayBatchToWorkspace}
-                        disabled={replayBatchFocuses.length < 2}
-                      >
-                        批量推送到工作区
-                      </button>
                     </div>
                   ) : null}
-                </div>
-              ) : null}
-              {bridgeReplayNodeStats.length > 0 ? (
-                <div className="graph-bridge-node-stats">
-                  {bridgeReplayNodeStats.map((item) => (
-                    <button
-                      type="button"
-                      key={`bridge_replay_stat_${item.label}`}
-                      className="graph-bridge-node-stat"
-                      onClick={() => handleFocusReplayNode(item.label)}
-                    >
-                      <strong>{item.label}</strong>
-                      <span>
-                        出现 {item.count} 次 · 平均风险 {toPercent(item.averageRisk)}
-                      </span>
-                      <em>
-                        峰值 {toPercent(item.maxRisk)} · 最近 {formatDateTime(item.latestAt)}
-                      </em>
-                      <div className="graph-bridge-node-trend">
-                        {item.trendPoints.slice(-10).map((point, index) => (
-                          <i
-                            key={`trend_${item.label}_${index}`}
-                            style={{ height: `${Math.max(6, Math.round(point * 28))}px` }}
-                          />
-                        ))}
-                        <b className={item.trendDelta > 0 ? "up" : item.trendDelta < 0 ? "down" : ""}>
-                          {formatDelta(item.trendDelta, { precision: 2 })}
-                        </b>
+                  {orderedBridgeReplayFrames.length > 0 ? (
+                    <div className="graph-bridge-replay-controller">
+                      <div className="graph-bridge-replay-actions">
+                        <button
+                          type="button"
+                          onClick={() => handleBridgeReplayStep(-1)}
+                          disabled={bridgeReplayCursor <= 0}
+                        >
+                          上一帧
+                        </button>
+                        <button
+                          type="button"
+                          onClick={toggleBridgeReplayPlay}
+                          disabled={orderedBridgeReplayFrames.length <= 1}
+                        >
+                          {isBridgeReplayPlaying ? "暂停回放" : "播放回放"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleBridgeReplayStep(1)}
+                          disabled={
+                            bridgeReplayCursor >= orderedBridgeReplayFrames.length - 1
+                          }
+                        >
+                          下一帧
+                        </button>
+                        <button
+                          type="button"
+                          onClick={restartBridgeReplay}
+                          disabled={bridgeReplayCursor === 0}
+                        >
+                          回到首帧
+                        </button>
                       </div>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-              {displayedBridgeReplayFrames.length > 0 ? (
-                <div className="graph-bridge-timeline-list">
-                  {displayedBridgeReplayFrames.map((frame) => {
-                    const frameKey = buildBridgeReplayFrameKey({
-                      snapshotId: frame.snapshotId,
-                      bridgeId: frame.bridge.id
-                    });
-                    return (
-                      <button
-                        type="button"
-                        key={frameKey}
-                        className={`graph-bridge-timeline-item${
-                          activeBridgeReplayFrameKey === frameKey ? " active" : ""
-                        }`}
-                        onClick={() =>
-                          handleSelectReplayFrame(frame.snapshotId, frame.bridge.id)
-                        }
-                      >
-                        <strong>
-                          {frame.bridge.sourceLabel} ↔ {frame.bridge.targetLabel}
-                        </strong>
-                        <span>
-                          {formatDateTime(frame.at)} · 风险 {toPercent(frame.bridge.risk)}
-                        </span>
-                        <em>关系权重 {frame.bridge.weight.toFixed(2)}</em>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="muted">暂无关系链回放记录，请先刷新图谱或调整筛选。</p>
-              )}
+                      {!bridgeReplayCompactMode ? (
+                        <>
+                          <div className="graph-bridge-replay-speed">
+                            <span>回放速度</span>
+                            {(["1x", "1.5x", "2x"] as BridgeReplaySpeed[]).map((speed) => (
+                              <button
+                                type="button"
+                                key={`bridge_replay_speed_${speed}`}
+                                className={bridgeReplaySpeed === speed ? "active" : ""}
+                                onClick={() => setBridgeReplaySpeed(speed)}
+                              >
+                                {speed}
+                              </button>
+                            ))}
+                          </div>
+                          <label className="graph-bridge-replay-slider">
+                            帧位{" "}
+                            {Math.min(
+                              bridgeReplayCursor + 1,
+                              orderedBridgeReplayFrames.length
+                            )}
+                            /{orderedBridgeReplayFrames.length}
+                            <input
+                              type="range"
+                              min={0}
+                              max={Math.max(0, orderedBridgeReplayFrames.length - 1)}
+                              step={1}
+                              value={Math.min(
+                                bridgeReplayCursor,
+                                orderedBridgeReplayFrames.length - 1
+                              )}
+                              onChange={(event) => {
+                                setIsBridgeReplayPlaying(false);
+                                setBridgeReplayCursor(Number(event.target.value));
+                              }}
+                            />
+                          </label>
+                        </>
+                      ) : null}
+                      {activeBridgeReplayFrame ? (
+                        <p className="graph-bridge-replay-current">
+                          当前帧：{activeBridgeReplayFrame.bridge.sourceLabel} ↔{" "}
+                          {activeBridgeReplayFrame.bridge.targetLabel} · 风险{" "}
+                          {toPercent(activeBridgeReplayFrame.bridge.risk)} ·{" "}
+                          {formatDateTime(activeBridgeReplayFrame.at)}
+                        </p>
+                      ) : null}
+                      {activeBridgeReplayFrame ? (
+                        <div className="graph-bridge-replay-jump">
+                          <button
+                            type="button"
+                            onClick={handlePushActiveReplayBridgeToPath}
+                            disabled={!activeReplayBridgeSuggestion}
+                          >
+                            推送当前帧到路径
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handlePushActiveReplayBridgeToWorkspace}
+                            disabled={!activeReplayBridgeSuggestion}
+                          >
+                            推送当前帧到工作区
+                          </button>
+                        </div>
+                      ) : null}
+                      {!bridgeReplayCompactMode && orderedBridgeReplayFrames.length > 0 ? (
+                        <div className="graph-bridge-replay-batch">
+                          <label>
+                            批量条数
+                            <select
+                              value={bridgeReplayBatchLimit}
+                              onChange={(event) =>
+                                setBridgeReplayBatchLimit(Number(event.target.value))
+                              }
+                            >
+                              {[3, 4, 6, 8].map((item) => (
+                                <option key={`bridge_replay_batch_${item}`} value={item}>
+                                  Top {item}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <span>当前可推送 {replayBatchFocuses.length} 条</span>
+                          <button
+                            type="button"
+                            onClick={handlePushReplayBatchToPath}
+                            disabled={replayBatchFocuses.length < 2}
+                          >
+                            批量推送到路径
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handlePushReplayBatchToWorkspace}
+                            disabled={replayBatchFocuses.length < 2}
+                          >
+                            批量推送到工作区
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                  {!bridgeReplayCompactMode && bridgeReplayNodeStats.length > 0 ? (
+                    <div className="graph-bridge-node-stats">
+                      {bridgeReplayNodeStats.map((item) => (
+                        <button
+                          type="button"
+                          key={`bridge_replay_stat_${item.label}`}
+                          className="graph-bridge-node-stat"
+                          onClick={() => handleFocusReplayNode(item.label)}
+                        >
+                          <strong>{item.label}</strong>
+                          <span>
+                            出现 {item.count} 次 · 平均风险 {toPercent(item.averageRisk)}
+                          </span>
+                          <em>
+                            峰值 {toPercent(item.maxRisk)} · 最近 {formatDateTime(item.latestAt)}
+                          </em>
+                          <div className="graph-bridge-node-trend">
+                            {item.trendPoints.slice(-10).map((point, index) => (
+                              <i
+                                key={`trend_${item.label}_${index}`}
+                                style={{ height: `${Math.max(6, Math.round(point * 28))}px` }}
+                              />
+                            ))}
+                            <b
+                              className={
+                                item.trendDelta > 0 ? "up" : item.trendDelta < 0 ? "down" : ""
+                              }
+                            >
+                              {formatDelta(item.trendDelta, { precision: 2 })}
+                            </b>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                  {renderBridgeReplayFrames.length > 0 ? (
+                    <div
+                      className={`graph-bridge-timeline-list${
+                        bridgeReplayCompactMode ? " compact" : ""
+                      }`}
+                    >
+                      {renderBridgeReplayFrames.map((frame) => {
+                        const frameKey = buildBridgeReplayFrameKey({
+                          snapshotId: frame.snapshotId,
+                          bridgeId: frame.bridge.id
+                        });
+                        return (
+                          <button
+                            type="button"
+                            key={frameKey}
+                            className={`graph-bridge-timeline-item${
+                              activeBridgeReplayFrameKey === frameKey ? " active" : ""
+                            }`}
+                            onClick={() =>
+                              handleSelectReplayFrame(frame.snapshotId, frame.bridge.id)
+                            }
+                          >
+                            <strong>
+                              {frame.bridge.sourceLabel} ↔ {frame.bridge.targetLabel}
+                            </strong>
+                            <span>
+                              {formatDateTime(frame.at)} · 风险 {toPercent(frame.bridge.risk)}
+                            </span>
+                            <em>关系权重 {frame.bridge.weight.toFixed(2)}</em>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="muted">暂无关系链回放记录，请先刷新图谱或调整筛选。</p>
+                  )}
+                  {bridgeReplayCompactMode &&
+                  displayedBridgeReplayFrames.length > renderBridgeReplayFrames.length ? (
+                    <p className="graph-bridge-replay-compact-hint">
+                      精简模式仅展示前 {renderBridgeReplayFrames.length}/
+                      {displayedBridgeReplayFrames.length} 条时间轴记录。
+                    </p>
+                  ) : null}
                 </>
               )}
             </div>
