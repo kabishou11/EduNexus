@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { formatErrorMessage, readApiErrorMessage, requestJson } from "@/lib/client/api";
+import { SectionAnchorNav } from "@/components/section-anchor-nav";
 import { pushGraphActivityEventToStorage } from "@/lib/client/graph-activity";
 import {
   buildWorkspacePromptFromFocus,
@@ -215,6 +216,7 @@ const REPLAY_PANEL_PRESETS: Record<
 
 const WORKSPACE_AUTO_APPLY_FOCUS_PROMPT_STORAGE_KEY =
   "edunexus_workspace_auto_apply_focus_prompt";
+const WORKSPACE_STREAM_COMPACT_STORAGE_KEY = "edunexus_workspace_stream_compact_mode";
 const MESSAGE_VIRTUAL_ITEM_HEIGHT = 132;
 const MESSAGE_VIRTUAL_OVERSCAN = 5;
 
@@ -555,6 +557,7 @@ export function WorkspaceDemo() {
   const [error, setError] = useState<string>("");
   const [workspaceViewMode, setWorkspaceViewMode] =
     useState<WorkspaceViewMode>("learn");
+  const [streamCompactMode, setStreamCompactMode] = useState(true);
   const [graphFocus, setGraphFocus] = useState<PathFocusPayload | null>(null);
   const [graphFocusQueue, setGraphFocusQueue] = useState<PathFocusPayload[]>([]);
   const [activeGraphFocusQueueKey, setActiveGraphFocusQueueKey] = useState("");
@@ -609,6 +612,16 @@ export function WorkspaceDemo() {
   );
   const hasGraphContext = queryFrom === "graph" || queryFrom === "graph_save";
   const hasMatchedQuerySession = Boolean(querySessionId) && sessionId === querySessionId;
+  const workspaceAnchorItems = useMemo(
+    () => [
+      { id: "workspace_sessions", label: "会话管理" },
+      { id: "workspace_input_control", label: "输入控制" },
+      { id: "workspace_session_records", label: "会话记录" },
+      { id: "workspace_strategy_panel", label: "证据状态" },
+      { id: "workspace_error_panel", label: "状态反馈" }
+    ],
+    []
+  );
   const rankedSessions = useMemo(() => {
     const toMillis = (value: string) => {
       const millis = Date.parse(value);
@@ -934,6 +947,30 @@ export function WorkspaceDemo() {
       // ignore preference write errors
     }
   }, [autoApplyGraphFocusPrompt]);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(WORKSPACE_STREAM_COMPACT_STORAGE_KEY);
+      if (raw === "0") {
+        setStreamCompactMode(false);
+      } else if (raw === "1") {
+        setStreamCompactMode(true);
+      }
+    } catch {
+      // ignore preference read errors
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(
+        WORKSPACE_STREAM_COMPACT_STORAGE_KEY,
+        streamCompactMode ? "1" : "0"
+      );
+    } catch {
+      // ignore preference write errors
+    }
+  }, [streamCompactMode]);
 
   useEffect(() => {
     loadReplayPushHistory();
@@ -2213,11 +2250,22 @@ export function WorkspaceDemo() {
     <div
       className="panel-grid panel-grid-tight workspace-layout"
       data-view={workspaceViewMode}
+      data-stream-compact={streamCompactMode ? "true" : "false"}
     >
       <article className="panel wide workspace-view-switcher">
         <header>
           <strong>工作区视图</strong>
-          <span>按任务阶段聚焦信息，减少同屏干扰</span>
+          <div className="workspace-view-switcher-meta">
+            <span>按任务阶段聚焦信息，减少同屏干扰</span>
+            <button
+              type="button"
+              className={`workspace-compact-toggle${streamCompactMode ? " active" : ""}`}
+              onClick={() => setStreamCompactMode((prev) => !prev)}
+            >
+              {streamCompactMode ? "回放紧凑开" : "回放紧凑关"}
+              <em>{streamCompactMode ? "隐藏高级面板，优先首屏" : "显示完整回放参数与书签区"}</em>
+            </button>
+          </div>
         </header>
         <div className="workspace-view-switcher-row">
           <button
@@ -2253,6 +2301,11 @@ export function WorkspaceDemo() {
               : "聚焦会话检索、恢复与上下文重定位。"}
         </p>
       </article>
+      <SectionAnchorNav
+        title="工作区分区导航"
+        storageKey="workspace_demo"
+        items={workspaceAnchorItems}
+      />
       {hasGraphContext ? (
         <div
           className={`workspace-graph-context workspace-section workspace-section-common${
@@ -2689,12 +2742,26 @@ export function WorkspaceDemo() {
             <div className="stream-panel">
               <div className="stream-head">
                 <strong>LangGraph 流式面板</strong>
-                <span className="tag">
-                  {agentStreamMeta
-                    ? `${agentStreamMeta.mode} / ${agentStreamMeta.intent}`
-                    : "等待元信息"}
-                </span>
+                <div className="stream-head-meta">
+                  <span className="tag">
+                    {agentStreamMeta
+                      ? `${agentStreamMeta.mode} / ${agentStreamMeta.intent}`
+                      : "等待元信息"}
+                  </span>
+                  <button
+                    type="button"
+                    className={`stream-compact-toggle${streamCompactMode ? " active" : ""}`}
+                    onClick={() => setStreamCompactMode((prev) => !prev)}
+                  >
+                    {streamCompactMode ? "紧凑模式开" : "紧凑模式关"}
+                  </button>
+                </div>
               </div>
+              {streamCompactMode ? (
+                <p className="stream-compact-note">
+                  已隐藏高级参数、书签编辑和时间线，优先保留回放控制与实时引导文本。
+                </p>
+              ) : null}
 
               <div className="stream-tools">
                 <button
@@ -2763,7 +2830,7 @@ export function WorkspaceDemo() {
                 </label>
               </div>
 
-              <div className="stream-config-panel">
+              <div className="stream-config-panel stream-advanced-block">
                 <div className="stream-config-head">
                   <strong>回放参数面板</strong>
                   <span>模板：{formatReplayPanelPresetLabel(replayPanelPreset)}</span>
@@ -2897,7 +2964,7 @@ export function WorkspaceDemo() {
                 })}
               </div>
 
-              <div className="stream-bookmark-tools">
+              <div className="stream-bookmark-tools stream-advanced-block">
                 <input
                   value={replayBookmarkDraft}
                   onChange={(event) => setReplayBookmarkDraft(event.target.value)}
@@ -2936,7 +3003,7 @@ export function WorkspaceDemo() {
               </div>
 
               {replayBookmarks.length > 0 ? (
-                <div className="stream-bookmark-filter">
+                <div className="stream-bookmark-filter stream-advanced-block">
                   <input
                     value={bookmarkQuery}
                     onChange={(event) => setBookmarkQuery(event.target.value)}
@@ -2994,7 +3061,7 @@ export function WorkspaceDemo() {
               ) : null}
 
               {replayBookmarks.length > 0 ? (
-                <div className="stream-bookmark-list">
+                <div className="stream-bookmark-list stream-advanced-block">
                   {visibleReplayBookmarks.map((bookmark) => (
                     <div className="stream-bookmark-item" key={bookmark.id}>
                       <button
@@ -3073,10 +3140,10 @@ export function WorkspaceDemo() {
                   ))}
                 </div>
               ) : (
-                <p className="stream-bookmark-empty">当前没有回放书签。</p>
+                <p className="stream-bookmark-empty stream-advanced-block">当前没有回放书签。</p>
               )}
 
-              <div className="stream-stage-grid">
+              <div className="stream-stage-grid stream-advanced-block">
                 {STREAM_STAGE_META.map((item) => (
                   <div
                     key={item.key}
@@ -3094,7 +3161,7 @@ export function WorkspaceDemo() {
               </p>
 
               <div className="stream-columns">
-                <div className="stream-column">
+                <div className="stream-column stream-column-timeline">
                   <strong>节点时间线</strong>
                   {agentStreamTimeline.length === 0 ? (
                     <p className="muted">等待节点轨迹...</p>
@@ -3136,7 +3203,10 @@ export function WorkspaceDemo() {
         ) : null}
       </div>
 
-      <div className="panel wide workspace-section workspace-section-learn workspace-section-replay">
+      <div
+        id="workspace_strategy_panel"
+        className="panel wide workspace-section workspace-section-learn workspace-section-replay anchor-target"
+      >
         <h3>证据与策略状态</h3>
         <div className="card-list">
           <div className="card-item">
@@ -3177,7 +3247,11 @@ export function WorkspaceDemo() {
         </div>
       </div>
 
-      {error ? <div className="result-box danger">{error}</div> : null}
+      {error ? (
+        <div id="workspace_error_panel" className="result-box danger anchor-target">
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 }
