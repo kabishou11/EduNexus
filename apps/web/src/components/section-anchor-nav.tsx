@@ -17,6 +17,7 @@ export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavP
   const [activeId, setActiveId] = useState(items[0]?.id ?? "");
   const [collapsed, setCollapsed] = useState(false);
   const [availableIds, setAvailableIds] = useState<string[]>([]);
+  const [keyword, setKeyword] = useState("");
 
   const normalizedItems = useMemo(
     () => items.filter((item) => item.id.trim().length > 0),
@@ -92,7 +93,13 @@ export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavP
     return null;
   }
 
-  const visibleItems = collapsed ? normalizedItems.slice(0, 4) : normalizedItems;
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const filteredItems = normalizedKeyword
+    ? normalizedItems.filter((item) =>
+        `${item.label} ${item.id}`.toLowerCase().includes(normalizedKeyword)
+      )
+    : normalizedItems;
+  const visibleItems = collapsed ? filteredItems.slice(0, 4) : filteredItems;
   const availableIdSet = new Set(availableIds);
 
   return (
@@ -100,11 +107,17 @@ export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavP
       <div className="demo-anchor-head">
         <strong>{title}</strong>
         <div className="demo-anchor-tools">
+          <span>
+            命中 {filteredItems.length}/{normalizedItems.length}
+          </span>
           {normalizedItems.length > 4 ? (
             <button type="button" onClick={() => setCollapsed((prev) => !prev)}>
               {collapsed ? "展开全部" : "折叠导航"}
             </button>
           ) : null}
+          <button type="button" onClick={() => setKeyword("")} disabled={!keyword.trim()}>
+            清空筛选
+          </button>
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
@@ -113,27 +126,42 @@ export function SectionAnchorNav({ title, storageKey, items }: SectionAnchorNavP
           </button>
         </div>
       </div>
+      <div className="demo-anchor-filter">
+        <label>
+          <span>分区检索</span>
+          <input
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="输入区块关键词"
+            aria-label={`${title}分区检索`}
+          />
+        </label>
+      </div>
       <div className="demo-anchor-row">
-        {visibleItems.map((item) => (
-          <button
-            type="button"
-            key={item.id}
-            className={`demo-anchor-chip ${activeId === item.id ? "active" : ""} ${
-              availableIdSet.has(item.id) ? "" : "disabled"
-            }`}
-            disabled={!availableIdSet.has(item.id)}
-            onClick={() => {
-              const element = document.getElementById(item.id);
-              if (!element) {
-                return;
-              }
-              element.scrollIntoView({ behavior: "smooth", block: "start" });
-              setActiveId(item.id);
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
+        {visibleItems.length === 0 ? (
+          <p className="demo-anchor-empty">当前筛选无结果，请调整关键词。</p>
+        ) : (
+          visibleItems.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className={`demo-anchor-chip ${activeId === item.id ? "active" : ""} ${
+                availableIdSet.has(item.id) ? "" : "disabled"
+              }`}
+              disabled={!availableIdSet.has(item.id)}
+              onClick={() => {
+                const element = document.getElementById(item.id);
+                if (!element) {
+                  return;
+                }
+                element.scrollIntoView({ behavior: "smooth", block: "start" });
+                setActiveId(item.id);
+              }}
+            >
+              {item.label}
+            </button>
+          ))
+        )}
       </div>
     </nav>
   );

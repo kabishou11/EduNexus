@@ -21,6 +21,8 @@ export function PageQuickNav({ title, items }: PageQuickNavProps) {
   );
   const [collapsed, setCollapsed] = useState(false);
   const [activeHref, setActiveHref] = useState("");
+  const [currentPath, setCurrentPath] = useState("");
+  const [keyword, setKeyword] = useState("");
 
   useEffect(() => {
     try {
@@ -39,7 +41,12 @@ export function PageQuickNav({ title, items }: PageQuickNavProps) {
   }, [collapsed, storageKey]);
 
   useEffect(() => {
+    setCurrentPath(window.location.pathname);
+  }, []);
+
+  useEffect(() => {
     const ids = items
+      .filter((item) => item.href.startsWith("#"))
       .map((item) => item.href.replace(/^#/, ""))
       .filter((item) => item.length > 0);
     if (ids.length === 0) {
@@ -90,7 +97,14 @@ export function PageQuickNav({ title, items }: PageQuickNavProps) {
     return null;
   }
 
-  const visibleItems = collapsed ? items.slice(0, 4) : items;
+  const normalizedKeyword = keyword.trim().toLowerCase();
+  const filteredItems = normalizedKeyword
+    ? items.filter((item) => {
+        const text = `${item.label} ${item.hint ?? ""} ${item.href}`.toLowerCase();
+        return text.includes(normalizedKeyword);
+      })
+    : items;
+  const visibleItems = collapsed ? filteredItems.slice(0, 4) : filteredItems;
 
   return (
     <nav
@@ -100,25 +114,57 @@ export function PageQuickNav({ title, items }: PageQuickNavProps) {
       <header>
         <strong>{title}</strong>
         <div className="page-quick-nav-tools">
-          <span>快速定位到关键区块，减少无效滚动</span>
+          <span>
+            命中 {filteredItems.length}/{items.length} · 快速定位关键区块
+          </span>
           {items.length > 4 ? (
             <button type="button" onClick={() => setCollapsed((prev) => !prev)}>
               {collapsed ? "展开全部" : "折叠导航"}
             </button>
           ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setKeyword("");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
+            回到顶部
+          </button>
         </div>
       </header>
+      <div className="page-quick-nav-filter">
+        <label className="page-quick-nav-search">
+          <span>导航检索</span>
+          <input
+            value={keyword}
+            onChange={(event) => setKeyword(event.target.value)}
+            placeholder="输入关键词筛选导航项"
+            aria-label={`${title}导航检索`}
+          />
+        </label>
+        <button type="button" onClick={() => setKeyword("")} disabled={!keyword.trim()}>
+          清空筛选
+        </button>
+      </div>
       <div className="page-quick-nav-row">
-        {visibleItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={activeHref === item.href ? "active" : ""}
-          >
-            {item.label}
-            {item.hint ? <em>{item.hint}</em> : null}
-          </Link>
-        ))}
+        {visibleItems.length === 0 ? (
+          <p className="page-quick-nav-empty">当前筛选无结果，请调整关键词。</p>
+        ) : (
+          visibleItems.map((item) => {
+            const active = item.href.startsWith("#")
+              ? activeHref === item.href
+              : item.href === "/"
+                ? currentPath === "/"
+                : currentPath === item.href || currentPath.startsWith(`${item.href}/`);
+            return (
+              <Link key={item.href} href={item.href} className={active ? "active" : ""}>
+                {item.label}
+                {item.hint ? <em>{item.hint}</em> : null}
+              </Link>
+            );
+          })
+        )}
       </div>
     </nav>
   );

@@ -5,15 +5,25 @@ type PageHeaderProps = {
   description: string;
   tags?: string[];
   actions?: ReactNode;
+  metaLabel?: string;
+  statusLabel?: string;
 };
 
-export function PageHeader({ title, description, tags = [], actions }: PageHeaderProps) {
+export function PageHeader({
+  title,
+  description,
+  tags = [],
+  actions,
+  metaLabel = "EduNexus · Web 学习生态",
+  statusLabel = "系统在线"
+}: PageHeaderProps) {
   return (
     <header className="page-head page-head-unified">
       <div className="page-head-main">
         <div className="page-head-meta">
           <span className="page-head-meta-dot" />
-          <em>EduNexus · Web 学习生态</em>
+          <em>{metaLabel}</em>
+          <b>{statusLabel}</b>
         </div>
         <h2>{title}</h2>
         <p>{description}</p>
