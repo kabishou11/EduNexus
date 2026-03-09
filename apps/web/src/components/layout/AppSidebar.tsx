@@ -22,6 +22,7 @@ import {
   Settings,
   ChevronLeft,
   Menu,
+  BarChart3,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -30,15 +31,16 @@ const navigation = [
     title: '核心功能',
     items: [
       { name: '总览', href: '/', icon: Home },
-      { name: '知识图谱', href: '/graph', icon: Network },
-      { name: '知识库', href: '/kb', icon: BookOpen },
-      { name: '学习路径', href: '/path', icon: Route },
+      { name: '🌌 知识星图', href: '/graph', icon: Network },
+      { name: '📚 知识宝库', href: '/kb', icon: BookOpen },
+      { name: '🎮 成长地图', href: '/path', icon: Route },
     ],
   },
   {
     title: '工作区',
     items: [
       { name: '学习工作区', href: '/workspace', icon: Briefcase },
+      { name: '学习分析', href: '/workspace/analytics', icon: BarChart3 },
       { name: '教师工作台', href: '/teacher', icon: GraduationCap },
     ],
   },

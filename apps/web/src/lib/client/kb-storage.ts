@@ -13,6 +13,13 @@ export type KBDocument = {
   updatedAt: Date;
   parentId?: string;
   vaultId: string;
+  version?: number; // 版本号，用于冲突检测
+  // 数据联动字段
+  graphNodeId?: string;      // 关联的知识星图节点
+  skillNodeIds?: string[];   // 关联的技能节点
+  relatedDocs?: string[];    // 相关文档
+  extractedKeywords?: string[]; // 提取的关键词
+  lastSyncedAt?: Date;       // 最后同步时间
 };
 
 // 知识库（Vault）类型定义
@@ -233,6 +240,7 @@ export class KBStorageManager {
       vaultId,
       createdAt: new Date(),
       updatedAt: new Date(),
+      version: 1, // 初始版本号
     };
 
     return new Promise((resolve, reject) => {
@@ -254,6 +262,7 @@ export class KBStorageManager {
     const updatedDoc = {
       ...doc,
       updatedAt: new Date(),
+      version: (doc.version || 0) + 1, // 增加版本号
     };
 
     return new Promise((resolve, reject) => {

@@ -8,11 +8,11 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 
 /**
- * 搜索知识库工具
+ * 搜索知识宝库工具
  */
 export const searchKnowledgeBaseTool = new DynamicStructuredTool({
   name: "search_knowledge_base",
-  description: "搜索知识库中的文档和笔记。当用户询问某个概念或需要查找相关资料时使用。",
+  description: "搜索知识宝库中的文档和笔记。当用户询问某个概念或需要查找相关资料时使用。",
   schema: z.object({
     query: z.string().describe("搜索查询词"),
     limit: z.number().optional().describe("返回结果数量限制，默认5"),
@@ -38,11 +38,11 @@ export const searchKnowledgeBaseTool = new DynamicStructuredTool({
 });
 
 /**
- * 查询知识图谱工具
+ * 查询知识星图工具
  */
 export const queryKnowledgeGraphTool = new DynamicStructuredTool({
   name: "query_knowledge_graph",
-  description: "查询知识图谱，获取概念之间的关系。当需要了解知识点之间的联系时使用。",
+  description: "查询知识星图，获取概念之间的关系。当需要了解知识点之间的联系时使用。",
   schema: z.object({
     concept: z.string().describe("要查询的概念"),
     depth: z.number().optional().describe("查询深度，默认2"),
@@ -89,11 +89,11 @@ export const generateExerciseTool = new DynamicStructuredTool({
 });
 
 /**
- * 推荐学习路径工具
+ * 推荐成长地图工具
  */
 export const recommendLearningPathTool = new DynamicStructuredTool({
   name: "recommend_learning_path",
-  description: "根据当前知识点推荐学习路径。当用户不知道接下来学什么时使用。",
+  description: "根据当前知识点推荐成长地图。当用户不知道接下来学什么时使用。",
   schema: z.object({
     currentTopic: z.string().describe("当前学习的主题"),
     goal: z.string().optional().describe("学习目标"),

@@ -31,12 +31,13 @@ export interface AgentState {
 }
 
 /**
- * 执行 Agent 对话（简化版本）
+ * 执行 Agent 对话（简化版本，支持多模态）
  */
 export async function runAgentConversation(
   input: string,
   chatHistory: BaseMessage[] = [],
-  config: AgentConfig = {}
+  config: AgentConfig = {},
+  images?: string[]
 ): Promise<{
   output: string;
   intermediateSteps: any[];
@@ -89,14 +90,27 @@ ${toolsDesc}
 - 主动关联相关知识点`;
 
     // 构建消息历史
-    const messages = [
+    const messages: any[] = [
       { role: "system" as const, content: systemPrompt },
       ...chatHistory.slice(-6).map(msg => ({
         role: msg._getType() === "human" ? "user" as const : "assistant" as const,
         content: msg.content as string,
       })),
-      { role: "user" as const, content: input },
     ];
+
+    // 如果有图片，构建多模态消息
+    if (images && images.length > 0) {
+      const userContent: any[] = [
+        { type: "text", text: input },
+        ...images.map(img => ({
+          type: "image_url",
+          image_url: { url: img }
+        }))
+      ];
+      messages.push({ role: "user" as const, content: userContent });
+    } else {
+      messages.push({ role: "user" as const, content: input });
+    }
 
     // 调用模型
     const completion = await client.chat.completions.create({

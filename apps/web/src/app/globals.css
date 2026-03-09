@@ -370,4 +370,29 @@
   .border-gradient {
     border-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent))) 1;
   }
+
+  /* Markdown 内容样式优化 */
+  .markdown-content {
+    @apply text-gray-800;
+  }
+
+  .markdown-content pre {
+    @apply my-4 rounded-lg overflow-hidden;
+  }
+
+  .markdown-content pre code {
+    @apply block p-4 text-sm leading-relaxed;
+  }
+
+  .markdown-content :not(pre) > code {
+    @apply px-1.5 py-0.5 rounded bg-orange-100 text-orange-800 text-sm font-mono;
+  }
+
+  .markdown-content img {
+    @apply rounded-lg shadow-md my-4;
+  }
+
+  .markdown-content hr {
+    @apply my-6 border-t-2 border-gray-200;
+  }
 }

@@ -228,7 +228,7 @@ export default function PathPage() {
       <div className="w-80 border-r bg-white/80 backdrop-blur-sm flex flex-col">
         <div className="p-4 border-b space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold">学习路径</h2>
+            <h2 className="text-lg font-semibold">🎮 成长地图</h2>
             <Button size="sm" className="bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600" onClick={handleCreatePath}>
               <Plus className="h-4 w-4" />
             </Button>
@@ -237,7 +237,7 @@ export default function PathPage() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="搜索路径..."
+              placeholder="搜索成长地图..."
               className="pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -344,7 +344,7 @@ export default function PathPage() {
           <div className="space-y-4">
             <h2 className="text-xl font-semibold flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-orange-500" />
-              学习路径
+              成长路线
             </h2>
 
             <div className="relative">

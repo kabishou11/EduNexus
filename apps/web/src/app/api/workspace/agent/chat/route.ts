@@ -12,7 +12,7 @@ export const maxDuration = 60; // 最长执行时间 60 秒
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { message, history = [], config = {} } = body;
+    const { message, images, history = [], config = {} } = body;
 
     if (!message || typeof message !== "string") {
       return NextResponse.json(
@@ -24,8 +24,8 @@ export async function POST(request: Request) {
     // 转换历史消息格式
     const chatHistory = createChatHistory(history);
 
-    // 执行 Agent 对话
-    const result = await runAgentConversation(message, chatHistory, config);
+    // 执行 Agent 对话（支持多模态）
+    const result = await runAgentConversation(message, chatHistory, config, images);
 
     return NextResponse.json({
       success: true,
