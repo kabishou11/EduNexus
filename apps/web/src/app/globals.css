@@ -6,42 +6,7 @@
   :root {
     --radius: 0.75rem;
 
-    /* Nebula 主题 (Dark) - 深邃星空 */
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
-
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 199 89% 48%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 215 28% 17%;
-    --muted-foreground: 217 19% 60%;
-
-    --accent: 199 89% 48%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 215 28% 17%;
-    --input: 215 28% 17%;
-    --ring: 199 89% 48%;
-
-    /* 字体变量 */
-    --font-sans: var(--font-inter), "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    --font-mono: var(--font-mono), "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
-  }
-
-  html[data-theme="aurora"] {
-    /* Aurora 主题 (Light) - 晨曦玻璃 */
+    /* Aurora 主题 - 晨曦色 */
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
 
@@ -51,8 +16,9 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
+    /* 晨曦主色 - 温暖的橙粉色 */
+    --primary: 15 86% 65%;
+    --primary-foreground: 0 0% 100%;
 
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
@@ -60,15 +26,63 @@
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 210 100% 50%;
-    --accent-foreground: 210 40% 98%;
+    /* 晨曦辅助色 - 柔和的金色 */
+    --accent: 35 100% 70%;
+    --accent-foreground: 222 47% 11%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 15 86% 65%;
+
+    /* Sidebar colors */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-border: 214 32% 91%;
+    --sidebar-accent: 210 40% 96%;
+    --sidebar-accent-foreground: 222 47% 11%;
+
+    /* 字体变量 */
+    --font-sans: var(--font-inter), "Noto Sans SC", "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --font-mono: var(--font-mono), "JetBrains Mono", "Fira Code", "Cascadia Code", Consolas, monospace;
+  }
+
+  .dark {
+    --background: 222 47% 4%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 15 86% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 215 28% 17%;
+    --muted-foreground: 217 19% 60%;
+
+    --accent: 35 100% 70%;
+    --accent-foreground: 222 47% 4%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    --border: 215 28% 17%;
+    --input: 215 28% 17%;
+    --ring: 15 86% 65%;
+
+    --sidebar: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-border: 215 28% 17%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
   }
 
   * {
@@ -88,31 +102,31 @@
     min-height: 100vh;
   }
 
-  /* 星空背景效果 - 更精致 */
+  /* 晨曦背景效果 */
   body::before {
     content: "";
     position: fixed;
     inset: 0;
     pointer-events: none;
     background-image:
-      radial-gradient(circle at 20% 30%, rgba(99, 179, 237, 0.08) 0, transparent 2px),
-      radial-gradient(circle at 75% 70%, rgba(147, 197, 253, 0.05) 0, transparent 1.5px),
-      radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.03) 0, transparent 3px);
+      radial-gradient(circle at 20% 30%, rgba(251, 146, 60, 0.05) 0, transparent 2px),
+      radial-gradient(circle at 75% 70%, rgba(252, 211, 77, 0.03) 0, transparent 1.5px),
+      radial-gradient(circle at 50% 50%, rgba(249, 115, 22, 0.02) 0, transparent 3px);
     background-size: 180px 180px, 140px 140px, 220px 220px;
-    opacity: 0.6;
+    opacity: 0.4;
     z-index: 0;
     animation: twinkle 20s ease-in-out infinite;
   }
 
   @keyframes twinkle {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 0.8; }
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.6; }
   }
 
-  html[data-theme="aurora"] body::before {
+  .dark body::before {
     background-image:
-      radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.04) 0, transparent 2px),
-      radial-gradient(circle at 75% 70%, rgba(147, 197, 253, 0.03) 0, transparent 1.5px);
+      radial-gradient(circle at 20% 30%, rgba(251, 146, 60, 0.08) 0, transparent 2px),
+      radial-gradient(circle at 75% 70%, rgba(252, 211, 77, 0.05) 0, transparent 1.5px);
     opacity: 0.3;
   }
 

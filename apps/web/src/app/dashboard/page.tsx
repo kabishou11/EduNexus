@@ -1847,59 +1847,71 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-hover group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <TrendingUp className="h-4 w-4" />
-              学习增益
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                <TrendingUp className="h-5 w-5" />
+              </div>
+              <Badge variant="outline" className="text-xs">趋势</Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentMetrics.trends[0]?.value ?? "-"}</div>
+            <p className="text-sm text-muted-foreground mt-2">学习增益</p>
             <p className="text-xs text-muted-foreground mt-1">
-              近 {period === "7d" ? 7 : period === "14d" ? 14 : 30} 日单位学习时长掌握度提升。
+              近 {period === "7d" ? 7 : period === "14d" ? 14 : 30} 日单位学习时长掌握度提升
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4" />
-              独立完成率
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-green-500/10 text-green-600 group-hover:bg-green-500 group-hover:text-white transition-colors">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <Badge variant="outline" className="text-xs">完成率</Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentMetrics.rings[0]?.value ?? "-"}%</div>
+            <p className="text-sm text-muted-foreground mt-2">独立完成率</p>
             <p className="text-xs text-muted-foreground mt-1">
-              无需最终答案解锁即可完成任务的比例。
+              无需最终答案解锁即可完成任务的比例
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4" />
-              提示依赖率
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-orange-500/10 text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                <AlertTriangle className="h-5 w-5" />
+              </div>
+              <Badge variant="outline" className="text-xs">依赖</Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentMetrics.trends[2]?.value ?? "-"}</div>
+            <p className="text-sm text-muted-foreground mt-2">提示依赖率</p>
             <p className="text-xs text-muted-foreground mt-1">
-              用户对高层提示（Level 3/4）的依赖度。
+              用户对高层提示（Level 3/4）的依赖度
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="card-hover group">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Citation 覆盖
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="p-3 rounded-xl bg-blue-500/10 text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                <BarChart3 className="h-5 w-5" />
+              </div>
+              <Badge variant="outline" className="text-xs">引用</Badge>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{currentMetrics.rings[1]?.value ?? "-"}%</div>
+            <p className="text-sm text-muted-foreground mt-2">Citation 覆盖</p>
             <p className="text-xs text-muted-foreground mt-1">
-              知识类回答附来源引用的覆盖比例。
+              知识类回答附来源引用的覆盖比例
             </p>
           </CardContent>
         </Card>
