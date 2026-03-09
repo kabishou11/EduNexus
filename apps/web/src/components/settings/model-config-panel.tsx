@@ -6,8 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, Save, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { Eye, EyeOff, Save, Sparkles, RefreshCw, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface ModelConfigPanelProps {
   temperature: number;
@@ -20,45 +20,12 @@ interface ModelConfigPanelProps {
   onApiKeyChange: (value: string) => void;
 }
 
-// ModelScope 可用模型列表 (2026-03 实测)
-const AVAILABLE_MODELS = [
-  {
-    id: "Qwen/Qwen3-8B",
-    name: "Qwen3-8B",
-    description: "通义千问 3 代 8B 模型，平衡性能与速度",
-    provider: "ModelScope"
-  },
-  {
-    id: "Qwen/Qwen3-4B",
-    name: "Qwen3-4B",
-    description: "通义千问 3 代 4B 模型，快速响应",
-    provider: "ModelScope"
-  },
-  {
-    id: "Qwen/Qwen3-14B",
-    name: "Qwen3-14B",
-    description: "通义千问 3 代 14B 模型，更强理解能力",
-    provider: "ModelScope"
-  },
-  {
-    id: "Qwen/Qwen3-32B",
-    name: "Qwen3-32B",
-    description: "通义千问 3 代 32B 模型，顶级性能",
-    provider: "ModelScope"
-  },
-  {
-    id: "deepseek-ai/DeepSeek-R1",
-    name: "DeepSeek-R1",
-    description: "DeepSeek 推理模型，强大的逻辑推理能力",
-    provider: "ModelScope"
-  },
-  {
-    id: "THUDM/glm-4-9b-chat",
-    name: "GLM-4-9B",
-    description: "智谱 GLM-4 9B 对话模型",
-    provider: "ModelScope"
-  }
-];
+type Model = {
+  id: string;
+  name: string;
+  description: string;
+  provider: string;
+};
 
 export function ModelConfigPanel({
   temperature,
@@ -71,8 +38,77 @@ export function ModelConfigPanel({
   onApiKeyChange,
 }: ModelConfigPanelProps) {
   const [showApiKey, setShowApiKey] = useState(false);
-  const [selectedModel, setSelectedModel] = useState(AVAILABLE_MODELS[0].id);
+  const [selectedModel, setSelectedModel] = useState("Qwen/Qwen3-8B");
   const [apiEndpoint, setApiEndpoint] = useState("https://api-inference.modelscope.cn/v1");
+  const [models, setModels] = useState<Model[]>([]);
+  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const [modelsError, setModelsError] = useState<string | null>(null);
+
+  // 加载模型列表
+  const loadModels = async () => {
+    setIsLoadingModels(true);
+    setModelsError(null);
+    try {
+      const response = await fetch("/api/models/list");
+      const data = await response.json();
+
+      if (data.success && data.models) {
+        setModels(data.models);
+        if (data.fallback) {
+          setModelsError("使用默认模型列表（API 调用失败）");
+        }
+      } else {
+        throw new Error("Failed to load models");
+      }
+    } catch (error) {
+      console.error("Failed to load models:", error);
+      setModelsError("加载模型列表失败");
+      // 使用默认模型列表
+      setModels([
+        {
+          id: "Qwen/Qwen3-8B",
+          name: "Qwen3-8B",
+          description: "通义千问 3 代 8B 模型，平衡性能与速度",
+          provider: "ModelScope"
+        },
+        {
+          id: "Qwen/Qwen3-4B",
+          name: "Qwen3-4B",
+          description: "通义千问 3 代 4B 模型，快速响应",
+          provider: "ModelScope"
+        },
+        {
+          id: "deepseek-ai/DeepSeek-V3.2",
+          name: "DeepSeek-V3.2",
+          description: "DeepSeek V3.2 最新版本",
+          provider: "ModelScope"
+        }
+      ]);
+    } finally {
+      setIsLoadingModels(false);
+    }
+  };
+
+  // 组件加载时获取模型列表
+  useEffect(() => {
+    loadModels();
+
+    // 从 localStorage 加载保存的配置
+    const savedConfig = localStorage.getItem("edunexus_model_config");
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        if (config.model) setSelectedModel(config.model);
+        if (config.apiEndpoint) setApiEndpoint(config.apiEndpoint);
+        if (config.apiKey) onApiKeyChange(config.apiKey);
+        if (config.temperature !== undefined) onTemperatureChange(config.temperature);
+        if (config.topP !== undefined) onTopPChange(config.topP);
+        if (config.maxTokens !== undefined) onMaxTokensChange(config.maxTokens);
+      } catch (e) {
+        console.error("Failed to load saved config:", e);
+      }
+    }
+  }, []);
 
   const handleSave = () => {
     const config = {
@@ -84,6 +120,18 @@ export function ModelConfigPanel({
       maxTokens
     };
     localStorage.setItem("edunexus_model_config", JSON.stringify(config));
+
+    // 同时保存到环境变量（通过 API）
+    fetch("/api/config/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        MODELSCOPE_API_KEY: apiKey,
+        MODELSCOPE_BASE_URL: apiEndpoint,
+        MODELSCOPE_CHAT_MODEL: selectedModel,
+      }),
+    }).catch(console.error);
+
     alert("模型配置已保存");
   };
 
@@ -106,13 +154,28 @@ export function ModelConfigPanel({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="model">AI 模型</Label>
-            <Select value={selectedModel} onValueChange={setSelectedModel}>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="model">AI 模型</Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={loadModels}
+                disabled={isLoadingModels}
+              >
+                {isLoadingModels ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-2">刷新</span>
+              </Button>
+            </div>
+            <Select value={selectedModel} onValueChange={setSelectedModel} disabled={isLoadingModels}>
               <SelectTrigger id="model">
                 <SelectValue placeholder="选择模型" />
               </SelectTrigger>
               <SelectContent>
-                {AVAILABLE_MODELS.map((model) => (
+                {models.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     <div className="flex flex-col">
                       <span className="font-medium">{model.name}</span>
@@ -124,8 +187,11 @@ export function ModelConfigPanel({
                 ))}
               </SelectContent>
             </Select>
+            {modelsError && (
+              <p className="text-xs text-amber-600">{modelsError}</p>
+            )}
             <p className="text-xs text-muted-foreground">
-              当前选择: {AVAILABLE_MODELS.find(m => m.id === selectedModel)?.name}
+              当前选择: {models.find(m => m.id === selectedModel)?.name || selectedModel}
             </p>
           </div>
 

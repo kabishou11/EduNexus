@@ -1,6 +1,7 @@
 import { fail, ok } from "@/lib/server/response";
 import { kbAIChatSchema } from "@/lib/server/schema";
 import { AI_CONFIG } from "@/lib/ai-config";
+import { getModelscopeClient } from "@/lib/server/modelscope";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,13 +45,14 @@ export async function POST(request: Request) {
     ];
 
     // 调用 AI 模型
-    const aiResponse = await generateAIResponse(userInput, contextPrompt);
+    const aiResponse = await generateAIResponse(messages);
 
     return ok({
       response: aiResponse,
       timestamp: new Date().toISOString()
     });
   } catch (error) {
+    console.error("AI chat error:", error);
     return fail(
       {
         code: "KB_AI_CHAT_FAILED",
@@ -62,13 +64,114 @@ export async function POST(request: Request) {
   }
 }
 
-// 模拟 AI 响应生成函数
-// 在实际应用中，应该替换为真实的 AI API 调用
+// AI 响应生成函数
 async function generateAIResponse(
-  userInput: string,
-  context: string
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>
 ): Promise<string> {
-  // 简单的关键词匹配响应
+  const provider = AI_CONFIG.provider;
+
+  try {
+    // 使用 ModelScope
+    if (provider === "modelscope") {
+      const client = getModelscopeClient();
+      const model = AI_CONFIG.modelscope.model;
+
+      const completion = await client.chat.completions.create({
+        model,
+        messages,
+        temperature: AI_CONFIG.modelscope.temperature,
+        max_tokens: AI_CONFIG.modelscope.maxTokens,
+      });
+
+      return completion.choices[0]?.message?.content || "抱歉，我无法生成回复。";
+    }
+
+    // 使用 OpenAI
+    if (provider === "openai" && AI_CONFIG.openai.apiKey) {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${AI_CONFIG.openai.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: AI_CONFIG.openai.model,
+          messages,
+          max_tokens: AI_CONFIG.openai.maxTokens,
+          temperature: AI_CONFIG.openai.temperature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`OpenAI API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.choices[0].message.content;
+    }
+
+    // 使用 Anthropic
+    if (provider === "anthropic" && AI_CONFIG.anthropic.apiKey) {
+      const systemMessage = messages.find((m) => m.role === "system")?.content || "";
+      const conversationMessages = messages.filter((m) => m.role !== "system");
+
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": AI_CONFIG.anthropic.apiKey,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: AI_CONFIG.anthropic.model,
+          system: systemMessage,
+          messages: conversationMessages,
+          max_tokens: AI_CONFIG.anthropic.maxTokens,
+          temperature: AI_CONFIG.anthropic.temperature,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Anthropic API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.content[0].text;
+    }
+
+    // 使用本地模型 (Ollama)
+    if (provider === "local") {
+      const response = await fetch(`${AI_CONFIG.local.baseUrl}/api/chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: AI_CONFIG.local.model,
+          messages,
+          stream: false,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Local model API error: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data.message.content;
+    }
+
+    // 降级到模拟模式
+    return generateMockResponse(messages[messages.length - 1]?.content || "");
+  } catch (error) {
+    console.error("AI generation error:", error);
+    // 如果真实 API 失败，降级到模拟模式
+    return generateMockResponse(messages[messages.length - 1]?.content || "");
+  }
+}
+
+// 模拟 AI 响应（降级方案）
+function generateMockResponse(userInput: string): string {
   const input = userInput.toLowerCase();
 
   if (input.includes("摘要") || input.includes("总结")) {
@@ -131,4 +234,3 @@ async function generateAIResponse(
 
 如果你有更具体的需求，请告诉我，我会提供更有针对性的帮助。`;
 }
-

@@ -5,8 +5,17 @@
  */
 
 export const AI_CONFIG = {
-  // AI 提供商: 'mock' | 'openai' | 'anthropic' | 'local'
-  provider: process.env.NEXT_PUBLIC_AI_PROVIDER || 'mock',
+  // AI 提供商: 'mock' | 'modelscope' | 'openai' | 'anthropic' | 'local'
+  provider: process.env.NEXT_PUBLIC_AI_PROVIDER || 'modelscope',
+
+  // ModelScope 配置
+  modelscope: {
+    apiKey: process.env.MODELSCOPE_API_KEY,
+    baseUrl: process.env.MODELSCOPE_BASE_URL || 'https://api-inference.modelscope.cn/v1',
+    model: process.env.MODELSCOPE_CHAT_MODEL || 'Qwen/Qwen3-8B',
+    maxTokens: 2000,
+    temperature: 0.7,
+  },
 
   // OpenAI 配置
   openai: {
@@ -85,9 +94,11 @@ export function getAIConfig() {
  * 检查 AI 服务是否可用
  */
 export function isAIServiceAvailable(): boolean {
-  const { provider, openai, anthropic } = AI_CONFIG;
+  const { provider, modelscope, openai, anthropic } = AI_CONFIG;
 
   switch (provider) {
+    case 'modelscope':
+      return !!modelscope.apiKey;
     case 'openai':
       return !!openai.apiKey;
     case 'anthropic':
@@ -105,9 +116,11 @@ export function isAIServiceAvailable(): boolean {
  * 获取当前使用的 AI 模型名称
  */
 export function getCurrentModel(): string {
-  const { provider, openai, anthropic, local } = AI_CONFIG;
+  const { provider, modelscope, openai, anthropic, local } = AI_CONFIG;
 
   switch (provider) {
+    case 'modelscope':
+      return modelscope.model;
     case 'openai':
       return openai.model;
     case 'anthropic':
