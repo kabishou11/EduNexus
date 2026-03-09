@@ -49,6 +49,7 @@ const EDGE_TYPES = {
   applies: { label: '应用', color: 'rgba(255, 160, 122, 0.3)' }
 };
 
+// Extend the base node type from react-force-graph
 interface GraphNode {
   id: string;
   name: string;
@@ -56,6 +57,10 @@ interface GraphNode {
   connections: number;
   x?: number;
   y?: number;
+  vx?: number;
+  vy?: number;
+  fx?: number;
+  fy?: number;
 }
 
 interface GraphLink {
@@ -111,7 +116,7 @@ interface ForceGraphRef {
 }
 
 export default function GraphPage() {
-  const graphRef = useRef<ForceGraphRef | null>(null);
+  const graphRef = useRef<any>(null);
   const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; links: GraphLink[] }>({ nodes: [], links: [] });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -137,12 +142,12 @@ export default function GraphPage() {
     })
   };
 
-  const handleNodeClick = useCallback((node: GraphNode) => {
-    setSelectedNode(node);
+  const handleNodeClick = useCallback((node: any) => {
+    setSelectedNode(node as GraphNode);
   }, []);
 
-  const handleNodeHover = useCallback((node: GraphNode | null) => {
-    setHoveredNode(node);
+  const handleNodeHover = useCallback((node: any) => {
+    setHoveredNode(node as GraphNode | null);
   }, []);
 
   const handleZoomIn = () => {
@@ -277,24 +282,25 @@ export default function GraphPage() {
             graphData={filteredData}
             nodeLabel="name"
             nodeAutoColorBy="type"
-            nodeCanvasObject={(node: GraphNode, ctx: CanvasRenderingContext2D, globalScale: number) => {
-              const label = node.name;
+            nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+              const graphNode = node as GraphNode;
+              const label = graphNode.name;
               const fontSize = 12 / globalScale;
-              const nodeType = NODE_TYPES[node.type as keyof typeof NODE_TYPES];
+              const nodeType = NODE_TYPES[graphNode.type as keyof typeof NODE_TYPES];
               const nodeColor = nodeType.color;
 
               // Node size based on connections
-              const nodeSize = 3 + node.connections * 0.5;
+              const nodeSize = 3 + graphNode.connections * 0.5;
 
               // Draw node circle
               ctx.beginPath();
-              ctx.arc(node.x || 0, node.y || 0, nodeSize, 0, 2 * Math.PI);
+              ctx.arc(graphNode.x || 0, graphNode.y || 0, nodeSize, 0, 2 * Math.PI);
               ctx.fillStyle = nodeColor;
               ctx.fill();
 
               // Draw border
-              ctx.strokeStyle = hoveredNode?.id === node.id ? '#fff' : 'rgba(255, 255, 255, 0.3)';
-              ctx.lineWidth = hoveredNode?.id === node.id ? 2 / globalScale : 1 / globalScale;
+              ctx.strokeStyle = hoveredNode?.id === graphNode.id ? '#fff' : 'rgba(255, 255, 255, 0.3)';
+              ctx.lineWidth = hoveredNode?.id === graphNode.id ? 2 / globalScale : 1 / globalScale;
               ctx.stroke();
 
               // Draw label
@@ -302,9 +308,12 @@ export default function GraphPage() {
               ctx.textAlign = 'center';
               ctx.textBaseline = 'middle';
               ctx.fillStyle = '#1a1a1a';
-              ctx.fillText(label, node.x || 0, (node.y || 0) + nodeSize + fontSize + 2);
+              ctx.fillText(label, graphNode.x || 0, (graphNode.y || 0) + nodeSize + fontSize + 2);
             }}
-            linkColor={(link: GraphLink) => EDGE_TYPES[link.type as keyof typeof EDGE_TYPES].color}
+            linkColor={(link: any) => {
+              const graphLink = link as GraphLink;
+              return EDGE_TYPES[graphLink.type as keyof typeof EDGE_TYPES]?.color || 'rgba(255, 255, 255, 0.3)';
+            }}
             linkWidth={1.5}
             linkDirectionalParticles={2}
             linkDirectionalParticleWidth={2}
