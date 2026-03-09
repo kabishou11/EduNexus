@@ -50,13 +50,9 @@ export function TemplateSelector({ open, onClose, onSelect }: TemplateSelectorPr
     const title = customTitle || template.name;
     const content = applyTemplate(template, { title });
 
-    // 先关闭对话框，避免状态更新导致闪烁
+    // 调用回调并关闭对话框
+    onSelect(title, content, template.tags);
     onClose();
-
-    // 延迟调用 onSelect，确保对话框完全关闭
-    setTimeout(() => {
-      onSelect(title, content, template.tags);
-    }, 100);
 
     // 重置表单状态
     setCustomTitle("");

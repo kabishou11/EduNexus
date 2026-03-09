@@ -44,9 +44,6 @@ import { FloatingCreateButton } from "@/components/kb/floating-create-button";
 import { QuickCreateDialog, type QuickCreateData } from "@/components/kb/quick-create-dialog";
 import { ContextMenuCreate } from "@/components/kb/context-menu-create";
 import { quickCreateService } from "@/lib/kb/quick-create-service";
-import { useAutoSave } from "@/lib/hooks/use-auto-save";
-import { SaveStatusIndicator } from "@/components/kb/save-status-indicator";
-import { offlineSaveService } from "@/lib/client/offline-save-service";
 import {
   Select,
   SelectContent,
@@ -109,86 +106,8 @@ export default function KnowledgeBasePage() {
   const [showQuickCreateDialog, setShowQuickCreateDialog] = useState(false);
   const [quickCreateType, setQuickCreateType] = useState<'blank' | 'template' | 'quick' | 'from-selection'>('blank');
   const [quickCreateInitialData, setQuickCreateInitialData] = useState<Partial<QuickCreateData> | undefined>();
-
-  // 自动保存
-  const autoSaveData = useMemo(() => {
-    if (!selectedDoc || !isEditing) return null;
-    return {
-      ...selectedDoc,
-      title: editTitle,
-      content: editContent,
-    };
-  }, [selectedDoc, editTitle, editContent, isEditing]);
-
-  const { status: saveStatus, lastSaved, error: saveError } = useAutoSave(
-    autoSaveData,
-    {
-      delay: 2000,
-      enabled: isEditing && !!selectedDoc,
-      onSave: async (doc) => {
-        if (!doc) return;
-
-        try {
-          // 检查是否在线
-          if (navigator.onLine) {
-            // 在线保存
-            const autoTags = extractTags(doc.content);
-            const updatedDoc = {
-              ...doc,
-              tags: Array.from(new Set([...doc.tags, ...autoTags])),
-            };
-            await storage.updateDocument(updatedDoc);
-
-            // 更新本地状态
-            setDocuments((prev) =>
-              prev.map((d) => (d.id === doc.id ? updatedDoc : d))
-            );
-            setSelectedDoc(updatedDoc);
-          } else {
-            // 离线保存
-            await offlineSaveService.savePending(
-              doc.id,
-              'document',
-              doc,
-              doc.version || 0
-            );
-          }
-        } catch (error) {
-          console.error('Auto-save failed:', error);
-          throw error;
-        }
-      },
-      onError: (err) => {
-        console.error('Auto-save error:', err);
-      },
-      onSuccess: () => {
-        console.log('Auto-saved successfully');
-      },
-    }
-  );
-
-  // 监听在线状态，同步离线保存
-  useEffect(() => {
-    const handleOnline = async () => {
-      try {
-        const result = await offlineSaveService.syncPending(async (item) => {
-          await storage.updateDocument(item.data);
-        });
-        if (result.success > 0) {
-          console.log(`已同步 ${result.success} 个离线保存`);
-          // 重新加载文档
-          if (currentVaultId) {
-            await loadDocuments(currentVaultId);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to sync offline saves:', error);
-      }
-    };
-
-    window.addEventListener('online', handleOnline);
-    return () => window.removeEventListener('online', handleOnline);
-  }, [currentVaultId]);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // 初始化
   useEffect(() => {
@@ -236,8 +155,19 @@ export default function KnowledgeBasePage() {
     if (selectedDoc) {
       setEditContent(selectedDoc.content);
       setEditTitle(selectedDoc.title);
+      setHasUnsavedChanges(false);
     }
   }, [selectedDoc]);
+
+  // 追踪内容变化
+  useEffect(() => {
+    if (selectedDoc && isEditing) {
+      const hasChanges =
+        editTitle !== selectedDoc.title ||
+        editContent !== selectedDoc.content;
+      setHasUnsavedChanges(hasChanges);
+    }
+  }, [editTitle, editContent, selectedDoc, isEditing]);
 
   // 搜索和筛选
   const filteredDocuments = useMemo(() => {
@@ -347,30 +277,33 @@ export default function KnowledgeBasePage() {
 
   // 保存文档
   const handleSave = useCallback(async () => {
-    if (selectedDoc && currentVaultId) {
-      try {
-        // 自动提取标签
-        const autoTags = extractTags(editContent);
-        const updatedDoc = {
-          ...selectedDoc,
-          title: editTitle,
-          content: editContent,
-          tags: Array.from(new Set([...selectedDoc.tags, ...autoTags])),
-        };
-        await storage.updateDocument(updatedDoc);
-        setDocuments((prev) =>
-          prev.map((doc) =>
-            doc.id === selectedDoc.id ? updatedDoc : doc
-          )
-        );
-        setSelectedDoc(updatedDoc);
-        setIsEditing(false);
-      } catch (error) {
-        console.error("Failed to save document:", error);
-        alert("保存失败，请重试");
-      }
+    if (!selectedDoc || !currentVaultId || !hasUnsavedChanges) return;
+
+    setIsSaving(true);
+    try {
+      // 自动提取标签
+      const autoTags = extractTags(editContent);
+      const updatedDoc = {
+        ...selectedDoc,
+        title: editTitle,
+        content: editContent,
+        tags: Array.from(new Set([...selectedDoc.tags, ...autoTags])),
+      };
+      await storage.updateDocument(updatedDoc);
+      setDocuments((prev) =>
+        prev.map((doc) =>
+          doc.id === selectedDoc.id ? updatedDoc : doc
+        )
+      );
+      setSelectedDoc(updatedDoc);
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      console.error("Failed to save document:", error);
+      alert("保存失败，请重试");
+    } finally {
+      setIsSaving(false);
     }
-  }, [selectedDoc, editContent, editTitle, currentVaultId]);
+  }, [selectedDoc, editContent, editTitle, currentVaultId, hasUnsavedChanges]);
 
   // 新建文档（使用模板）
   const handleNewDocumentWithTemplate = useCallback(
@@ -388,12 +321,9 @@ export default function KnowledgeBasePage() {
           tags
         );
         setDocuments((prev) => [newDoc, ...prev]);
-
-        // 延迟设置选中文档和编辑模式，避免触发自动保存
-        setTimeout(() => {
-          setSelectedDoc(newDoc);
-          setIsEditing(true);
-        }, 150);
+        setSelectedDoc(newDoc);
+        setIsEditing(true);
+        setHasUnsavedChanges(false);
       } catch (error) {
         console.error("Failed to create document:", error);
         alert("创建文档失败，请重试");
@@ -839,14 +769,17 @@ export default function KnowledgeBasePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* 保存状态指示器 */}
+            {/* 保存按钮 */}
             {isEditing && selectedDoc && (
-              <SaveStatusIndicator
-                status={saveStatus}
-                lastSaved={lastSaved}
-                error={saveError}
-                showDetails={true}
-              />
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={!hasUnsavedChanges || isSaving}
+                className={hasUnsavedChanges ? "bg-amber-500 hover:bg-amber-600" : ""}
+              >
+                <Save className="w-4 h-4 mr-1" />
+                {isSaving ? "保存中..." : hasUnsavedChanges ? "保存" : "已保存"}
+              </Button>
             )}
 
             {docStats && (
