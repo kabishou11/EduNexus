@@ -42,7 +42,8 @@
       "Bash(python3:*)",
       "Bash(mv:*)",
       "Bash(python:*)",
-      "Bash(true:*)"
+      "Bash(true:*)",
+      "Bash(cat:*)"
     ]
   }
 }

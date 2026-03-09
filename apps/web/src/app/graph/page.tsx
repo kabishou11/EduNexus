@@ -110,12 +110,8 @@ const generateMockData = (): { nodes: GraphNode[]; links: GraphLink[] } => {
   return { nodes, links };
 };
 
-interface ForceGraphRef {
-  zoom: (scale?: number, duration?: number) => number | void;
-  zoomToFit: (duration?: number, padding?: number) => void;
-}
-
 export default function GraphPage() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const graphRef = useRef<any>(null);
   const [graphData, setGraphData] = useState<{ nodes: GraphNode[]; links: GraphLink[] }>({ nodes: [], links: [] });
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
@@ -142,10 +138,12 @@ export default function GraphPage() {
     })
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleNodeClick = useCallback((node: any) => {
     setSelectedNode(node as GraphNode);
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleNodeHover = useCallback((node: any) => {
     setHoveredNode(node as GraphNode | null);
   }, []);
@@ -282,7 +280,12 @@ export default function GraphPage() {
             graphData={filteredData}
             nodeLabel="name"
             nodeAutoColorBy="type"
-            nodeCanvasObject={(node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+            nodeCanvasObject={(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              node: any,
+              ctx: CanvasRenderingContext2D,
+              globalScale: number
+            ) => {
               const graphNode = node as GraphNode;
               const label = graphNode.name;
               const fontSize = 12 / globalScale;
@@ -310,7 +313,10 @@ export default function GraphPage() {
               ctx.fillStyle = '#1a1a1a';
               ctx.fillText(label, graphNode.x || 0, (graphNode.y || 0) + nodeSize + fontSize + 2);
             }}
-            linkColor={(link: any) => {
+            linkColor={(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              link: any
+            ) => {
               const graphLink = link as GraphLink;
               return EDGE_TYPES[graphLink.type as keyof typeof EDGE_TYPES]?.color || 'rgba(255, 255, 255, 0.3)';
             }}
