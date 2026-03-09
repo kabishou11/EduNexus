@@ -4,7 +4,7 @@ import { useState } from "react";
 import {
   FileText,
   Video,
-  Tool,
+  Wrench,
   Globe,
   BookOpen,
   Star,
@@ -42,7 +42,7 @@ interface ResourceCardProps {
 const typeIcons = {
   document: FileText,
   video: Video,
-  tool: Tool,
+  tool: Wrench,
   website: Globe,
   book: BookOpen,
 };

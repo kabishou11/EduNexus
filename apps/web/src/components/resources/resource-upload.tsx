@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload, Link as LinkIcon, X, FileText, Video, Tool, Globe, BookOpen } from "lucide-react";
+import { Upload, Link as LinkIcon, X, FileText, Video, Wrench, Globe, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +32,7 @@ interface ResourceUploadProps {
 const resourceTypes: { value: ResourceType; label: string; icon: typeof FileText }[] = [
   { value: "document", label: "文档", icon: FileText },
   { value: "video", label: "视频", icon: Video },
-  { value: "tool", label: "工具", icon: Tool },
+  { value: "tool", label: "工具", icon: Wrench },
   { value: "website", label: "网站", icon: Globe },
   { value: "book", label: "书籍", icon: BookOpen },
 ];
