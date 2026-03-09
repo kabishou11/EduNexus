@@ -31,6 +31,9 @@ import { CodeExecutor } from "@/components/workspace/code-executor";
 import { LearningNotes } from "@/components/workspace/learning-notes";
 import { QuizGenerator } from "@/components/workspace/quiz-generator";
 import { CompactLevelDisplay } from "@/components/compact-level-display";
+import { LearningPlanner } from "@/components/kb/learning-planner";
+import { KBQAAssistant } from "@/components/kb/kb-qa-assistant";
+import { getKBStorage } from "@/lib/client/kb-storage";
 
 type Message = {
   id: string;
@@ -43,6 +46,8 @@ type Message = {
 };
 
 export default function WorkspacePage() {
+  const storage = getKBStorage();
+  const [kbDocuments, setKbDocuments] = useState<any[]>([]);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -56,10 +61,27 @@ export default function WorkspacePage() {
   const [socraticMode, setSocraticMode] = useState(true);
   const [showThinking, setShowThinking] = useState(true);
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState<"status" | "tools" | "notes" | "quiz">("status");
+  const [activeTab, setActiveTab] = useState<"status" | "tools" | "notes" | "quiz" | "plan" | "kb-qa">("status");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // 加载知识库文档
+  useEffect(() => {
+    const loadKBDocuments = async () => {
+      try {
+        await storage.initialize();
+        const vaultId = storage.getCurrentVaultId();
+        if (vaultId) {
+          const docs = await storage.getDocumentsByVault(vaultId);
+          setKbDocuments(docs);
+        }
+      } catch (error) {
+        console.error("加载知识库文档失败:", error);
+      }
+    };
+    loadKBDocuments();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -456,6 +478,24 @@ export default function WorkspacePage() {
             <Target className="h-3 w-3 mr-1" />
             练习
           </Button>
+          <Button
+            variant={activeTab === "plan" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("plan")}
+            className="flex-1 text-xs"
+          >
+            <Sparkles className="h-3 w-3 mr-1" />
+            计划
+          </Button>
+          <Button
+            variant={activeTab === "kb-qa" ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setActiveTab("kb-qa")}
+            className="flex-1 text-xs"
+          >
+            <Brain className="h-3 w-3 mr-1" />
+            问答
+          </Button>
         </div>
 
         {/* Tab Content */}
@@ -568,6 +608,18 @@ export default function WorkspacePage() {
           {activeTab === "notes" && <LearningNotes />}
 
           {activeTab === "quiz" && <QuizGenerator />}
+
+          {activeTab === "plan" && (
+            <div className="space-y-4">
+              <LearningPlanner documents={kbDocuments} />
+            </div>
+          )}
+
+          {activeTab === "kb-qa" && (
+            <div className="h-full">
+              <KBQAAssistant documents={kbDocuments} />
+            </div>
+          )}
         </div>
       </div>
     </div>
