@@ -116,19 +116,19 @@ export default function HomePage() {
           tags={["纯 Web", "LangGraph", "ModelScope", "本地优先知识库"]}
           actions={
             <>
-              <Button size="lg" className="btn-primary group" asChild>
-                <Link href="/workspace">
+              <Link href="/workspace">
+                <Button size="lg" className="btn-primary group">
                   <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
                   开始学习
                   <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="group" asChild>
-                <Link href="/graph">
+                </Button>
+              </Link>
+              <Link href="/graph">
+                <Button size="lg" variant="outline" className="group">
                   <Network className="mr-2 h-4 w-4" />
                   查看知识星图
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </>
           }
         />
@@ -148,18 +148,18 @@ export default function HomePage() {
           ]}
           actions={
             <>
-              <Button size="lg" className="btn-primary group" asChild>
-                <Link href="/workspace">
+              <Link href="/workspace">
+                <Button size="lg" className="btn-primary group">
                   <Zap className="mr-2 h-4 w-4 group-hover:animate-pulse" />
                   进入学习工作区
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" className="group" asChild>
-                <Link href="/path">
+                </Button>
+              </Link>
+              <Link href="/path">
+                <Button size="lg" variant="outline" className="group">
                   <Route className="mr-2 h-4 w-4" />
                   查看成长地图
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </>
           }
         />
@@ -226,12 +226,12 @@ export default function HomePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="ghost" className="w-full justify-between group-hover:bg-primary/10" asChild>
-                      <Link href={item.href}>
+                    <Link href={item.href}>
+                      <Button variant="ghost" className="w-full justify-between group-hover:bg-primary/10">
                         进入 {item.title}
                         <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                      </Link>
-                    </Button>
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -282,17 +282,16 @@ export default function HomePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="w-full text-xs group-hover:bg-secondary/70"
-                      asChild
-                    >
-                      <Link href={item.href}>
+                    <Link href={item.href}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-xs group-hover:bg-secondary/70"
+                      >
                         查看详情
                         <ArrowRight className="ml-1 h-3 w-3 group-hover:translate-x-1 transition-transform" />
-                      </Link>
-                    </Button>
+                      </Button>
+                    </Link>
                   </CardContent>
                 </Card>
               </motion.div>
