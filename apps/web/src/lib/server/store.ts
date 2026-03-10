@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { UserLevel, UserExperience, UserAchievement, UserStats, ExpGainEvent } from './user-level-types';
 import type { Resource, Bookmark, BookmarkFolder, ResourceNote } from '../resources/resource-types';
+import type { CollabSession, CollabMessage, CollabVersion } from '../collab/collab-types';
 
 type SessionRecord = {
   id: string;
@@ -48,6 +49,9 @@ type DbSchema = {
   bookmarks: Bookmark[];
   bookmarkFolders: BookmarkFolder[];
   resourceNotes: ResourceNote[];
+  collabSessions: CollabSession[];
+  collabMessages: CollabMessage[];
+  collabVersions: CollabVersion[];
 };
 
 const DEFAULT_DB: DbSchema = {
@@ -62,7 +66,10 @@ const DEFAULT_DB: DbSchema = {
   resources: [],
   bookmarks: [],
   bookmarkFolders: [],
-  resourceNotes: []
+  resourceNotes: [],
+  collabSessions: [],
+  collabMessages: [],
+  collabVersions: []
 };
 
 async function ensureDir(dir: string) {
@@ -130,7 +137,10 @@ export async function loadDb(): Promise<DbSchema> {
       resources: parsed.resources ?? [],
       bookmarks: parsed.bookmarks ?? [],
       bookmarkFolders: parsed.bookmarkFolders ?? [],
-      resourceNotes: parsed.resourceNotes ?? []
+      resourceNotes: parsed.resourceNotes ?? [],
+      collabSessions: parsed.collabSessions ?? [],
+      collabMessages: parsed.collabMessages ?? [],
+      collabVersions: parsed.collabVersions ?? []
     };
   } catch {
     await fs.writeFile(filePath, JSON.stringify(DEFAULT_DB, null, 2), "utf8");

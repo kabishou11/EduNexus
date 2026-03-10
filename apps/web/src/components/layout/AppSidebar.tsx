@@ -26,6 +26,7 @@ import {
   Target,
   FolderOpen,
   GitBranch,
+  Users,
 } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 
@@ -40,6 +41,8 @@ const navigation = [
       { name: '🛤️ 学习路径', href: '/learning-paths', icon: GitBranch },
       { name: '🎯 目标管理', href: '/goals', icon: Target },
       { name: '📦 资源中心', href: '/resources', icon: FolderOpen },
+      { name: '👥 学习小组', href: '/groups', icon: Users },
+      { name: '💬 学习社区', href: '/community', icon: Users },
     ],
   },
   {

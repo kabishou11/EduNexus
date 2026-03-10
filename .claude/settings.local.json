@@ -51,7 +51,8 @@
       "Bash(cd /f/1work/EduNexus/apps/web && npx tsc --noEmit src/lib/hooks/use-auto-save.ts src/lib/hooks/use-debounce.ts src/lib/client/offline-save-service.ts src/lib/client/conflict-resolver.ts src/components/kb/save-status-indicator.tsx 2>&1)",
       "Bash(cd /f/1work/EduNexus/apps/web && npx tsc --noEmit src/components/kb/view-switcher.tsx src/components/kb/card-view.tsx src/components/kb/timeline-view.tsx src/components/kb/kanban-view.tsx 2>&1)",
       "Bash(cd /f/1work/EduNexus && pnpm tsc --noEmit apps/web/src/components/kb/floating-create-button.tsx 2>&1)",
-      "Bash(cd \"F:/1work/EduNexus/apps/web\" && npx tsc --noEmit --skipLibCheck src/components/workspace/monaco-editor.tsx src/components/workspace/enhanced-code-executor.tsx src/components/workspace/programming-lab.tsx src/components/workspace/file-tree.tsx src/components/workspace/project-templates.tsx 2>&1)"
+      "Bash(cd \"F:/1work/EduNexus/apps/web\" && npx tsc --noEmit --skipLibCheck src/components/workspace/monaco-editor.tsx src/components/workspace/enhanced-code-executor.tsx src/components/workspace/programming-lab.tsx src/components/workspace/file-tree.tsx src/components/workspace/project-templates.tsx 2>&1)",
+      "Bash(bash:*)"
     ]
   }
 }
