@@ -220,7 +220,7 @@ export default function PWATestPage() {
         {/* Share Section */}
         <Section title="分享功能">
           <div className="space-y-4">
-            <InfoRow label="Web Share API" value={navigator.share ? '支持' : '不支持'} />
+            <InfoRow label="Web Share API" value={typeof navigator !== 'undefined' && 'share' in navigator ? '支持' : '不支持'} />
 
             <Button onClick={handleShare} icon={<Share2 className="w-4 h-4" />}>
               测试分享

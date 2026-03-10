@@ -28,6 +28,9 @@ import {
   getGroupStats,
   joinGroup,
   createPost,
+  likePost,
+  createTask,
+  updateTaskStatus,
   addResource,
 } from '@/lib/groups/group-storage';
 import type { Group, GroupMember, GroupPost, GroupTask, GroupResource, GroupStats } from '@/lib/groups/group-types';

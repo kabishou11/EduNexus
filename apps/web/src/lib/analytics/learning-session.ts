@@ -17,6 +17,7 @@ export interface LearningSession {
     questionsCount?: number;
     correctCount?: number;
     knowledgePoints?: string[];
+    completed?: boolean;
   };
 }
 

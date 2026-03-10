@@ -222,7 +222,7 @@ export function LearningChart({ stats, period }: LearningChartProps) {
                   cy="50%"
                   labelLine={false}
                   label={({ name, percent }) =>
-                    `${name} ${(percent * 100).toFixed(0)}%`
+                    `${name} ${((percent || 0) * 100).toFixed(0)}%`
                   }
                   outerRadius={120}
                   fill="#8884d8"
@@ -264,7 +264,7 @@ export function LearningChart({ stats, period }: LearningChartProps) {
                   cy="50%"
                   labelLine={false}
                   label={({ name, value, percent }) =>
-                    `${name}: ${value} (${(percent * 100).toFixed(0)}%)`
+                    `${name}: ${value} (${((percent || 0) * 100).toFixed(0)}%)`
                   }
                   outerRadius={120}
                   fill="#8884d8"

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateQuestionsSchema } from "@/lib/server/schema";
-import { getAIService } from "@/lib/ai-service";
+import { callAI } from "@/lib/ai-service";
 
 /**
  * POST /api/practice/generate
@@ -10,8 +10,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validated = generateQuestionsSchema.parse(body);
-
-    const aiService = getAIService();
 
     // 构建生成题目的提示词
     const prompt = `你是一个专业的教育题目生成专家。请基于以下文档内容生成 ${validated.count} 道${getDifficultyText(validated.difficulty)}的${getTypeText(validated.type)}题目。
@@ -53,7 +51,7 @@ ${getTypeSpecificFields(validated.type)}
 }
 \`\`\``;
 
-    const response = await aiService.chat([
+    const response = await callAI([
       {
         role: "user",
         content: prompt,
