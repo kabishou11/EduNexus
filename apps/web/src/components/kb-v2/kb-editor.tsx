@@ -1,0 +1,144 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import Link from "@tiptap/extension-link";
+import Image from "@tiptap/extension-image";
+import Table from "@tiptap/extension-table";
+import TableRow from "@tiptap/extension-table-row";
+import TableCell from "@tiptap/extension-table-cell";
+import TableHeader from "@tiptap/extension-table-header";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import { EditorToolbar } from "./editor-toolbar";
+import type { KBDocument } from "@/lib/client/kb-storage";
+
+interface KBEditorProps {
+  document: KBDocument | null;
+  onUpdate: (doc: KBDocument) => Promise<void>;
+}
+
+export function KBEditor({ document, onUpdate }: KBEditorProps) {
+  const [isSaving, setIsSaving] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+      }),
+      Placeholder.configure({
+        placeholder: "输入 / 查看命令菜单...",
+      }),
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: "text-primary underline underline-offset-4 cursor-pointer",
+        },
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: "rounded-lg max-w-full h-auto",
+        },
+      }),
+      Table.configure({
+        resizable: true,
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+      }),
+    ],
+    content: document?.content || "",
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm sm:prose lg:prose-lg xl:prose-xl max-w-none focus:outline-none min-h-full p-8",
+      },
+    },
+    onUpdate: ({ editor }) => {
+      // 防抖保存
+      if (document) {
+        const content = editor.getHTML();
+        handleSave(content);
+      }
+    },
+  });
+
+  // 当文档切换时更新编辑器内容
+  useEffect(() => {
+    if (editor && document) {
+      editor.commands.setContent(document.content || "");
+    }
+  }, [document?.id, editor]);
+
+  // 保存文档（防抖）
+  const handleSave = async (content: string) => {
+    if (!document) return;
+
+    setIsSaving(true);
+    try {
+      await onUpdate({
+        ...document,
+        content,
+        updatedAt: new Date(),
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error("Failed to save document:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!document) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center text-muted-foreground">
+          <p className="text-lg mb-2">选择一个文档开始编辑</p>
+          <p className="text-sm">或创建一个新文档</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* 工具栏 */}
+      {editor && (
+        <EditorToolbar
+          editor={editor}
+          isSaving={isSaving}
+          lastSaved={lastSaved}
+        />
+      )}
+
+      {/* 标题 */}
+      <div className="px-8 pt-8 pb-4">
+        <input
+          type="text"
+          value={document.title}
+          onChange={(e) => {
+            onUpdate({
+              ...document,
+              title: e.target.value,
+            });
+          }}
+          className="text-4xl font-bold w-full bg-transparent border-none outline-none placeholder:text-muted-foreground"
+          placeholder="无标题"
+        />
+      </div>
+
+      {/* 编辑器 */}
+      <div className="flex-1 overflow-y-auto">
+        <EditorContent editor={editor} />
+      </div>
+    </div>
+  );
+}
