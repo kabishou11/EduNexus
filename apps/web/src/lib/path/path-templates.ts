@@ -1,4 +1,4 @@
-import { PathTemplate } from './path-types';
+import { PathTemplate, PathEdge } from './path-types';
 
 export const pathTemplates: PathTemplate[] = [
   {
@@ -118,15 +118,15 @@ export const pathTemplates: PathTemplate[] = [
         },
       ],
       edges: [
-        { id: 'e-start-html', source: 'start', target: 'html-basics' },
-        { id: 'e-html-video', source: 'html-basics', target: 'html-video' },
-        { id: 'e-html-practice', source: 'html-basics', target: 'html-practice' },
-        { id: 'e-video-css', source: 'html-video', target: 'css-basics' },
-        { id: 'e-practice-css', source: 'html-practice', target: 'css-basics' },
-        { id: 'e-css-quiz', source: 'css-basics', target: 'css-quiz' },
-        { id: 'e-quiz-js', source: 'css-quiz', target: 'js-basics' },
-        { id: 'e-js-practice', source: 'js-basics', target: 'js-practice' },
-        { id: 'e-practice-end', source: 'js-practice', target: 'end' },
+        { id: 'e-start-html', source: 'start', target: 'html-basics' } as PathEdge,
+        { id: 'e-html-video', source: 'html-basics', target: 'html-video' } as PathEdge,
+        { id: 'e-html-practice', source: 'html-basics', target: 'html-practice' } as PathEdge,
+        { id: 'e-video-css', source: 'html-video', target: 'css-basics' } as PathEdge,
+        { id: 'e-practice-css', source: 'html-practice', target: 'css-basics' } as PathEdge,
+        { id: 'e-css-quiz', source: 'css-basics', target: 'css-quiz' } as PathEdge,
+        { id: 'e-quiz-js', source: 'css-quiz', target: 'js-basics' } as PathEdge,
+        { id: 'e-js-practice', source: 'js-basics', target: 'js-practice' } as PathEdge,
+        { id: 'e-practice-end', source: 'js-practice', target: 'end' } as PathEdge,
       ],
     },
   },
@@ -199,10 +199,10 @@ export const pathTemplates: PathTemplate[] = [
         },
       ],
       edges: [
-        { id: 'e1', source: 'start', target: 'python-intro' },
-        { id: 'e2', source: 'python-intro', target: 'python-syntax' },
-        { id: 'e3', source: 'python-syntax', target: 'python-practice' },
-        { id: 'e4', source: 'python-practice', target: 'end' },
+        { id: 'e1', source: 'start', target: 'python-intro' } as PathEdge,
+        { id: 'e2', source: 'python-intro', target: 'python-syntax' } as PathEdge,
+        { id: 'e3', source: 'python-syntax', target: 'python-practice' } as PathEdge,
+        { id: 'e4', source: 'python-practice', target: 'end' } as PathEdge,
       ],
     },
   },
@@ -287,11 +287,11 @@ export const pathTemplates: PathTemplate[] = [
         },
       ],
       edges: [
-        { id: 'e1', source: 'start', target: 'array-list' },
-        { id: 'e2', source: 'array-list', target: 'stack-queue' },
-        { id: 'e3', source: 'stack-queue', target: 'tree-graph' },
-        { id: 'e4', source: 'tree-graph', target: 'algorithm-practice' },
-        { id: 'e5', source: 'algorithm-practice', target: 'end' },
+        { id: 'e1', source: 'start', target: 'array-list' } as PathEdge,
+        { id: 'e2', source: 'array-list', target: 'stack-queue' } as PathEdge,
+        { id: 'e3', source: 'stack-queue', target: 'tree-graph' } as PathEdge,
+        { id: 'e4', source: 'tree-graph', target: 'algorithm-practice' } as PathEdge,
+        { id: 'e5', source: 'algorithm-practice', target: 'end' } as PathEdge,
       ],
     },
   },

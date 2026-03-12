@@ -213,7 +213,10 @@ export function KBSidebar({
           <Plus className="h-4 w-4 mr-2" />
           新建文档
         </Button>
-        <Button variant="ghost" size="sm" className="w-full justify-start">
+        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => {
+          // TODO: 打开设置对话框
+          alert('设置功能开发中，敬请期待！');
+        }}>
           <Settings className="h-4 w-4 mr-2" />
           设置
         </Button>

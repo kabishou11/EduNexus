@@ -119,7 +119,7 @@ export class ServiceWorkerManager {
         resolve(event.data.version || null);
       };
 
-      navigator.serviceWorker.controller.postMessage(
+      navigator.serviceWorker.controller!.postMessage(
         { type: 'GET_VERSION' },
         [messageChannel.port2]
       );

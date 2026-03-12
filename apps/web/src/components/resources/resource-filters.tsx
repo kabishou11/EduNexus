@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,26 @@ export function ResourceFilters({ onSearch, availableTags = [] }: ResourceFilter
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"createdAt" | "viewCount" | "bookmarkCount" | "rating">("createdAt");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
+  // Debounced search
+  const debouncedSearch = useCallback(() => {
+    const timer = setTimeout(() => {
+      onSearch({
+        keyword: keyword || undefined,
+        type: type === "all" ? undefined : type,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        sortBy,
+        sortOrder,
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [keyword, type, selectedTags, sortBy, sortOrder, onSearch]);
+
+  useEffect(() => {
+    const cleanup = debouncedSearch();
+    return cleanup;
+  }, [keyword, type, selectedTags, sortBy, sortOrder]);
 
   const handleSearch = () => {
     onSearch({
@@ -117,6 +137,17 @@ export function ResourceFilters({ onSearch, availableTags = [] }: ResourceFilter
           </SelectContent>
         </Select>
 
+        {/* 排序顺序 */}
+        <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as "asc" | "desc")}>
+          <SelectTrigger className="w-[100px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="desc">降序</SelectItem>
+            <SelectItem value="asc">升序</SelectItem>
+          </SelectContent>
+        </Select>
+
         {/* 标签筛选 */}
         {availableTags.length > 0 && (
           <Popover>
@@ -139,7 +170,7 @@ export function ResourceFilters({ onSearch, availableTags = [] }: ResourceFilter
                     <Badge
                       key={tag}
                       variant={selectedTags.includes(tag) ? "default" : "outline"}
-                      className="cursor-pointer"
+                      className="cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => handleTagToggle(tag)}
                     >
                       {tag}

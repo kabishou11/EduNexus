@@ -3,6 +3,8 @@
  * 根据当前页面路由返回不同的功能和提示
  */
 
+import type { KBDocument } from "@/lib/client/kb-storage";
+
 export interface AIContext {
   mode: 'writing' | 'learning' | 'practice' | 'general';
   title: string;
@@ -21,14 +23,19 @@ export interface QuickAction {
 /**
  * 根据路由获取 AI 上下文
  */
-export function getAIContext(pathname: string): AIContext {
+export function getAIContext(pathname: string, currentDocument?: KBDocument | null): AIContext {
   // 知识库页面 - 写作辅助
   if (pathname.startsWith('/kb')) {
+    const hasDocument = currentDocument && currentDocument.content;
+    const documentContext = hasDocument
+      ? `\n\n当前文档：《${currentDocument.title}》\n内容：${currentDocument.content.substring(0, 1000)}${currentDocument.content.length > 1000 ? '...' : ''}`
+      : '';
+
     return {
       mode: 'writing',
       title: '写作助手',
-      placeholder: '需要帮助完善你的笔记吗？',
-      systemPrompt: '你是一个专业的写作助手，帮助用户完善知识笔记、优化表达、补充内容。',
+      placeholder: hasDocument ? '需要帮助完善你的笔记吗？' : '选择一个文档开始编辑',
+      systemPrompt: `你是一个专业的写作助手，帮助用户完善知识笔记、优化表达、补充内容。${documentContext}`,
       quickActions: [
         { id: 'expand', label: '扩展内容', icon: '📝', prompt: '帮我扩展这段内容，添加更多细节和例子' },
         { id: 'summarize', label: '总结要点', icon: '📋', prompt: '帮我总结这段内容的核心要点' },

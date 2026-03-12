@@ -17,7 +17,9 @@ export interface PathNodeData {
   metadata?: Record<string, any>;
 }
 
-export type PathNode = Node<PathNodeData>;
+export interface PathNode extends Node {
+  data: PathNodeData;
+}
 
 export type PathEdge = Edge & {
   data?: {

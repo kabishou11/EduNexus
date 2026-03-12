@@ -1,6 +1,6 @@
 // 资源中心示例数据生成器
 
-import { createResource, createFolder, createBookmark } from "./resource-storage";
+import { createResource, createFolder, createBookmark, incrementViewCount } from "./resource-storage";
 
 export function generateSampleResources() {
   // 检查是否已有数据
@@ -43,6 +43,14 @@ export function generateSampleResources() {
       author: "Corey Schafer",
       source: "YouTube",
     },
+    {
+      title: "Real Python 教程网站",
+      description: "提供高质量的 Python 教程、文章和视频课程，涵盖从基础到高级的各个主题。",
+      type: "website" as const,
+      url: "https://realpython.com/",
+      tags: ["Python", "教程", "Web开发", "数据科学"],
+      source: "Real Python",
+    },
 
     // JavaScript 相关
     {
@@ -70,6 +78,15 @@ export function generateSampleResources() {
       author: "Meta",
       source: "react.dev",
     },
+    {
+      title: "Vue.js 3 完全指南",
+      description: "Vue.js 3 的完整学习指南，包括组合式 API、响应式系统等核心概念。",
+      type: "document" as const,
+      url: "https://cn.vuejs.org/",
+      tags: ["Vue", "JavaScript", "前端", "框架"],
+      author: "Evan You",
+      source: "vuejs.org",
+    },
 
     // 机器学习相关
     {
@@ -89,6 +106,23 @@ export function generateSampleResources() {
       tags: ["TensorFlow", "机器学习", "深度学习", "Python"],
       author: "Google",
       source: "tensorflow.org",
+    },
+    {
+      title: "PyTorch 深度学习实战",
+      description: "使用 PyTorch 框架进行深度学习的实战教程，包含大量代码示例。",
+      type: "book" as const,
+      url: "https://pytorch.org/tutorials/",
+      tags: ["PyTorch", "深度学习", "神经网络", "Python"],
+      author: "PyTorch Team",
+      source: "pytorch.org",
+    },
+    {
+      title: "Kaggle 数据科学竞赛平台",
+      description: "全球最大的数据科学竞赛平台，提供真实数据集和学习资源。",
+      type: "website" as const,
+      url: "https://www.kaggle.com/",
+      tags: ["数据科学", "机器学习", "竞赛", "实战"],
+      source: "Kaggle",
     },
 
     // 工具类
@@ -115,6 +149,14 @@ export function generateSampleResources() {
       url: "https://jupyter.org/",
       tags: ["Python", "数据科学", "笔记本", "交互式"],
     },
+    {
+      title: "Postman API 测试工具",
+      description: "强大的 API 开发和测试工具，支持 REST、GraphQL 等多种协议。",
+      type: "tool" as const,
+      url: "https://www.postman.com/",
+      tags: ["API", "测试", "开发工具", "后端"],
+      author: "Postman",
+    },
 
     // 算法和数据结构
     {
@@ -130,6 +172,14 @@ export function generateSampleResources() {
       type: "book" as const,
       tags: ["算法", "数据结构", "计算机科学", "教材"],
       author: "Thomas H. Cormen",
+    },
+    {
+      title: "代码随想录",
+      description: "系统的算法学习路线和题解，适合算法初学者和面试准备。",
+      type: "website" as const,
+      url: "https://programmercarl.com/",
+      tags: ["算法", "数据结构", "面试", "刷题"],
+      author: "代码随想录",
     },
 
     // 设计相关
@@ -148,19 +198,33 @@ export function generateSampleResources() {
       tags: ["UI设计", "前端", "设计系统"],
       author: "Adam Wathan & Steve Schoger",
     },
+    {
+      title: "Dribbble 设计灵感",
+      description: "全球设计师社区，展示最新的设计作品和创意灵感。",
+      type: "website" as const,
+      url: "https://dribbble.com/",
+      tags: ["设计", "UI", "灵感", "作品集"],
+      source: "Dribbble",
+    },
   ];
 
   const userId = "demo_user";
   const createdResources: string[] = [];
 
-  // 创建资源
-  resources.forEach((resource) => {
+  // 创建资源并添加一些初始统计数据
+  resources.forEach((resource, index) => {
     const created = createResource({
       ...resource,
       status: "active",
       userId,
     });
     createdResources.push(created.id);
+
+    // 为资源添加一些初始浏览量（模拟真实使用）
+    const viewCount = Math.floor(Math.random() * 500) + 50;
+    for (let i = 0; i < viewCount; i++) {
+      incrementViewCount(created.id);
+    }
   });
 
   // 创建示例收藏夹

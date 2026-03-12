@@ -47,18 +47,44 @@ export function ResourceUpload({ open, onOpenChange, onSuccess }: ResourceUpload
   const [author, setAuthor] = useState("");
   const [source, setSource] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // 自动填充标题
+      if (!title) {
+        setTitle(file.name.replace(/\.[^/.]+$/, ""));
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setUploadProgress(0);
 
     try {
+      // 模拟文件上传进度
+      if (uploadType === "file" && selectedFile) {
+        for (let i = 0; i <= 100; i += 10) {
+          setUploadProgress(i);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
       createResource({
         title,
         description,
         type,
         status: "active",
         url: uploadType === "url" ? url : undefined,
+        fileUrl: uploadType === "file" && selectedFile ? URL.createObjectURL(selectedFile) : undefined,
+        fileName: selectedFile?.name,
+        fileSize: selectedFile?.size,
+        mimeType: selectedFile?.type,
         tags: tags.split(",").map((t) => t.trim()).filter(Boolean),
         author: author || undefined,
         source: source || undefined,
@@ -72,11 +98,14 @@ export function ResourceUpload({ open, onOpenChange, onSuccess }: ResourceUpload
       setTags("");
       setAuthor("");
       setSource("");
+      setSelectedFile(null);
+      setUploadProgress(0);
 
       onSuccess?.();
       onOpenChange(false);
     } catch (error) {
       console.error("Failed to create resource:", error);
+      alert("资源添加失败，请重试");
     } finally {
       setLoading(false);
     }
@@ -157,19 +186,42 @@ export function ResourceUpload({ open, onOpenChange, onSuccess }: ResourceUpload
           {uploadType === "file" && (
             <div className="space-y-2">
               <Label>上传文件</Label>
-              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  点击上传或拖拽文件到此处
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  支持 PDF、图片、视频等格式，最大 100MB
-                </p>
+              <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
                 <input
                   type="file"
+                  id="file-upload"
                   className="hidden"
                   accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.mp4,.mov"
+                  onChange={handleFileSelect}
                 />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                  {selectedFile ? (
+                    <div className="space-y-2">
+                      <p className="text-sm font-medium">{selectedFile.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                      {uploadProgress > 0 && uploadProgress < 100 && (
+                        <div className="w-full bg-secondary rounded-full h-2 mt-2">
+                          <div
+                            className="bg-primary rounded-full h-2 transition-all"
+                            style={{ width: `${uploadProgress}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        点击上传或拖拽文件到此处
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        支持 PDF、图片、视频等格式，最大 100MB
+                      </p>
+                    </>
+                  )}
+                </label>
               </div>
             </div>
           )}

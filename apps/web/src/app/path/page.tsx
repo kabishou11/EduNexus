@@ -34,6 +34,8 @@ import {
 } from "@/components/ui/select";
 import { Timestamp } from "@/components/ui/timestamp";
 import { cn } from "@/lib/utils";
+import { GrowthMapVisualization } from "@/components/path/growth-map-visualization";
+import { AILearningSuggestions } from "@/components/path/ai-learning-suggestions";
 
 type PathStatus = "not_started" | "in_progress" | "completed";
 type TaskStatus = "not_started" | "in_progress" | "completed";
@@ -200,28 +202,36 @@ export default function PathPage() {
   const handleCreatePath = useCallback(() => {
     const title = prompt('输入新路径名称:');
     if (title && title.trim()) {
-      alert(`创建路径: ${title}`);
+      // TODO: 实现创建路径的API调用
+      console.log(`创建路径: ${title}`);
+      alert(`创建路径: ${title}\n\n提示：此功能将在后续版本中完善`);
     }
   }, []);
 
   // 开始学习任务
   const handleStartTask = useCallback(() => {
     if (!selectedTask) return;
-    alert(`开始学习: ${selectedTask.title}`);
+    // TODO: 实现开始学习的逻辑，可以跳转到学习页面或打开学习模式
+    console.log(`开始学习: ${selectedTask.title}`);
+    alert(`开始学习: ${selectedTask.title}\n\n提示：此功能将在后续版本中完善`);
   }, [selectedTask]);
 
   // 标记任务完成
   const handleCompleteTask = useCallback(() => {
     if (!selectedTask) return;
     if (confirm(`确定标记"${selectedTask.title}"为已完成吗?`)) {
-      alert('任务已标记为完成');
+      // TODO: 实现标记完成的API调用，更新任务状态
+      console.log('任务已标记为完成');
+      alert('任务已标记为完成\n\n提示：此功能将在后续版本中完善');
     }
   }, [selectedTask]);
 
   // 编辑任务
   const handleEditTask = useCallback(() => {
     if (!selectedTask) return;
-    alert(`编辑任务: ${selectedTask.title}`);
+    // TODO: 实现编辑任务的对话框或页面
+    console.log(`编辑任务: ${selectedTask.title}`);
+    alert(`编辑任务: ${selectedTask.title}\n\n提示：此功能将在后续版本中完善`);
   }, [selectedTask]);
 
   return (
@@ -355,6 +365,28 @@ export default function PathPage() {
         className="flex-1 overflow-y-auto p-6 scrollbar-thin"
       >
         <div className="max-w-4xl mx-auto space-y-6">
+          {/* 成长地图可视化 */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
+            <GrowthMapVisualization
+              totalTasks={selectedPath.tasks.length}
+              completedTasks={selectedPath.tasks.filter(t => t.status === 'completed').length}
+              inProgressTasks={selectedPath.tasks.filter(t => t.status === 'in_progress').length}
+              totalProgress={selectedPath.progress}
+              estimatedTimeRemaining={
+                selectedPath.tasks
+                  .filter(t => t.status !== 'completed')
+                  .reduce((sum, t) => {
+                    const hours = parseInt(t.estimatedTime);
+                    return sum + (isNaN(hours) ? 0 : hours);
+                  }, 0) + '小时'
+              }
+            />
+          </motion.div>
+
           {/* 路径头部 */}
           <motion.div
             initial={{ y: 20, opacity: 0 }}
@@ -429,6 +461,12 @@ export default function PathPage() {
               </Card>
             </motion.div>
           </motion.div>
+
+          {/* AI 学习建议 */}
+          <AILearningSuggestions
+            tasks={selectedPath.tasks}
+            currentProgress={selectedPath.progress}
+          />
 
           {/* 时间线 */}
           <motion.div

@@ -713,7 +713,7 @@ export class PracticeStorageManager {
         }));
 
         if (onlyUnmastered) {
-          wrongQuestions = wrongQuestions.filter((w) => !w.isMastered);
+          wrongQuestions = wrongQuestions.filter((w: any) => !w.isMastered);
         }
 
         resolve(wrongQuestions);

@@ -40,9 +40,11 @@ import {
   Play,
   Trash2,
   Settings,
+  Layout,
+  Edit,
 } from 'lucide-react';
 import { nodeTypes } from './node-types';
-import { LearningPath, PathNode, PathEdge, NodeType, DifficultyLevel } from '@/lib/path/path-types';
+import { LearningPath, PathNode, PathEdge, NodeType, DifficultyLevel, PathNodeData } from '@/lib/path/path-types';
 import { savePath, exportPath, importPath } from '@/lib/path/path-storage';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -53,11 +55,11 @@ interface PathEditorProps {
 }
 
 function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState<PathNode>(
+  const [nodes, setNodes, onNodesChange] = useNodesState<PathNodeData>(
     initialPath?.nodes || []
   );
-  const [edges, setEdges, onEdgesChange] = useEdgesState<PathEdge>(
-    initialPath?.edges || []
+  const [edges, setEdges, onEdgesChange] = useEdgesState(
+    (initialPath?.edges || []) as Edge[]
   );
 
   const [pathInfo, setPathInfo] = useState({
@@ -70,7 +72,7 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
 
   const [showNodeDialog, setShowNodeDialog] = useState(false);
   const [showPathSettings, setShowPathSettings] = useState(false);
-  const [editingNode, setEditingNode] = useState<PathNode | null>(null);
+  const [editingNode, setEditingNode] = useState<Node<PathNodeData> | null>(null);
   const [newNodeData, setNewNodeData] = useState({
     label: '',
     description: '',
@@ -87,10 +89,13 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
   );
 
   const addNode = useCallback(() => {
-    const newNode: PathNode = {
+    const newNode: Node<PathNodeData> = {
       id: `node-${Date.now()}`,
       type: 'default',
-      position: { x: Math.random() * 400, y: Math.random() * 400 },
+      position: {
+        x: 250 + Math.random() * 100 - 50,
+        y: (nodes.length + 1) * 120
+      },
       data: { ...newNodeData },
     };
     setNodes((nds) => [...nds, newNode]);
@@ -102,7 +107,7 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
       estimatedTime: 60,
       difficulty: 'beginner',
     });
-  }, [newNodeData, setNodes]);
+  }, [newNodeData, setNodes, nodes.length]);
 
   const deleteNode = useCallback(
     (nodeId: string) => {
@@ -122,8 +127,8 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
       id: initialPath?.id || `path-${Date.now()}`,
       ...pathInfo,
       estimatedDuration: totalTime,
-      nodes,
-      edges,
+      nodes: nodes as PathNode[],
+      edges: edges as PathEdge[],
       isPublic: false,
       createdAt: initialPath?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -161,7 +166,7 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
           const json = e.target?.result as string;
           const path = await importPath(json);
           setNodes(path.nodes);
-          setEdges(path.edges);
+          setEdges(path.edges as Edge[]);
           setPathInfo({
             title: path.title,
             description: path.description,
@@ -179,6 +184,62 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
     [setNodes, setEdges]
   );
 
+  const handleNodeClick = useCallback(
+    (event: React.MouseEvent, node: Node<PathNodeData>) => {
+      setEditingNode(node);
+      setNewNodeData({
+        label: node.data.label,
+        description: node.data.description || '',
+        type: node.data.type,
+        estimatedTime: node.data.estimatedTime || 60,
+        difficulty: node.data.difficulty || 'beginner',
+      });
+      setShowNodeDialog(true);
+    },
+    []
+  );
+
+  const updateNode = useCallback(() => {
+    if (!editingNode) return;
+
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === editingNode.id
+          ? { ...node, data: { ...node.data, ...newNodeData } }
+          : node
+      )
+    );
+    setShowNodeDialog(false);
+    setEditingNode(null);
+    setNewNodeData({
+      label: '',
+      description: '',
+      type: 'document',
+      estimatedTime: 60,
+      difficulty: 'beginner',
+    });
+  }, [editingNode, newNodeData, setNodes]);
+
+  const autoLayout = useCallback(() => {
+    setNodes((nds) => {
+      const layoutNodes = [...nds];
+      const nodeWidth = 280;
+      const nodeHeight = 120;
+      const horizontalSpacing = 100;
+      const verticalSpacing = 150;
+
+      // 简单的垂直布局
+      layoutNodes.forEach((node, index) => {
+        node.position = {
+          x: 250,
+          y: index * (nodeHeight + verticalSpacing),
+        };
+      });
+
+      return layoutNodes;
+    });
+  }, [setNodes]);
+
   const handlePreview = useCallback(() => {
     const totalTime = nodes.reduce(
       (sum, node) => sum + (node.data.estimatedTime || 0),
@@ -189,8 +250,8 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
       id: initialPath?.id || `path-${Date.now()}`,
       ...pathInfo,
       estimatedDuration: totalTime,
-      nodes,
-      edges,
+      nodes: nodes as PathNode[],
+      edges: edges as PathEdge[],
       isPublic: false,
       createdAt: initialPath?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -208,6 +269,7 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onNodeClick={handleNodeClick}
         nodeTypes={nodeTypes}
         fitView
       >
@@ -218,9 +280,16 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
         <Panel position="top-left" className="bg-white p-4 rounded-lg shadow-lg space-y-2">
           <h2 className="font-bold text-lg">{pathInfo.title}</h2>
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => setShowNodeDialog(true)}>
+            <Button size="sm" onClick={() => {
+              setEditingNode(null);
+              setShowNodeDialog(true);
+            }}>
               <Plus className="w-4 h-4 mr-1" />
               添加节点
+            </Button>
+            <Button size="sm" variant="outline" onClick={autoLayout}>
+              <Layout className="w-4 h-4 mr-1" />
+              自动布局
             </Button>
             <Button size="sm" variant="outline" onClick={() => setShowPathSettings(true)}>
               <Settings className="w-4 h-4 mr-1" />
@@ -258,11 +327,23 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
         onChange={handleImport}
       />
 
-      {/* 添加节点对话框 */}
-      <Dialog open={showNodeDialog} onOpenChange={setShowNodeDialog}>
+      {/* 添加/编辑节点对话框 */}
+      <Dialog open={showNodeDialog} onOpenChange={(open) => {
+        setShowNodeDialog(open);
+        if (!open) {
+          setEditingNode(null);
+          setNewNodeData({
+            label: '',
+            description: '',
+            type: 'document',
+            estimatedTime: 60,
+            difficulty: 'beginner',
+          });
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>添加新节点</DialogTitle>
+            <DialogTitle>{editingNode ? '编辑节点' : '添加新节点'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -343,7 +424,22 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
             <Button variant="outline" onClick={() => setShowNodeDialog(false)}>
               取消
             </Button>
-            <Button onClick={addNode}>添加</Button>
+            {editingNode && (
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  deleteNode(editingNode.id);
+                  setShowNodeDialog(false);
+                  setEditingNode(null);
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-1" />
+                删除
+              </Button>
+            )}
+            <Button onClick={editingNode ? updateNode : addNode}>
+              {editingNode ? '更新' : '添加'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

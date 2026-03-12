@@ -54,7 +54,14 @@
       "Bash(cd \"F:/1work/EduNexus/apps/web\" && npx tsc --noEmit --skipLibCheck src/components/workspace/monaco-editor.tsx src/components/workspace/enhanced-code-executor.tsx src/components/workspace/programming-lab.tsx src/components/workspace/file-tree.tsx src/components/workspace/project-templates.tsx 2>&1)",
       "Bash(bash:*)",
       "Bash(cd /f/1work/EduNexus/apps/web && npx tsc --noEmit --skipLibCheck src/lib/design-system/*.ts src/components/ui/button.tsx src/components/ui/input.tsx src/components/ui/card.tsx src/components/ui/badge.tsx src/components/ui/alert.tsx src/components/ui/label.tsx src/components/ui/separator.tsx src/components/ui/spinner.tsx src/components/ui/skeleton.tsx 2>&1)",
-      "Bash(cd \"F:/1work/EduNexus/apps/web\" && npx tsc --noEmit --skipLibCheck src/components/global/global-ai-assistant.tsx src/lib/hooks/use-keyboard-shortcut.ts src/lib/hooks/use-draggable.ts src/lib/ai/context-adapter.ts 2>&1)"
+      "Bash(cd \"F:/1work/EduNexus/apps/web\" && npx tsc --noEmit --skipLibCheck src/components/global/global-ai-assistant.tsx src/lib/hooks/use-keyboard-shortcut.ts src/lib/hooks/use-draggable.ts src/lib/ai/context-adapter.ts 2>&1)",
+      "Bash(kill 10675:*)",
+      "Bash(grep Type error:*)",
+      "Bash(cd /f/1work/EduNexus/apps/web && npx tsc --noEmit --pretty false 2>&1 | grep -A 2 \"lazy-components.ts\" | head -20 || echo \"No TypeScript errors found in lazy-components.ts\")",
+      "Bash(npm run:*)",
+      "Bash(cat > .env.example << 'EOF'\n# ModelScope API 配置\nMODELSCOPE_API_KEY=your_modelscope_api_key_here\nMODELSCOPE_BASE_URL=https://api-inference.modelscope.cn/v1\nMODELSCOPE_CHAT_MODEL=Qwen/Qwen2.5-72B-Instruct\n\n# AI 提供商选择\nNEXT_PUBLIC_AI_PROVIDER=modelscope\n\n# 数据库配置（如果需要）\n# DATABASE_URL=\n\n# 其他配置\n# NEXT_PUBLIC_APP_URL=http://localhost:3000\nEOF)",
+      "Bash(cat > apps/web/.env.local << 'EOF'\n# ModelScope API 配置\nMODELSCOPE_API_KEY=请在这里填入你的API密钥\nMODELSCOPE_BASE_URL=https://api-inference.modelscope.cn/v1\nMODELSCOPE_CHAT_MODEL=Qwen/Qwen2.5-72B-Instruct\n\n# AI 提供商选择\nNEXT_PUBLIC_AI_PROVIDER=modelscope\nEOF\ncat apps/web/.env.local)",
+      "Bash(cd /f/1work/EduNexus/apps/web/scripts && rm -f test-*.mjs test-*.sh && ls -la)"
     ]
   }
 }

@@ -60,7 +60,7 @@ export class OptimizedIndexedDB<T extends DBSchema> {
 
     // 从数据库读取
     if (!this.db) await this.init();
-    const data = await this.db!.get(storeName as any, key);
+    const data = await this.db!.get(storeName as any, key as any);
 
     // 更新缓存
     if (data && useCache) {
@@ -83,7 +83,7 @@ export class OptimizedIndexedDB<T extends DBSchema> {
     count?: number
   ): Promise<T[K]['value'][]> {
     if (!this.db) await this.init();
-    return this.db!.getAll(storeName as any, query, count);
+    return this.db!.getAll(storeName as any, query as any, count);
   }
 
   /**
@@ -107,7 +107,7 @@ export class OptimizedIndexedDB<T extends DBSchema> {
     if (immediate) {
       // 立即写入
       if (!this.db) await this.init();
-      await this.db!.put(storeName as any, value, key);
+      await this.db!.put(storeName as any, value, key as any);
     } else {
       // 批量写入
       this.pendingWrites.set(cacheKey, { storeName, key, value });
@@ -135,7 +135,7 @@ export class OptimizedIndexedDB<T extends DBSchema> {
           timestamp: Date.now(),
           expiresAt: Date.now() + this.CACHE_TTL,
         });
-        return store.put(value, key);
+        return store.put(value, key as any);
       }),
       tx.done,
     ]);
@@ -150,7 +150,7 @@ export class OptimizedIndexedDB<T extends DBSchema> {
     this.pendingWrites.delete(cacheKey);
 
     if (!this.db) await this.init();
-    await this.db!.delete(storeName as any, key);
+    await this.db!.delete(storeName as any, key as any);
   }
 
   /**
@@ -170,7 +170,7 @@ export class OptimizedIndexedDB<T extends DBSchema> {
         const cacheKey = `${String(storeName)}-${key}`;
         this.cache.delete(cacheKey);
         this.pendingWrites.delete(cacheKey);
-        return store.delete(key);
+        return store.delete(key as any);
       }),
       tx.done,
     ]);
@@ -230,7 +230,7 @@ export class OptimizedIndexedDB<T extends DBSchema> {
     // 批量写入每个 store
     await Promise.all(
       Object.entries(grouped).map(([storeName, items]) =>
-        this.setMany(storeName as any, items)
+        this.setMany(storeName as any, items as any)
       )
     );
   }

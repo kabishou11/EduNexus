@@ -4,7 +4,7 @@
  * 展示如何在知识宝库页面中集成数据同步功能
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDataSync } from '@/lib/hooks/use-data-sync';
 import { getKBStorage, type KBDocument } from '@/lib/client/kb-storage';
 import { SyncStatusIndicator } from '@/components/sync-status-indicator';
@@ -45,14 +45,15 @@ export function DocumentEditorExample() {
 export function DocumentSaveExample() {
   const { syncDocument } = useDataSync();
   const storage = getKBStorage();
+  const [document, setDocument] = useState<KBDocument | null>(null);
 
-  const handleSave = async (document: KBDocument) => {
+  const handleSave = async (doc: KBDocument) => {
     try {
       // 1. 保存到本地存储
-      await storage.updateDocument(document);
+      await storage.updateDocument(doc);
 
       // 2. 立即同步到知识图谱和学习记录
-      const result = await syncDocument(document, {
+      const result = await syncDocument(doc, {
         immediate: true,
         retryOnError: true,
         maxRetries: 3,
@@ -69,7 +70,7 @@ export function DocumentSaveExample() {
   };
 
   return (
-    <button onClick={() => handleSave(document)}>
+    <button onClick={() => document && handleSave(document)}>
       保存文档
     </button>
   );
@@ -118,7 +119,11 @@ export function BatchImportExample() {
  * 使用示例 4: 显示文档的关联信息
  */
 export function DocumentRelationsExample({ documentId }: { documentId: string }) {
-  const [relations, setRelations] = useState({
+  const [relations, setRelations] = useState<{
+    graphNode: any;
+    relatedDocs: KBDocument[];
+    skillNodes: any[];
+  }>({
     graphNode: null,
     relatedDocs: [],
     skillNodes: [],
@@ -130,25 +135,25 @@ export function DocumentRelationsExample({ documentId }: { documentId: string })
 
   const loadRelations = async () => {
     const storage = getKBStorage();
-    const kgSync = getKGSyncService();
+    // const kgSync = getKGSyncService(); // TODO: Implement KG sync service
 
-    // 获取文档
-    const doc = await storage.getDocument(documentId);
-    if (!doc) return;
+    // 获取文档 - TODO: Add getDocument method to KBStorageManager
+    // const doc = await storage.getDocument(documentId);
+    // if (!doc) return;
 
     // 获取关联的知识图谱节点
-    if (doc.graphNodeId) {
-      const graphNode = await kgSync.getNode(doc.graphNodeId);
-      setRelations(prev => ({ ...prev, graphNode }));
-    }
+    // if (doc.graphNodeId) {
+    //   const graphNode = await kgSync.getNode(doc.graphNodeId);
+    //   setRelations(prev => ({ ...prev, graphNode }));
+    // }
 
     // 获取相关文档
-    if (doc.relatedDocs) {
-      const relatedDocs = await Promise.all(
-        doc.relatedDocs.map(id => storage.getDocument(id))
-      );
-      setRelations(prev => ({ ...prev, relatedDocs: relatedDocs.filter(Boolean) }));
-    }
+    // if (doc.relatedDocs) {
+    //   const relatedDocs = await Promise.all(
+    //     doc.relatedDocs.map((id: string) => storage.getDocument(id))
+    //   );
+    //   setRelations(prev => ({ ...prev, relatedDocs: relatedDocs.filter(Boolean) as KBDocument[] }));
+    // }
   };
 
   return (
@@ -165,7 +170,7 @@ export function DocumentRelationsExample({ documentId }: { documentId: string })
         <div>
           <h3>相关文档</h3>
           <ul>
-            {relations.relatedDocs.map(doc => (
+            {relations.relatedDocs.map((doc: KBDocument) => (
               <li key={doc.id}>{doc.title}</li>
             ))}
           </ul>

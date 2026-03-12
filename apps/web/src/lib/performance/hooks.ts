@@ -239,7 +239,7 @@ export function useIdleCallback(callback: () => void, deps: React.DependencyList
       : setTimeout(callback, 1);
 
     return () => {
-      if (window.requestIdleCallback) {
+      if (typeof window.requestIdleCallback !== 'undefined') {
         window.cancelIdleCallback(handle as number);
       } else {
         clearTimeout(handle as number);

@@ -9,6 +9,7 @@ import { OfflineIndicator } from "@/components/pwa/offline-indicator";
 import { NotificationPermission } from "@/components/pwa/notification-permission";
 import { UpdatePrompt } from "@/components/pwa/update-prompt";
 import { GlobalAIAssistant } from "@/components/global/global-ai-assistant";
+import { DocumentProvider } from "@/lib/ai/document-context";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -55,13 +56,15 @@ export default function RootLayout({
       </head>
       <body>
         <QueryProvider>
-          <PWAInit />
-          <AppShell>{children}</AppShell>
-          <InstallPrompt />
-          <OfflineIndicator />
-          <NotificationPermission />
-          <UpdatePrompt />
-          <GlobalAIAssistant />
+          <DocumentProvider>
+            <PWAInit />
+            <AppShell>{children}</AppShell>
+            <InstallPrompt />
+            <OfflineIndicator />
+            <NotificationPermission />
+            <UpdatePrompt />
+            <GlobalAIAssistant />
+          </DocumentProvider>
         </QueryProvider>
       </body>
     </html>

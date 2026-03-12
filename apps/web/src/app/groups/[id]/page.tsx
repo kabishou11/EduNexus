@@ -13,12 +13,14 @@ import {
   ArrowLeft,
   UserPlus,
   TrendingUp,
+  Share2,
 } from 'lucide-react';
 import { GroupMembers } from '@/components/groups/group-members';
 import { GroupDiscussion } from '@/components/groups/group-discussion';
 import { GroupTasks } from '@/components/groups/group-tasks';
 import { GroupResources } from '@/components/groups/group-resources';
 import { GroupLeaderboard } from '@/components/groups/group-leaderboard';
+import { GroupShareDialog } from '@/components/groups/group-share-dialog';
 import {
   getGroupById,
   getGroupMembers,
@@ -29,6 +31,7 @@ import {
   joinGroup,
   createPost,
   likePost,
+  addComment,
   createTask,
   updateTaskStatus,
   addResource,
@@ -50,6 +53,7 @@ export default function GroupDetailPage() {
   const [stats, setStats] = useState<GroupStats | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('discussion');
   const [isMember, setIsMember] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   const currentUserId = 'user-1';
 
@@ -98,6 +102,11 @@ export default function GroupDetailPage() {
 
   const handleLikePost = (postId: string) => {
     likePost(groupId, postId, currentUserId);
+    setPosts(getGroupPosts(groupId));
+  };
+
+  const handleComment = (postId: string, content: string) => {
+    addComment(groupId, postId, currentUserId, '当前用户', content);
     setPosts(getGroupPosts(groupId));
   };
 
@@ -201,6 +210,16 @@ export default function GroupDetailPage() {
                 加入小组
               </button>
             )}
+
+            {isMember && (
+              <button
+                onClick={() => setShowShareDialog(true)}
+                className="px-6 py-3 bg-white text-blue-600 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2 font-medium"
+              >
+                <Share2 className="w-5 h-5" />
+                分享小组
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -238,6 +257,7 @@ export default function GroupDetailPage() {
                 posts={posts}
                 currentUserId={currentUserId}
                 onLike={handleLikePost}
+                onComment={handleComment}
                 onCreatePost={handleCreatePost}
               />
             )}
@@ -301,6 +321,10 @@ export default function GroupDetailPage() {
           </div>
         </div>
       </div>
+
+      {showShareDialog && (
+        <GroupShareDialog group={group} onClose={() => setShowShareDialog(false)} />
+      )}
     </div>
   );
 }

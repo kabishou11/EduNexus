@@ -84,7 +84,7 @@ export class SyncEngine {
   }
 
   // 发送事件
-  private emit(event: { type: string; data: any }): void {
+  private emit(event: { type: "operation" | "cursor" | "user-join" | "user-leave"; data: any }): void {
     this.eventHandlers.forEach((handler) => handler(event));
   }
 

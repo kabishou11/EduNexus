@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Sparkles, TrendingUp, Bookmark } from "lucide-react";
+import { Plus, Sparkles, TrendingUp, Bookmark, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +9,7 @@ import { ResourceUpload } from "@/components/resources/resource-upload";
 import { ResourceList } from "@/components/resources/resource-list";
 import { ResourceFilters } from "@/components/resources/resource-filters";
 import { BookmarkManager } from "@/components/resources/bookmark-manager";
+import { ResourceStats } from "@/components/resources/resource-stats";
 import {
   getAllResources,
   searchResources,
@@ -184,10 +185,11 @@ export default function ResourcesPage() {
           {/* 右侧：资源列表 */}
           <div className="lg:col-span-3 space-y-8">
             <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 max-w-2xl">
+              <TabsList className="grid w-full grid-cols-4 max-w-3xl">
                 <TabsTrigger value="all">全部资源</TabsTrigger>
                 <TabsTrigger value="bookmarked">我的收藏</TabsTrigger>
                 <TabsTrigger value="recommended">推荐</TabsTrigger>
+                <TabsTrigger value="stats">统计分析</TabsTrigger>
               </TabsList>
 
               {/* 全部资源 */}
@@ -225,6 +227,9 @@ export default function ResourcesPage() {
                     <Sparkles className="w-5 h-5 text-primary" />
                     <h3 className="text-lg font-semibold">为你推荐</h3>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    基于你的收藏和学习偏好，智能推荐相关资源
+                  </p>
                   <ResourceList
                     resources={recommendedResources}
                     onRefresh={loadResources}
@@ -237,11 +242,28 @@ export default function ResourcesPage() {
                     <TrendingUp className="w-5 h-5 text-orange-500" />
                     <h3 className="text-lg font-semibold">社区热门</h3>
                   </div>
+                  <p className="text-sm text-muted-foreground">
+                    最受欢迎的学习资源，由社区用户共同推荐
+                  </p>
                   <ResourceList
                     resources={popularResources}
                     onRefresh={loadResources}
                   />
                 </div>
+              </TabsContent>
+
+              {/* 统计分析 */}
+              <TabsContent value="stats" className="space-y-6">
+                <div className="panel">
+                  <div className="flex items-center gap-2 mb-2">
+                    <BarChart3 className="w-5 h-5 text-primary" />
+                    <h3 className="text-lg font-semibold">资源统计分析</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    深入了解你的资源库使用情况和热门趋势
+                  </p>
+                </div>
+                <ResourceStats resources={resources} />
               </TabsContent>
             </Tabs>
           </div>

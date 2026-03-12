@@ -7,7 +7,7 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { getAllTools, getToolsDescription } from "./tools-real";
 import { BaseMessage, HumanMessage, AIMessage, SystemMessage } from "@langchain/core/messages";
-import { getModelscopeClient } from "@/lib/server/modelscope";
+import OpenAI from "openai";
 
 /**
  * Agent 配置
@@ -17,6 +17,8 @@ export interface AgentConfig {
   temperature?: number;
   maxIterations?: number;
   socraticMode?: boolean;
+  apiKey?: string;
+  apiEndpoint?: string;
 }
 
 /**
@@ -48,9 +50,20 @@ export async function runAgentConversation(
       modelName = process.env.MODELSCOPE_CHAT_MODEL || "Qwen/Qwen3.5-122B-A10B",
       temperature = 0.7,
       socraticMode = true,
+      apiKey = process.env.MODELSCOPE_API_KEY,
+      apiEndpoint = process.env.MODELSCOPE_BASE_URL || "https://api-inference.modelscope.cn/v1",
     } = config;
 
-    const client = getModelscopeClient();
+    if (!apiKey) {
+      throw new Error("API Key 未配置，请在配置中心设置 ModelScope API Key");
+    }
+
+    // 创建 ModelScope 客户端
+    const client = new OpenAI({
+      apiKey,
+      baseURL: apiEndpoint,
+    });
+
     const toolsDesc = getToolsDescription();
 
     // 构建系统提示词

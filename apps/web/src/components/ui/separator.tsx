@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { separatorVariants } from "@/lib/design-system/component-variants"
 
 export interface SeparatorProps
-  extends React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>,
+  extends Omit<React.ComponentPropsWithoutRef<typeof SeparatorPrimitive.Root>, "orientation">,
     VariantProps<typeof separatorVariants> {}
 
 const Separator = React.forwardRef<
@@ -22,7 +22,7 @@ const Separator = React.forwardRef<
     <SeparatorPrimitive.Root
       ref={ref}
       decorative={decorative}
-      orientation={orientation}
+      orientation={orientation || "horizontal"}
       className={cn(separatorVariants({ orientation, variant }), className)}
       {...props}
     />

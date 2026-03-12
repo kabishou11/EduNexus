@@ -16,7 +16,13 @@ const STORAGE_KEYS = {
 export function getPosts(): Post[] {
   if (typeof window === 'undefined') return []
   const data = localStorage.getItem(STORAGE_KEYS.POSTS)
-  return data ? JSON.parse(data) : getDefaultPosts()
+  if (data) {
+    return JSON.parse(data)
+  }
+  // 初始化默认数据
+  const defaultPosts = getDefaultPosts()
+  savePosts(defaultPosts)
+  return defaultPosts
 }
 
 export function savePosts(posts: Post[]): void {
@@ -196,7 +202,13 @@ export function sharePost(postId: string, userId: string): void {
 export function getTopics(): Topic[] {
   if (typeof window === 'undefined') return []
   const data = localStorage.getItem(STORAGE_KEYS.TOPICS)
-  return data ? JSON.parse(data) : getDefaultTopics()
+  if (data) {
+    return JSON.parse(data)
+  }
+  // 初始化默认数据
+  const defaultTopics = getDefaultTopics()
+  saveTopics(defaultTopics)
+  return defaultTopics
 }
 
 export function saveTopics(topics: Topic[]): void {
@@ -289,6 +301,35 @@ export function getFollowers(userId: string): string[] {
 export function getFollowing(userId: string): string[] {
   const follows = getFollows()
   return follows.filter(f => f.followerId === userId).map(f => f.followingId)
+}
+
+// ==================== 用户统计 ====================
+
+export function getUserPostCount(userId: string): number {
+  const posts = getPosts()
+  return posts.filter(p => p.userId === userId).length
+}
+
+export function getUserProfiles(): UserProfile[] {
+  if (typeof window === 'undefined') return []
+  const data = localStorage.getItem(STORAGE_KEYS.USER_PROFILES)
+  if (data) {
+    return JSON.parse(data)
+  }
+  // 初始化默认用户数据
+  const defaultProfiles = getDefaultUserProfiles()
+  saveUserProfiles(defaultProfiles)
+  return defaultProfiles
+}
+
+export function saveUserProfiles(profiles: UserProfile[]): void {
+  if (typeof window === 'undefined') return
+  localStorage.setItem(STORAGE_KEYS.USER_PROFILES, JSON.stringify(profiles))
+}
+
+export function getUserProfileById(userId: string): UserProfile | undefined {
+  const profiles = getUserProfiles()
+  return profiles.find(p => p.userId === userId)
 }
 
 // ==================== 辅助函数 ====================
@@ -460,3 +501,63 @@ function getDefaultTopics(): Topic[] {
     { name: '面试', displayName: '面试', description: '面试经验分享', postCount: 198, followerCount: 2134, createdAt: new Date().toISOString(), creatorId: 'system' },
   ]
 }
+
+function getDefaultUserProfiles(): UserProfile[] {
+  return [
+    {
+      userId: 'user_1',
+      userName: '张小明',
+      avatar: '👨‍💻',
+      bio: '全栈工程师，热爱学习新技术',
+      followerCount: 1234,
+      followingCount: 567,
+      postCount: 89,
+    },
+    {
+      userId: 'user_2',
+      userName: '李华',
+      avatar: '👩‍🎓',
+      bio: '前端开发者，TypeScript 爱好者',
+      followerCount: 890,
+      followingCount: 234,
+      postCount: 156,
+    },
+    {
+      userId: 'user_3',
+      userName: '王芳',
+      avatar: '👩‍💼',
+      bio: 'AWS 认证架构师',
+      followerCount: 2345,
+      followingCount: 678,
+      postCount: 234,
+    },
+    {
+      userId: 'user_4',
+      userName: '赵强',
+      avatar: '👨‍🔬',
+      bio: 'Python 开发者，数据科学爱好者',
+      followerCount: 1567,
+      followingCount: 890,
+      postCount: 178,
+    },
+    {
+      userId: 'user_5',
+      userName: '陈敏',
+      avatar: '👩‍🏫',
+      bio: '技术博主，专注前端技术分享',
+      followerCount: 3456,
+      followingCount: 1234,
+      postCount: 345,
+    },
+    {
+      userId: 'demo_user',
+      userName: '演示用户',
+      avatar: '👤',
+      bio: '欢迎来到 EduNexus 学习社区',
+      followerCount: 0,
+      followingCount: 0,
+      postCount: 0,
+    },
+  ]
+}
+

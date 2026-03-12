@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChatOpenAI } from "@langchain/openai";
+import { getModelscopeClient } from "@/lib/server/modelscope";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,14 +14,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 使用 LangChain 进行问答
-    const model = new ChatOpenAI({
-      modelName: "gpt-3.5-turbo",
-      temperature: 0.7,
-      configuration: {
-        baseURL: process.env.OPENAI_API_BASE || "https://api.openai.com/v1",
-      },
-    });
+    // 使用 ModelScope 进行问答
+    const client = getModelscopeClient();
+    const model = process.env.MODELSCOPE_CHAT_MODEL ?? "Qwen/Qwen2.5-72B-Instruct";
 
     const systemPrompt = `你是一个知识库助手，专门帮助用户理解和分析文档内容。
 
@@ -33,21 +28,27 @@ ${documentContent.substring(0, 3000)}
 请基于文档内容回答用户的问题。如果问题超出文档范围，请礼貌地说明。`;
 
     const chatMessages = [
-      { role: "system", content: systemPrompt },
+      { role: "system" as const, content: systemPrompt },
       ...messages.map((msg: any) => ({
         role: msg.role,
         content: msg.content,
       })),
     ];
 
-    const response = await model.invoke(chatMessages);
-    const answer = response.content as string;
+    const response = await client.chat.completions.create({
+      model,
+      messages: chatMessages,
+      temperature: 0.7,
+      max_tokens: 1000,
+    });
+
+    const answer = response.choices[0]?.message?.content || "";
 
     return NextResponse.json({ response: answer });
   } catch (error) {
     console.error("Error in chat:", error);
     return NextResponse.json(
-      { error: "Failed to get response" },
+      { error: error instanceof Error ? error.message : "Failed to get response" },
       { status: 500 }
     );
   }

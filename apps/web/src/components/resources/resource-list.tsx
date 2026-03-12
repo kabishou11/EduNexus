@@ -2,14 +2,27 @@
 
 import { ResourceCard } from "./resource-card";
 import type { Resource } from "@/lib/resources/resource-types";
-import { FileQuestion } from "lucide-react";
+import { FileQuestion, Loader2 } from "lucide-react";
 
 interface ResourceListProps {
   resources: Resource[];
   onRefresh?: () => void;
+  loading?: boolean;
 }
 
-export function ResourceList({ resources, onRefresh }: ResourceListProps) {
+export function ResourceList({ resources, onRefresh, loading = false }: ResourceListProps) {
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Loader2 className="w-16 h-16 text-primary animate-spin mb-4" />
+        <h3 className="text-lg font-semibold mb-2">加载中...</h3>
+        <p className="text-sm text-muted-foreground">
+          正在获取资源列表
+        </p>
+      </div>
+    );
+  }
+
   if (resources.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">

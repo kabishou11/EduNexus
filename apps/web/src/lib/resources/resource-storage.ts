@@ -137,12 +137,18 @@ export function searchResources(query: {
   const sortOrder = query.sortOrder || "desc";
 
   results.sort((a, b) => {
-    let aVal = a[sortBy];
-    let bVal = b[sortBy];
+    let aVal: number;
+    let bVal: number;
 
-    if (typeof aVal === "string") {
-      aVal = new Date(aVal).getTime();
-      bVal = new Date(bVal as string).getTime();
+    const aRaw = a[sortBy];
+    const bRaw = b[sortBy];
+
+    if (typeof aRaw === "string") {
+      aVal = new Date(aRaw).getTime();
+      bVal = new Date(bRaw as string).getTime();
+    } else {
+      aVal = aRaw as number;
+      bVal = bRaw as number;
     }
 
     return sortOrder === "asc" ? aVal - bVal : bVal - aVal;

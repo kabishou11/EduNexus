@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Plus, TrendingUp, Users, Filter } from 'lucide-react';
+import { Search, Plus, TrendingUp, Users, Filter, Key } from 'lucide-react';
 import { GroupCard } from '@/components/groups/group-card';
+import { GroupRecommendations } from '@/components/groups/group-recommendations';
+import { JoinByInviteCode } from '@/components/groups/join-by-invite-code';
 import {
   getAllGroups,
   searchGroups,
   initializeSampleData,
+  joinGroupByInviteCode,
 } from '@/lib/groups/group-storage';
 import type { Group, GroupCategory } from '@/lib/groups/group-types';
 
@@ -31,6 +34,7 @@ export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<GroupCategory | 'all'>('all');
   const [sortBy, setSortBy] = useState<SortBy>('activity');
+  const [showInviteCodeDialog, setShowInviteCodeDialog] = useState(false);
 
   useEffect(() => {
     initializeSampleData();
@@ -72,6 +76,16 @@ export default function GroupsPage() {
     setFilteredGroups(sorted);
   };
 
+  const handleJoinByInviteCode = (inviteCode: string) => {
+    const result = joinGroupByInviteCode(inviteCode, 'user-1', '当前用户');
+    if (result.success && result.groupId) {
+      setShowInviteCodeDialog(false);
+      router.push(`/groups/${result.groupId}`);
+    } else {
+      alert(result.error || '加入失败');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 py-8">
@@ -81,13 +95,22 @@ export default function GroupsPage() {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">学习小组</h1>
               <p className="text-gray-600">加入小组，与志同道合的伙伴一起学习进步</p>
             </div>
-            <button
-              onClick={() => router.push('/groups/create')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
-            >
-              <Plus className="w-5 h-5" />
-              创建小组
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowInviteCodeDialog(true)}
+                className="px-6 py-3 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2 font-medium"
+              >
+                <Key className="w-5 h-5" />
+                邀请码加入
+              </button>
+              <button
+                onClick={() => router.push('/groups/create')}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 font-medium"
+              >
+                <Plus className="w-5 h-5" />
+                创建小组
+              </button>
+            </div>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-4">
@@ -139,30 +162,48 @@ export default function GroupsPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {filteredGroups.map((group) => (
-            <GroupCard
-              key={group.id}
-              group={group}
-              onClick={() => router.push(`/groups/${group.id}`)}
-            />
-          ))}
-        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+              {filteredGroups.map((group) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                  onClick={() => router.push(`/groups/${group.id}`)}
+                />
+              ))}
+            </div>
 
-        {filteredGroups.length === 0 && (
-          <div className="text-center py-12">
-            <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">没有找到小组</h3>
-            <p className="text-gray-600 mb-4">试试其他搜索条件，或创建一个新小组</p>
-            <button
-              onClick={() => router.push('/groups/create')}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              创建小组
-            </button>
+            {filteredGroups.length === 0 && (
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">没有找到小组</h3>
+                <p className="text-gray-600 mb-4">试试其他搜索条件，或创建一个新小组</p>
+                <button
+                  onClick={() => router.push('/groups/create')}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  创建小组
+                </button>
+              </div>
+            )}
           </div>
-        )}
+
+          <div className="lg:col-span-1">
+            <GroupRecommendations
+              userId="user-1"
+              onGroupClick={(groupId) => router.push(`/groups/${groupId}`)}
+            />
+          </div>
+        </div>
       </div>
+
+      {showInviteCodeDialog && (
+        <JoinByInviteCode
+          onJoin={handleJoinByInviteCode}
+          onClose={() => setShowInviteCodeDialog(false)}
+        />
+      )}
     </div>
   );
 }

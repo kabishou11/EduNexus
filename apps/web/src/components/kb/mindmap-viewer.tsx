@@ -258,3 +258,5 @@ export function MindMapViewer({
     </Card>
   );
 }
+
+export default MindMapViewer;

@@ -195,6 +195,31 @@ export function joinGroup(groupId: string, userId: string, userName: string): bo
   return true;
 }
 
+export function joinGroupByInviteCode(inviteCode: string, userId: string, userName: string): { success: boolean; groupId?: string; error?: string } {
+  const allGroups = getAllGroups();
+  const group = allGroups.find((g) => g.inviteCode === inviteCode);
+
+  if (!group) {
+    return { success: false, error: '邀请码无效' };
+  }
+
+  const members = getGroupMembers(group.id);
+  if (members.some((m) => m.userId === userId)) {
+    return { success: false, error: '你已经是该小组成员' };
+  }
+
+  if (members.length >= group.settings.maxMembers) {
+    return { success: false, error: '小组人数已满' };
+  }
+
+  const success = joinGroup(group.id, userId, userName);
+  if (success) {
+    return { success: true, groupId: group.id };
+  }
+
+  return { success: false, error: '加入失败，请重试' };
+}
+
 // ===== 帖子管理 =====
 
 export function createPost(post: Omit<GroupPost, 'id' | 'createdAt' | 'updatedAt'>): GroupPost {
@@ -228,6 +253,32 @@ export function likePost(groupId: string, postId: string, userId: string): void 
       post.likedBy = post.likedBy.filter((id) => id !== userId);
       post.likes--;
     }
+    localStorage.setItem(`${STORAGE_KEYS.POSTS}_${groupId}`, JSON.stringify(posts));
+  }
+}
+
+export function addComment(
+  groupId: string,
+  postId: string,
+  userId: string,
+  userName: string,
+  content: string,
+  userAvatar?: string
+): void {
+  const posts = getGroupPosts(groupId);
+  const post = posts.find((p) => p.id === postId);
+  if (post) {
+    const comment = {
+      id: generateId(),
+      postId,
+      authorId: userId,
+      authorName: userName,
+      authorAvatar: userAvatar,
+      content,
+      likes: 0,
+      createdAt: new Date().toISOString(),
+    };
+    post.comments.push(comment);
     localStorage.setItem(`${STORAGE_KEYS.POSTS}_${groupId}`, JSON.stringify(posts));
   }
 }

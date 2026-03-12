@@ -12,14 +12,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Clock, Users, Download, Play, Search } from 'lucide-react';
+import { Clock, Users, Download, Play, Search, Sparkles, TrendingUp } from 'lucide-react';
 import { pathTemplates } from '@/lib/path/path-templates';
 import { PathTemplate, LearningPath } from '@/lib/path/path-types';
 import { savePath } from '@/lib/path/path-storage';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 interface LearningPathMarketProps {
   onSelectTemplate?: (path: LearningPath) => void;
   onStartPath?: (path: LearningPath) => void;
+}
+
+interface Recommendation {
+  id: string;
+  title: string;
+  reason: string;
+  matchScore: number;
+  estimatedDays: number;
 }
 
 export default function LearningPathMarket({
@@ -29,6 +46,17 @@ export default function LearningPathMarket({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const [showRecommendDialog, setShowRecommendDialog] = useState(false);
+  const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
+
+  // AI 推荐表单状态
+  const [recommendForm, setRecommendForm] = useState({
+    goal: '',
+    currentLevel: 'beginner',
+    interests: '',
+    timeAvailable: 30,
+  });
 
   const categories = Array.from(new Set(pathTemplates.map((t) => t.category)));
 
@@ -74,13 +102,59 @@ export default function LearningPathMarket({
     onStartPath?.(newPath);
   };
 
+  const handleGetRecommendations = async () => {
+    setIsLoadingRecommendations(true);
+    try {
+      const response = await fetch('/api/path/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goal: recommendForm.goal,
+          currentLevel: recommendForm.currentLevel,
+          interests: recommendForm.interests.split(',').map(s => s.trim()).filter(Boolean),
+          timeAvailable: recommendForm.timeAvailable,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setRecommendations(data.data.recommendations);
+      } else {
+        alert('获取推荐失败：' + data.error.message);
+      }
+    } catch (error) {
+      alert('获取推荐失败：' + (error as Error).message);
+    } finally {
+      setIsLoadingRecommendations(false);
+    }
+  };
+
+  const handleApplyRecommendation = (rec: Recommendation) => {
+    const template = pathTemplates.find(t => t.id === rec.id);
+    if (template) {
+      handleStartPath(template);
+      setShowRecommendDialog(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="space-y-4">
-        <h1 className="text-3xl font-bold">学习路径市场</h1>
-        <p className="text-gray-600">
-          探索精心设计的学习路径，或克隆模板创建你自己的路径
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">学习路径市场</h1>
+            <p className="text-gray-600 mt-1">
+              探索精心设计的学习路径，或克隆模板创建你自己的路径
+            </p>
+          </div>
+          <Button
+            onClick={() => setShowRecommendDialog(true)}
+            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            AI 智能推荐
+          </Button>
+        </div>
 
         <div className="flex flex-col md:flex-row gap-4">
           <div className="flex-1 relative">
@@ -195,6 +269,133 @@ export default function LearningPathMarket({
           <p className="text-sm mt-2">尝试调整搜索条件或筛选器</p>
         </div>
       )}
+
+      {/* AI 推荐对话框 */}
+      <Dialog open={showRecommendDialog} onOpenChange={setShowRecommendDialog}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-500" />
+              AI 智能路径推荐
+            </DialogTitle>
+            <DialogDescription>
+              告诉我们你的学习目标，我们将为你推荐最合适的学习路径
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="goal">学习目标 *</Label>
+              <Input
+                id="goal"
+                placeholder="例如：成为前端工程师、学习 Python、准备技术面试"
+                value={recommendForm.goal}
+                onChange={(e) =>
+                  setRecommendForm({ ...recommendForm, goal: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="level">当前水平</Label>
+              <Select
+                value={recommendForm.currentLevel}
+                onValueChange={(value) =>
+                  setRecommendForm({ ...recommendForm, currentLevel: value })
+                }
+              >
+                <SelectTrigger id="level">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="beginner">初学者</SelectItem>
+                  <SelectItem value="intermediate">有一定基础</SelectItem>
+                  <SelectItem value="advanced">进阶学习者</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="interests">兴趣方向（用逗号分隔）</Label>
+              <Input
+                id="interests"
+                placeholder="例如：前端, Python, 数据分析"
+                value={recommendForm.interests}
+                onChange={(e) =>
+                  setRecommendForm({ ...recommendForm, interests: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="time">可用学习时间（天）</Label>
+              <Input
+                id="time"
+                type="number"
+                min="1"
+                max="365"
+                value={recommendForm.timeAvailable}
+                onChange={(e) =>
+                  setRecommendForm({
+                    ...recommendForm,
+                    timeAvailable: parseInt(e.target.value) || 30,
+                  })
+                }
+              />
+            </div>
+
+            {recommendations.length > 0 && (
+              <div className="space-y-3 pt-4 border-t">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  为你推荐以下学习路径：
+                </div>
+                {recommendations.map((rec) => (
+                  <Card key={rec.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{rec.title}</h4>
+                            <Badge variant="secondary" className="text-xs">
+                              匹配度 {rec.matchScore}%
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600">{rec.reason}</p>
+                          <p className="text-xs text-gray-500">
+                            预计 {rec.estimatedDays} 天完成
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => handleApplyRecommendation(rec)}
+                        >
+                          选择
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowRecommendDialog(false)}
+            >
+              取消
+            </Button>
+            <Button
+              onClick={handleGetRecommendations}
+              disabled={!recommendForm.goal || isLoadingRecommendations}
+            >
+              {isLoadingRecommendations ? '生成中...' : '获取推荐'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

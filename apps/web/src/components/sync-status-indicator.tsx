@@ -42,7 +42,13 @@ export function SyncStatusIndicator({ className, showDetails = false }: SyncStat
 
   const status = getStatus();
 
-  const statusConfig = {
+  const statusConfig: Record<string, {
+    icon: typeof Cloud;
+    text: string;
+    color: string;
+    bgColor: string;
+    animate?: boolean;
+  }> = {
     offline: {
       icon: CloudOff,
       text: '离线',

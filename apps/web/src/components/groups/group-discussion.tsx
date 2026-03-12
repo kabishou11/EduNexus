@@ -29,8 +29,10 @@ export function GroupDiscussion({ posts, currentUserId, onLike, onComment, onCre
 
   const handleComment = (postId: string) => {
     const content = commentInputs[postId]?.trim();
-    if (content && onComment) {
-      onComment(postId, content);
+    if (content) {
+      if (onComment) {
+        onComment(postId, content);
+      }
       setCommentInputs({ ...commentInputs, [postId]: '' });
     }
   };

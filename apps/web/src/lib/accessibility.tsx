@@ -5,7 +5,8 @@
 
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import type { KeyboardEvent } from 'react';
 
 /**
  * 焦点陷阱 Hook
@@ -25,7 +26,7 @@ export function useFocusTrap(isActive: boolean = true) {
     const firstElement = focusableElements[0];
     const lastElement = focusableElements[focusableElements.length - 1];
 
-    const handleTabKey = (e: KeyboardEvent) => {
+    const handleTabKey = (e: globalThis.KeyboardEvent) => {
       if (e.key !== 'Tab') return;
 
       if (e.shiftKey) {
@@ -62,10 +63,10 @@ export function useKeyboardNavigation(
     loop?: boolean;
   }
 ) {
-  const [selectedIndex, setSelectedIndex] = React.useState(0);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: KeyboardEvent) => {
       const { loop = true } = options || {};
 
       switch (e.key) {

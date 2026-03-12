@@ -124,7 +124,7 @@ export function KBEditor({ document, onUpdate }: KBEditorProps) {
           <div className="mb-6">
             <FileText className="h-20 w-20 mx-auto text-muted-foreground/50" />
           </div>
-          <h2 className="text-2xl font-bold mb-3">欢迎使用知识库 V2</h2>
+          <h2 className="text-2xl font-bold mb-3">欢迎使用知识宝库</h2>
           <p className="text-muted-foreground mb-6">
             选择左侧的文档开始编辑，或创建一个新文档开始你的知识管理之旅。
           </p>

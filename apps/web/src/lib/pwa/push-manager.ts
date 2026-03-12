@@ -86,7 +86,7 @@ export class PushManager {
       // Subscribe to push
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey),
+        applicationServerKey: this.urlBase64ToUint8Array(this.vapidPublicKey) as BufferSource,
       });
 
       // Send subscription to server
@@ -167,9 +167,8 @@ export class PushManager {
         badge: options.badge || '/icons/icon-96x96.png',
         tag: options.tag,
         data: options.data,
-        actions: options.actions,
         requireInteraction: options.requireInteraction,
-      });
+      } as globalThis.NotificationOptions);
     } catch (error) {
       console.error('Failed to show notification:', error);
     }

@@ -215,3 +215,5 @@ export function BacklinkGraph({
     </Card>
   );
 }
+
+export default BacklinkGraph;

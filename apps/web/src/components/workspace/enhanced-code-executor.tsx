@@ -66,7 +66,7 @@ export function EnhancedCodeExecutor({
       if (result !== undefined) {
         logs.push(`返回值: ${String(result)}`);
       }
-      return { output: logs.join("\n") || "执行成功（无输出）", error: null };
+      return { output: logs.join("\n") || "执行成功（无输出）", error: undefined };
     } catch (error) {
       return {
         output: logs.join("\n"),

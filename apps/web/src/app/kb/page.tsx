@@ -3,13 +3,20 @@
 import { useState, useEffect } from "react";
 import { KBLayout } from "@/components/kb/kb-layout";
 import { getKBStorage, type KBDocument, type KBVault } from "@/lib/client/kb-storage";
+import { useDocument } from "@/lib/ai/document-context";
 
 export default function KnowledgeBasePage() {
+  const { setCurrentDocument } = useDocument();
   const [vaults, setVaults] = useState<KBVault[]>([]);
   const [currentVault, setCurrentVault] = useState<KBVault | null>(null);
   const [documents, setDocuments] = useState<KBDocument[]>([]);
   const [currentDoc, setCurrentDoc] = useState<KBDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // 当文档切换时，更新全局文档上下文
+  useEffect(() => {
+    setCurrentDocument(currentDoc);
+  }, [currentDoc, setCurrentDocument]);
 
   // 初始化数据
   useEffect(() => {

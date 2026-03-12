@@ -1,17 +1,39 @@
 'use client';
 
 import { useState } from 'react';
-import { Goal, GoalType, GoalCategory } from '@/lib/goals/goal-storage';
+import { Goal, GoalType, GoalCategory, Milestone } from '@/lib/goals/goal-storage';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Sparkles, Loader2 } from 'lucide-react';
 
 interface GoalWizardProps {
   onComplete: (goal: Goal) => void;
   onCancel: () => void;
+}
+
+interface AISuggestion {
+  smart: {
+    specific: string;
+    measurable: string;
+    achievable: string;
+    relevant: string;
+    timeBound: string;
+  };
+  milestones: Array<{
+    title: string;
+    description: string;
+    estimatedDays: number;
+  }>;
+  relatedKnowledge: string[];
+  resources: string[];
+  challenges: Array<{
+    challenge: string;
+    solution: string;
+  }>;
 }
 
 export function GoalWizard({ onComplete, onCancel }: GoalWizardProps) {
@@ -29,10 +51,16 @@ export function GoalWizard({ onComplete, onCancel }: GoalWizardProps) {
     startDate: new Date().toISOString().split('T')[0],
     endDate: '',
   });
+  const [aiSuggestion, setAiSuggestion] = useState<AISuggestion | null>(null);
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
 
   const totalSteps = 4;
 
-  const handleNext = () => {
+  const handleNext = async () => {
+    // If moving from step 1 to step 2, fetch AI suggestions
+    if (step === 1 && formData.title) {
+      await fetchAISuggestions();
+    }
     if (step < totalSteps) setStep(step + 1);
   };
 
@@ -40,7 +68,50 @@ export function GoalWizard({ onComplete, onCancel }: GoalWizardProps) {
     if (step > 1) setStep(step - 1);
   };
 
+  const fetchAISuggestions = async () => {
+    setIsLoadingAI(true);
+    try {
+      const response = await fetch('/api/goals/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          goalTitle: formData.title,
+          goalDescription: formData.description,
+          category: formData.category,
+          type: formData.type,
+        }),
+      });
+
+      if (response.ok) {
+        const suggestion = await response.json();
+        setAiSuggestion(suggestion);
+        // Auto-fill SMART fields with AI suggestions
+        setFormData(prev => ({
+          ...prev,
+          specific: suggestion.smart.specific || prev.specific,
+          measurable: suggestion.smart.measurable || prev.measurable,
+          achievable: suggestion.smart.achievable || prev.achievable,
+          relevant: suggestion.smart.relevant || prev.relevant,
+          timeBound: suggestion.smart.timeBound || prev.timeBound,
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch AI suggestions:', error);
+    } finally {
+      setIsLoadingAI(false);
+    }
+  };
+
   const handleSubmit = () => {
+    // Generate milestones from AI suggestions if available
+    const milestones: Milestone[] = aiSuggestion?.milestones.map((m, index) => ({
+      id: `${Date.now()}-${index}`,
+      title: m.title,
+      description: m.description,
+      completed: false,
+      dueDate: calculateDueDate(formData.startDate, m.estimatedDays),
+    })) || [];
+
     const goal: Goal = {
       id: Date.now().toString(),
       title: formData.title,
@@ -56,14 +127,20 @@ export function GoalWizard({ onComplete, onCancel }: GoalWizardProps) {
         timeBound: formData.timeBound,
       },
       progress: 0,
-      milestones: [],
-      relatedKnowledge: [],
+      milestones,
+      relatedKnowledge: aiSuggestion?.relatedKnowledge || [],
       startDate: formData.startDate,
       endDate: formData.endDate,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     onComplete(goal);
+  };
+
+  const calculateDueDate = (startDate: string, daysToAdd: number): string => {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + daysToAdd);
+    return date.toISOString().split('T')[0];
   };
 
   const renderStep = () => {
@@ -145,11 +222,25 @@ export function GoalWizard({ onComplete, onCancel }: GoalWizardProps) {
         return (
           <div className="space-y-4">
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">SMART 目标设定</h3>
+              <h3 className="text-lg font-semibold mb-2 flex items-center gap-2">
+                SMART 目标设定
+                {aiSuggestion && (
+                  <span className="text-xs text-green-600 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3" />
+                    AI 已生成建议
+                  </span>
+                )}
+              </h3>
               <p className="text-sm text-muted-foreground">
                 让我们将你的目标转化为 SMART 目标，使其更具体、可衡量、可实现、相关且有时限。
               </p>
             </div>
+            {isLoadingAI && (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                <span className="ml-2 text-sm text-muted-foreground">AI 正在分析你的目标...</span>
+              </div>
+            )}
             <div>
               <Label htmlFor="specific">Specific（具体的）</Label>
               <Textarea
@@ -235,6 +326,26 @@ export function GoalWizard({ onComplete, onCancel }: GoalWizardProps) {
               <p className="text-sm"><strong>标题：</strong>{formData.title}</p>
               <p className="text-sm"><strong>类型：</strong>{formData.type}</p>
               <p className="text-sm"><strong>分类：</strong>{formData.category}</p>
+              {aiSuggestion && aiSuggestion.milestones.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm font-semibold mb-1">AI 建议的里程碑：</p>
+                  <ul className="text-xs space-y-1 ml-4">
+                    {aiSuggestion.milestones.map((m, i) => (
+                      <li key={i} className="list-disc">{m.title}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aiSuggestion && aiSuggestion.relatedKnowledge.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm font-semibold mb-1">相关知识点：</p>
+                  <div className="flex flex-wrap gap-1">
+                    {aiSuggestion.relatedKnowledge.map((k, i) => (
+                      <span key={i} className="text-xs bg-primary/10 px-2 py-1 rounded">{k}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );

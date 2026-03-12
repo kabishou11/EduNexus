@@ -182,14 +182,15 @@ export function recommendSimilar(
     .slice(0, limit);
 }
 
-// ==================== AI 个性化推荐 ====================
-
+// AI 个性化推荐 - 增强版
 export function recommendPersonalized(
   userId: string,
   context?: {
     currentTopic?: string;
     learningPath?: string[];
     knowledgeNodes?: string[];
+    recentSearches?: string[];
+    skillLevel?: "beginner" | "intermediate" | "advanced";
   },
   limit: number = 10
 ): RecommendationResult[] {
@@ -209,12 +210,16 @@ export function recommendPersonalized(
   // 计算用户偏好
   const typePreference = new Map<string, number>();
   const tagPreference = new Map<string, number>();
+  const authorPreference = new Map<string, number>();
 
   bookmarkedResources.forEach((r) => {
     typePreference.set(r.type, (typePreference.get(r.type) || 0) + 1);
     r.tags.forEach((tag) => {
       tagPreference.set(tag, (tagPreference.get(tag) || 0) + 1);
     });
+    if (r.author) {
+      authorPreference.set(r.author, (authorPreference.get(r.author) || 0) + 1);
+    }
   });
 
   // 推荐未收藏的资源
@@ -224,52 +229,101 @@ export function recommendPersonalized(
     let score = 0;
     let reasons: string[] = [];
 
-    // 类型偏好匹配
+    // 类型偏好匹配 (权重: 0.25)
     const typeScore = (typePreference.get(resource.type) || 0) / bookmarkedResources.length;
-    score += typeScore * 0.3;
+    score += typeScore * 0.25;
     if (typeScore > 0.3) {
       reasons.push("符合你的类型偏好");
     }
 
-    // 标签偏好匹配
+    // 标签偏好匹配 (权重: 0.35)
     const matchedTags = resource.tags.filter((tag) => tagPreference.has(tag));
     if (matchedTags.length > 0) {
       const tagScore = matchedTags.reduce(
         (sum, tag) => sum + (tagPreference.get(tag) || 0),
         0
       ) / bookmarkedResources.length;
-      score += tagScore * 0.4;
+      score += tagScore * 0.35;
       reasons.push(`匹配你关注的：${matchedTags.slice(0, 2).join(", ")}`);
     }
 
-    // 上下文匹配
+    // 作者偏好匹配 (权重: 0.1)
+    if (resource.author && authorPreference.has(resource.author)) {
+      const authorScore = (authorPreference.get(resource.author) || 0) / bookmarkedResources.length;
+      score += authorScore * 0.1;
+      reasons.push(`来自你喜欢的作者：${resource.author}`);
+    }
+
+    // 上下文匹配 - 当前主题 (权重: 0.15)
     if (context?.currentTopic) {
       const topicMatch =
         resource.title.toLowerCase().includes(context.currentTopic.toLowerCase()) ||
-        resource.description.toLowerCase().includes(context.currentTopic.toLowerCase());
+        resource.description.toLowerCase().includes(context.currentTopic.toLowerCase()) ||
+        resource.tags.some(tag => tag.toLowerCase().includes(context.currentTopic!.toLowerCase()));
       if (topicMatch) {
-        score += 0.2;
+        score += 0.15;
         reasons.push("与当前主题相关");
       }
     }
 
-    if (context?.knowledgeNodes) {
+    // 上下文匹配 - 知识节点 (权重: 0.1)
+    if (context?.knowledgeNodes && context.knowledgeNodes.length > 0) {
       const nodeMatch = context.knowledgeNodes.some((node) =>
         resource.tags.some((tag) => tag.toLowerCase().includes(node.toLowerCase()))
       );
       if (nodeMatch) {
-        score += 0.15;
+        score += 0.1;
         reasons.push("与学习路径相关");
       }
     }
 
-    // 质量分数（评分和收藏数）
-    const qualityScore = (resource.rating / 5) * 0.5 +
-      Math.min(resource.bookmarkCount / 100, 1) * 0.3;
-    score += qualityScore * 0.2;
+    // 上下文匹配 - 最近搜索 (权重: 0.08)
+    if (context?.recentSearches && context.recentSearches.length > 0) {
+      const searchMatch = context.recentSearches.some((search) =>
+        resource.title.toLowerCase().includes(search.toLowerCase()) ||
+        resource.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))
+      );
+      if (searchMatch) {
+        score += 0.08;
+        reasons.push("与你的搜索相关");
+      }
+    }
 
-    if (resource.rating >= 4) {
+    // 技能水平匹配 (权重: 0.07)
+    if (context?.skillLevel) {
+      const levelTags = {
+        beginner: ["入门", "基础", "初学", "教程"],
+        intermediate: ["进阶", "中级", "实战", "项目"],
+        advanced: ["高级", "深入", "源码", "架构", "专家"]
+      };
+      const levelMatch = resource.tags.some(tag =>
+        levelTags[context.skillLevel!].some(levelTag =>
+          tag.includes(levelTag)
+        )
+      );
+      if (levelMatch) {
+        score += 0.07;
+        reasons.push("适合你的水平");
+      }
+    }
+
+    // 质量分数 (权重: 0.15)
+    const qualityScore = (resource.rating / 5) * 0.6 +
+      Math.min(resource.bookmarkCount / 100, 1) * 0.3 +
+      Math.min(resource.viewCount / 1000, 1) * 0.1;
+    score += qualityScore * 0.15;
+
+    if (resource.rating >= 4.5) {
       reasons.push("高评分资源");
+    } else if (resource.bookmarkCount >= 50) {
+      reasons.push("热门收藏");
+    }
+
+    // 新鲜度加成 - 最近添加的资源
+    const daysSinceCreated = (Date.now() - new Date(resource.createdAt).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceCreated < 7) {
+      score += 0.05;
+      reasons.push("最新资源");
     }
 
     return {

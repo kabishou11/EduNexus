@@ -9,6 +9,7 @@ import ReactFlow, {
   useEdgesState,
   ReactFlowProvider,
   Panel,
+  Edge,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Button } from '@/components/ui/button';
@@ -16,7 +17,7 @@ import { Progress } from '@/components/ui/progress';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Clock, Award, Download } from 'lucide-react';
 import { nodeTypes } from './node-types';
-import { LearningPath, PathProgress } from '@/lib/path/path-types';
+import { LearningPath, PathProgress, PathNodeData } from '@/lib/path/path-types';
 import {
   getProgress,
   updateNodeCompletion,
@@ -31,8 +32,8 @@ interface PathExecutorProps {
 
 function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
   const [progress, setProgress] = useState<PathProgress | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(path.nodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(path.edges);
+  const [nodes, setNodes, onNodesChange] = useNodesState<PathNodeData>(path.nodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState(path.edges as Edge[]);
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showCertificate, setShowCertificate] = useState(false);
 

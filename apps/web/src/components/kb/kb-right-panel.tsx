@@ -10,10 +10,8 @@ import {
   List,
   Sparkles,
   Tag,
-  Clock,
   FileText,
   Calendar,
-  User,
   Download,
   Share2,
 } from "lucide-react";
@@ -22,9 +20,8 @@ import { zhCN } from "date-fns/locale";
 import type { KBDocument } from "@/lib/client/kb-storage";
 import { getKBStorage } from "@/lib/client/kb-storage";
 import { extractOutline, type OutlineItem } from "@/lib/client/document-outline";
-import { AIMindMap } from "./ai-mindmap";
-import { AISummary } from "./ai-summary";
-import { AIChat } from "./ai-chat";
+import { AIMindMapEnhanced } from "./ai-mindmap-enhanced";
+import { AISummaryEnhanced } from "./ai-summary-enhanced";
 
 interface KBRightPanelProps {
   document: KBDocument | null;
@@ -58,7 +55,7 @@ export function KBRightPanel({ document }: KBRightPanelProps) {
     <div className="flex flex-col h-full">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
         <div className="border-b px-4 py-3">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="outline" className="text-xs">
               <List className="h-3 w-3 mr-1" />
               大纲
@@ -70,10 +67,6 @@ export function KBRightPanel({ document }: KBRightPanelProps) {
             <TabsTrigger value="properties" className="text-xs">
               <Tag className="h-3 w-3 mr-1" />
               属性
-            </TabsTrigger>
-            <TabsTrigger value="history" className="text-xs">
-              <Clock className="h-3 w-3 mr-1" />
-              历史
             </TabsTrigger>
           </TabsList>
         </div>
@@ -94,35 +87,36 @@ export function KBRightPanel({ document }: KBRightPanelProps) {
           </TabsContent>
 
           {/* AI 功能 */}
-          <TabsContent value="ai" className="p-4 mt-0 space-y-4">
+          <TabsContent value="ai" className="p-4 mt-0 space-y-6">
             {activeTab === "ai" && (
               <>
                 <div>
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    AI 思维导图
-                  </h3>
-                  <AIMindMap document={document} />
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                      <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <h3 className="font-semibold text-sm">AI 思维导图</h3>
+                  </div>
+                  <AIMindMapEnhanced document={document} />
                 </div>
 
                 <Separator />
 
                 <div>
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    AI 摘要
-                  </h3>
-                  <AISummary document={document} />
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/30">
+                      <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="font-semibold text-sm">AI 智能摘要</h3>
+                  </div>
+                  <AISummaryEnhanced document={document} />
                 </div>
 
-                <Separator />
-
-                <div>
-                  <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    AI 问答
-                  </h3>
-                  <AIChat document={document} />
+                <div className="pt-4 border-t">
+                  <div className="text-xs text-muted-foreground text-center space-y-1">
+                    <p>💡 提示：使用全局 AI 助手进行文档问答</p>
+                    <p className="text-[10px]">快捷键：Cmd/Ctrl + K</p>
+                  </div>
                 </div>
               </>
             )}
@@ -163,7 +157,7 @@ export function KBRightPanel({ document }: KBRightPanelProps) {
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground flex items-center gap-2 mb-2">
-                  <Clock className="h-3 w-3" />
+                  <Calendar className="h-3 w-3" />
                   更新时间
                 </label>
                 <div className="text-sm">
@@ -197,16 +191,6 @@ export function KBRightPanel({ document }: KBRightPanelProps) {
                     分享文档
                   </Button>
                 </div>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* 历史 */}
-          <TabsContent value="history" className="p-4 mt-0">
-            <div className="space-y-2">
-              <h3 className="font-semibold text-sm mb-3">版本历史</h3>
-              <div className="text-sm text-muted-foreground">
-                版本 {document.version || 1}
               </div>
             </div>
           </TabsContent>

@@ -23,6 +23,8 @@ import { useKeyboardShortcut } from '@/lib/hooks/use-keyboard-shortcut';
 import { useDraggable } from '@/lib/hooks/use-draggable';
 import { useResizable } from '@/lib/hooks/use-resizable';
 import { getAIContext, type AIContext } from '@/lib/ai/context-adapter';
+import { useDocument } from '@/lib/ai/document-context';
+import { getModelConfig } from '@/lib/client/model-config';
 
 interface Message {
   id: string;
@@ -36,13 +38,14 @@ interface Message {
  */
 export function GlobalAIAssistant() {
   const pathname = usePathname();
+  const { currentDocument } = useDocument();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [context, setContext] = useState<AIContext>(getAIContext(pathname));
+  const [context, setContext] = useState<AIContext>(getAIContext(pathname, currentDocument));
 
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -84,8 +87,8 @@ export function GlobalAIAssistant() {
 
   // 更新上下文
   useEffect(() => {
-    setContext(getAIContext(pathname));
-  }, [pathname]);
+    setContext(getAIContext(pathname, currentDocument));
+  }, [pathname, currentDocument]);
 
   // 自动滚动到底部
   useEffect(() => {
@@ -110,6 +113,8 @@ export function GlobalAIAssistant() {
     setIsLoading(true);
 
     try {
+      const modelConfig = getModelConfig();
+
       const response = await fetch('/api/workspace/agent/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -121,6 +126,10 @@ export function GlobalAIAssistant() {
           })),
           config: {
             systemPrompt: context.systemPrompt,
+            apiKey: modelConfig.apiKey,
+            apiEndpoint: modelConfig.apiEndpoint,
+            modelName: modelConfig.model,
+            temperature: modelConfig.temperature,
           },
         }),
       });
@@ -227,16 +236,25 @@ export function GlobalAIAssistant() {
           className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white cursor-grab active:cursor-grabbing"
           onMouseDown={handleMouseDown}
         >
-          <div className="flex items-center gap-2">
-            <GripVertical className="w-4 h-4 opacity-70" />
-            <Sparkles className="w-5 h-5" />
-            <div>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <GripVertical className="w-4 h-4 opacity-70 flex-shrink-0" />
+            <Sparkles className="w-5 h-5 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
               <h3 className="font-semibold text-sm">{context.title}</h3>
-              <p className="text-xs opacity-80">Cmd/Ctrl + K</p>
+              {currentDocument && pathname.startsWith('/kb') && (
+                <p className="text-xs opacity-90 truncate">
+                  📄 {currentDocument.title}
+                </p>
+              )}
+              {!currentDocument && pathname.startsWith('/kb') && (
+                <p className="text-xs opacity-70">未选择文档</p>
+              )}
+              {!pathname.startsWith('/kb') && (
+                <p className="text-xs opacity-80">Cmd/Ctrl + K</p>
+              )}
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button
+          <div className="flex items-center gap-1 flex-shrink-0">\n            <Button
               size="sm"
               variant="ghost"
               className="h-8 w-8 p-0 text-white hover:bg-white/20 transition-colors"
@@ -283,34 +301,30 @@ export function GlobalAIAssistant() {
             exit={{ height: 0 }}
             className="flex flex-col"
           >
-            {/* 快速操作 */}
-            {messages.length === 0 && (
-              <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  快速操作
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {context.quickActions.map(action => (
-                    <button
-                      key={action.id}
-                      onClick={() => handleQuickAction(action.prompt)}
-                      className="flex items-center gap-2 p-2.5 text-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-sm transition-all text-left"
-                    >
-                      <span className="text-lg">{action.icon}</span>
-                      <span className="text-gray-700 dark:text-gray-300 font-medium">
-                        {action.label}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+            {/* 快速操作 - 紧凑型，始终显示 */}
+            <div className="px-3 py-2 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10">
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-thin">
+                {context.quickActions.map(action => (
+                  <button
+                    key={action.id}
+                    onClick={() => handleQuickAction(action.prompt)}
+                    className="flex items-center gap-1.5 px-2 py-1.5 text-xs rounded-md border border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-600 hover:shadow-sm transition-all whitespace-nowrap flex-shrink-0"
+                    title={action.label}
+                  >
+                    <span className="text-sm">{action.icon}</span>
+                    <span className="text-gray-700 dark:text-gray-300 font-medium">
+                      {action.label}
+                    </span>
+                  </button>
+                ))}
               </div>
-            )}
+            </div>
 
             {/* 消息列表 */}
             <ScrollArea
               className="p-4"
               ref={scrollRef}
-              style={{ height: `${size.height - 280}px` }}
+              style={{ height: `${size.height - 240}px` }}
             >
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-12">
