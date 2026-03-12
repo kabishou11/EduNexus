@@ -20,20 +20,23 @@ import {
   CheckSquare,
   Loader2,
   Check,
+  FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
+import { KeyboardShortcutsDialog } from "./keyboard-shortcuts-dialog";
 
 interface EditorToolbarProps {
   editor: Editor;
   isSaving: boolean;
   lastSaved: Date | null;
+  wordCount: number;
 }
 
-export function EditorToolbar({ editor, isSaving, lastSaved }: EditorToolbarProps) {
+export function EditorToolbar({ editor, isSaving, lastSaved, wordCount }: EditorToolbarProps) {
   const ToolbarButton = ({
     onClick,
     isActive,
@@ -203,20 +206,34 @@ export function EditorToolbar({ editor, isSaving, lastSaved }: EditorToolbarProp
           <Table className="h-4 w-4" />
         </ToolbarButton>
 
-        {/* 保存状态 */}
-        <div className="ml-auto flex items-center gap-2 text-sm text-muted-foreground">
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* 快捷键帮助 */}
+        <KeyboardShortcutsDialog />
+
+        {/* 保存状态和字数统计 */}
+        <div className="ml-auto flex items-center gap-4 text-sm text-muted-foreground">
+          {/* 字数统计 */}
+          <div className="flex items-center gap-1">
+            <FileText className="h-3.5 w-3.5" />
+            <span>{wordCount.toLocaleString()} 字</span>
+          </div>
+
+          <Separator orientation="vertical" className="h-4" />
+
+          {/* 保存状态 */}
           {isSaving ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>保存中...</span>
-            </>
+            <div className="flex items-center gap-1.5">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>保存中</span>
+            </div>
           ) : lastSaved ? (
-            <>
-              <Check className="h-4 w-4 text-green-500" />
+            <div className="flex items-center gap-1.5">
+              <Check className="h-3.5 w-3.5 text-green-500" />
               <span>
                 {formatDistanceToNow(lastSaved, { addSuffix: true, locale: zhCN })}
               </span>
-            </>
+            </div>
           ) : null}
         </div>
       </div>

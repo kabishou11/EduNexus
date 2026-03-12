@@ -14,6 +14,8 @@ import { TaskList } from "@tiptap/extension-task-list";
 import { TaskItem } from "@tiptap/extension-task-item";
 import { FileText } from "lucide-react";
 import { EditorToolbar } from "./editor-toolbar";
+import { MarkdownShortcuts } from "@/lib/tiptap/markdown-shortcuts";
+import { HeadingWithId } from "@/lib/tiptap/heading-with-id";
 import type { KBDocument } from "@/lib/client/kb-storage";
 
 interface KBEditorProps {
@@ -24,14 +26,19 @@ interface KBEditorProps {
 export function KBEditor({ document, onUpdate }: KBEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [wordCount, setWordCount] = useState(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3, 4, 5, 6],
+        heading: false, // 禁用默认的 heading，使用自定义的
+      }),
+      HeadingWithId.configure({
+        levels: [1, 2, 3, 4, 5, 6],
+        HTMLAttributes: {
+          class: 'scroll-mt-20', // 为滚动定位添加偏移
         },
       }),
       Placeholder.configure({
@@ -58,6 +65,7 @@ export function KBEditor({ document, onUpdate }: KBEditorProps) {
       TaskItem.configure({
         nested: true,
       }),
+      MarkdownShortcuts,
     ],
     content: document?.content || "",
     editorProps: {
@@ -66,6 +74,10 @@ export function KBEditor({ document, onUpdate }: KBEditorProps) {
       },
     },
     onUpdate: ({ editor }) => {
+      // 更新字数统计
+      const text = editor.getText();
+      setWordCount(text.length);
+
       // 防抖保存
       if (document) {
         const content = editor.getHTML();
@@ -78,6 +90,9 @@ export function KBEditor({ document, onUpdate }: KBEditorProps) {
   useEffect(() => {
     if (editor && document) {
       editor.commands.setContent(document.content || "");
+      // 更新字数统计
+      const text = editor.getText();
+      setWordCount(text.length);
     }
   }, [document?.id, editor]);
 
@@ -151,6 +166,7 @@ export function KBEditor({ document, onUpdate }: KBEditorProps) {
           editor={editor}
           isSaving={isSaving}
           lastSaved={lastSaved}
+          wordCount={wordCount}
         />
       )}
 

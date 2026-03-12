@@ -564,3 +564,23 @@
     @apply my-6 border-t-2 border-gray-200;
   }
 }
+
+/* Outline highlight animation */
+@keyframes outline-highlight {
+  0% {
+    background-color: transparent;
+  }
+  50% {
+    background-color: hsl(var(--primary) / 0.1);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.outline-highlight {
+  animation: outline-highlight 2s ease-in-out;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  margin: -0.25rem -0.5rem;
+}

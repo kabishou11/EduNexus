@@ -11,6 +11,21 @@ export interface OutlineItem {
 }
 
 /**
+ * 从文本生成 ID
+ */
+function generateIdFromText(text: string, index: number): string {
+  // 移除特殊字符，转换为小写，用连字符连接
+  const slug = text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s\u4e00-\u9fa5]/g, '') // 保留字母、数字、空格和中文
+    .replace(/\s+/g, '-') // 空格转连字符
+    .substring(0, 50); // 限制长度
+
+  return slug ? `heading-${slug}` : `heading-${index}`;
+}
+
+/**
  * 从 HTML 内容中提取大纲
  */
 export function extractOutline(htmlContent: string): OutlineItem[] {
@@ -29,7 +44,14 @@ export function extractOutline(htmlContent: string): OutlineItem[] {
   headings.forEach((heading, index) => {
     const level = parseInt(heading.tagName.substring(1));
     const text = heading.textContent || '';
-    const id = `heading-${index}`;
+
+    // 生成 ID：优先使用已有的 ID，否则生成新的
+    let id = heading.getAttribute('id');
+    if (!id) {
+      id = generateIdFromText(text, index);
+      // 为实际的 DOM 元素添加 ID（如果可能）
+      heading.setAttribute('id', id);
+    }
 
     const item: OutlineItem = {
       id,

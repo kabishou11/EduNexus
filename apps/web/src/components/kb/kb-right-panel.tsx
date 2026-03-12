@@ -214,18 +214,39 @@ function OutlineTree({ items }: { items: OutlineItem[] }) {
 function OutlineTreeItem({ item }: { item: OutlineItem }) {
   const paddingLeft = (item.level - 1) * 12;
 
+  const handleClick = () => {
+    // 尝试多种方式查找标题元素
+    let heading: HTMLElement | null = document.getElementById(item.id);
+
+    if (!heading) {
+      // 如果通过 ID 找不到，尝试通过文本内容查找
+      const allHeadings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      heading = Array.from(allHeadings).find(
+        h => h.textContent?.trim() === item.text.trim()
+      ) as HTMLElement | null;
+    }
+
+    if (heading) {
+      // 平滑滚动到标题位置，并添加偏移量避免被工具栏遮挡
+      const yOffset = -100; // 偏移量
+      const y = heading.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+      window.scrollTo({ top: y, behavior: 'smooth' });
+
+      // 添加高亮效果
+      heading.classList.add('outline-highlight');
+      setTimeout(() => {
+        heading?.classList.remove('outline-highlight');
+      }, 2000);
+    }
+  };
+
   return (
     <div>
       <button
         className="w-full text-left text-sm py-1.5 px-2 rounded hover:bg-accent transition-colors"
         style={{ paddingLeft: `${paddingLeft}px` }}
-        onClick={() => {
-          // 滚动到对应标题
-          const heading = document.querySelector(`#${item.id}`);
-          if (heading) {
-            heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }
-        }}
+        onClick={handleClick}
       >
         <span className="text-muted-foreground mr-2">
           {item.level === 1 && '📄'}
