@@ -231,6 +231,9 @@ importers:
         specifier: ^5.0.11
         version: 5.0.11(@types/react@18.3.28)(immer@11.1.4)(react@19.2.4)(use-sync-external-store@1.6.0(react@19.2.4))
     devDependencies:
+      '@eslint/eslintrc':
+        specifier: ^3.3.5
+        version: 3.3.5
       '@tailwindcss/typography':
         specifier: ^0.5.19
         version: 0.5.19(tailwindcss@3.4.19(yaml@2.8.2))
