@@ -5,10 +5,10 @@ export const runtime = "nodejs";
 
 export async function GET(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const sessionId = context.params.id;
+    const { id: sessionId } = await context.params;
     const session = await getSession(sessionId);
     if (!session) {
       return fail(

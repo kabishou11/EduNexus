@@ -5,10 +5,11 @@ export const runtime = "nodejs";
 
 export async function GET(
   _request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const doc = await getVaultDocById(context.params.id);
+    const { id } = await context.params;
+    const doc = await getVaultDocById(id);
     if (!doc) {
       return fail(
         {

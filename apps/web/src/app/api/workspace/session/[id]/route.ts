@@ -10,10 +10,11 @@ export const runtime = "nodejs";
 
 export async function GET(
   _request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const detail = await getSessionDetail(context.params.id);
+    const { id } = await context.params;
+    const detail = await getSessionDetail(id);
     if (!detail) {
       return fail(
         {
@@ -38,9 +39,10 @@ export async function GET(
 
 export async function PATCH(
   request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const json = await request.json().catch(() => ({}));
     const parsed = updateSessionSchema.safeParse(json);
     if (!parsed.success) {
@@ -51,7 +53,7 @@ export async function PATCH(
       });
     }
 
-    const renamed = await renameSession(context.params.id, parsed.data.title);
+    const renamed = await renameSession(id, parsed.data.title);
     if (!renamed) {
       return fail(
         {
@@ -81,10 +83,11 @@ export async function PATCH(
 
 export async function DELETE(
   _request: Request,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const removed = await deleteSession(context.params.id);
+    const { id } = await context.params;
+    const removed = await deleteSession(id);
     if (!removed) {
       return fail(
         {
@@ -96,7 +99,7 @@ export async function DELETE(
     }
     return ok({
       deleted: true,
-      id: context.params.id
+      id
     });
   } catch (error) {
     return fail(
