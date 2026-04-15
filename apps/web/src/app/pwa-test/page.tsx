@@ -22,8 +22,8 @@ import {
   isPushSupported,
   isServiceWorkerSupported,
   getStorageUsagePercentage,
-  formatBytes,
   share,
+  isShareSupported,
 } from '@/lib/pwa/pwa-utils';
 
 export default function PWATestPage() {
@@ -33,6 +33,10 @@ export default function PWATestPage() {
   const [cacheSize, setCacheSize] = useState(0);
   const [online, setOnline] = useState(true);
   const [installed, setInstalled] = useState(false);
+  const [serviceWorkerSupported, setServiceWorkerSupported] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [shareSupported, setShareSupported] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState('unknown');
 
   useEffect(() => {
     loadStatus();
@@ -52,6 +56,10 @@ export default function PWATestPage() {
   const loadStatus = async () => {
     setOnline(isOnline());
     setInstalled(isInstalled());
+    setServiceWorkerSupported(isServiceWorkerSupported());
+    setPushSupported(isPushSupported());
+    setShareSupported(isShareSupported());
+    setNotificationPermission(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
 
     const version = await swManager.getVersion();
     setSwVersion(version);
@@ -82,6 +90,7 @@ export default function PWATestPage() {
     if (subscription) {
       alert('订阅成功');
       setIsSubscribed(true);
+      setNotificationPermission(typeof Notification !== 'undefined' ? Notification.permission : 'unsupported');
     } else {
       alert('订阅失败');
     }
@@ -113,7 +122,7 @@ export default function PWATestPage() {
     const success = await share({
       title: 'EduNexus PWA',
       text: '查看这个很棒的 PWA 应用！',
-      url: window.location.href,
+      url: typeof window !== 'undefined' ? window.location.href : undefined,
     });
 
     if (success) {
@@ -130,7 +139,6 @@ export default function PWATestPage() {
           PWA 功能测试
         </h1>
 
-        {/* Status Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatusCard
             icon={online ? <Wifi className="w-6 h-6" /> : <WifiOff className="w-6 h-6" />}
@@ -161,10 +169,9 @@ export default function PWATestPage() {
           />
         </div>
 
-        {/* Service Worker Section */}
         <Section title="Service Worker">
           <div className="space-y-4">
-            <InfoRow label="支持状态" value={isServiceWorkerSupported() ? '支持' : '不支持'} />
+            <InfoRow label="支持状态" value={serviceWorkerSupported ? '支持' : '不支持'} />
             <InfoRow label="当前版本" value={swVersion || '未知'} />
             <InfoRow label="缓存项数" value={cacheSize.toString()} />
 
@@ -179,12 +186,11 @@ export default function PWATestPage() {
           </div>
         </Section>
 
-        {/* Push Notifications Section */}
         <Section title="推送通知">
           <div className="space-y-4">
-            <InfoRow label="支持状态" value={isPushSupported() ? '支持' : '不支持'} />
+            <InfoRow label="支持状态" value={pushSupported ? '支持' : '不支持'} />
             <InfoRow label="订阅状态" value={isSubscribed ? '已订阅' : '未订阅'} />
-            <InfoRow label="通知权限" value={Notification.permission} />
+            <InfoRow label="通知权限" value={notificationPermission} />
 
             <div className="flex gap-2">
               {!isSubscribed ? (
@@ -205,7 +211,6 @@ export default function PWATestPage() {
           </div>
         </Section>
 
-        {/* Offline Storage Section */}
         <Section title="离线存储">
           <div className="space-y-4">
             <InfoRow label="IndexedDB" value="支持" />
@@ -217,10 +222,9 @@ export default function PWATestPage() {
           </div>
         </Section>
 
-        {/* Share Section */}
         <Section title="分享功能">
           <div className="space-y-4">
-            <InfoRow label="Web Share API" value={typeof navigator !== 'undefined' && 'share' in navigator ? '支持' : '不支持'} />
+            <InfoRow label="Web Share API" value={shareSupported ? '支持' : '不支持'} />
 
             <Button onClick={handleShare} icon={<Share2 className="w-4 h-4" />}>
               测试分享

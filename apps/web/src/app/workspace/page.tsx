@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -38,7 +38,8 @@ import { CompactLevelDisplay } from "@/components/compact-level-display";
 import { LearningPlanner } from "@/components/kb/learning-planner";
 import { KBQAAssistant } from "@/components/kb/kb-qa-assistant";
 import { TeacherManager } from "@/components/workspace/teacher-manager";
-import { getKBStorage } from "@/lib/client/kb-storage";
+import type { KBDocument } from "@/lib/client/kb-storage";
+import { requestJson } from "@/lib/client/api";
 import { getModelConfig } from "@/lib/client/model-config";
 import {
   createChatSession,
@@ -56,6 +57,7 @@ import {
   getAllTeachers,
   type AITeacher,
 } from "@/lib/workspace/teacher-storage";
+import { Timestamp } from "@/components/ui/timestamp";
 import { toast } from "sonner";
 
 type Message = {
@@ -83,6 +85,19 @@ type WorkspaceTaskContext = {
   taskDependencies?: string[];
   taskStatus?: string;
   taskProgress?: number;
+};
+
+type WorkspaceKbDoc = {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  updatedAt?: string;
+  vaultId?: string;
+};
+
+type WorkspaceKbDocsResponse = {
+  docs: WorkspaceKbDoc[];
 };
 
 const normalizeToolSteps = (value: unknown): AgentToolStep[] | undefined => {
@@ -133,10 +148,9 @@ const teachingStyleLabels = {
   mixed: '混合式',
 };
 
-export default function WorkspacePage() {
+function WorkspacePageContent() {
   const searchParams = useSearchParams();
-  const storage = getKBStorage();
-  const [kbDocuments, setKbDocuments] = useState<any[]>([]);
+  const [kbDocuments, setKbDocuments] = useState<KBDocument[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [recentSessions, setRecentSessions] = useState<ChatSession[]>([]);
   const [currentTeacher, setCurrentTeacher] = useState<AITeacher | null>(null);
@@ -169,12 +183,21 @@ export default function WorkspacePage() {
   useEffect(() => {
     const loadKBDocuments = async () => {
       try {
-        await storage.initialize();
-        const vaultId = storage.getCurrentVaultId();
-        if (vaultId) {
-          const docs = await storage.getDocumentsByVault(vaultId);
-          setKbDocuments(docs);
-        }
+        const data = await requestJson<WorkspaceKbDocsResponse>("/api/kb/docs?vaultId=default");
+        const docs = data.docs.map((doc) => {
+          const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : new Date();
+          return {
+            id: doc.id,
+            title: doc.title,
+            content: doc.content,
+            tags: doc.tags ?? [],
+            createdAt: updatedAt,
+            updatedAt,
+            vaultId: doc.vaultId ?? "default",
+            version: 1,
+          } satisfies KBDocument;
+        });
+        setKbDocuments(docs);
       } catch (error) {
         console.error("加载知识库文档失败:", error);
       }
@@ -430,12 +453,6 @@ export default function WorkspacePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             question: effectiveMessage || "请分析这些图片",
-            documents: kbDocuments.map((doc) => ({
-              id: doc.id,
-              title: doc.title,
-              content: doc.content,
-              tags: doc.tags,
-            })),
             history: messages
               .filter((m) => m.mode === "kb-qa")
               .slice(-4)
@@ -458,12 +475,12 @@ export default function WorkspacePage() {
           assistantMessage = {
             id: (Date.now() + 1).toString(),
             role: "assistant",
-            content: data.answer,
+            content: data.data.answer,
             timestamp: new Date(),
             mode: "kb-qa",
           };
         } else {
-          throw new Error(data.error || "Unknown error");
+          throw new Error(data.error?.message || "Unknown error");
         }
       } else {
         // 普通对话模式
@@ -770,7 +787,7 @@ export default function WorkspacePage() {
                       <MarkdownRenderer content={message.content} />
                     </div>
                     <div className="text-xs opacity-70 mt-2 flex items-center justify-between">
-                      <span>{message.timestamp.toLocaleTimeString()}</span>
+                      <Timestamp date={message.timestamp} showIcon={false} relative={false} />
                       {message.mode && (
                         <Badge
                           variant="outline"
@@ -1332,7 +1349,7 @@ export default function WorkspacePage() {
                 animate={{ opacity: 1 }}
                 className="h-full"
               >
-                <KBQAAssistant documents={kbDocuments} />
+                <KBQAAssistant documentCount={kbDocuments.length} />
               </motion.div>
             )}
 
@@ -1385,12 +1402,10 @@ export default function WorkspacePage() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-medium truncate">{session.title}</h4>
-                            <p className="text-xs text-muted-foreground">
-                              {session.messages.length} 条消息
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(session.updatedAt).toLocaleString()}
-                            </p>
+                            <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                              <span>{session.messages.length} 条消息</span>
+                              <Timestamp date={session.updatedAt} showIcon={false} relative={false} />
+                            </div>
                           </div>
                           <Button
                             size="sm"
@@ -1421,5 +1436,13 @@ export default function WorkspacePage() {
         </AnimatePresence>
       </motion.div>
     </div>
+  );
+}
+
+export default function WorkspacePage() {
+  return (
+    <Suspense>
+      <WorkspacePageContent />
+    </Suspense>
   );
 }

@@ -1,4 +1,4 @@
-import { buildGraphFromVault } from "./kb-lite";
+import { buildGraphFromVault, getVaultDocById, listVaultDocs } from "./kb-lite";
 import { loadDb } from "./store";
 
 function toTaskNodeId(pathId: string, taskId: string) {
@@ -115,14 +115,76 @@ export async function getGraphNodeDetail(nodeId: string) {
   const node = graph.nodes.find((item) => item.id === nodeId);
   if (!node) return null;
 
+  const allDocs = await listVaultDocs();
+  const relatedDocs = allDocs.filter((doc) => {
+    const normalizedTitle = doc.title.toLowerCase();
+    const normalizedNodeLabel = node.label.toLowerCase();
+    return (
+      doc.id === node.id ||
+      doc.links.includes(node.id) ||
+      normalizedTitle.includes(normalizedNodeLabel) ||
+      normalizedNodeLabel.includes(normalizedTitle)
+    );
+  });
+
+  const prerequisites = graph.edges
+    .filter((edge) => edge.target === node.id)
+    .map((edge) => graph.nodes.find((candidate) => candidate.id === edge.source))
+    .filter((candidate): candidate is (typeof graph.nodes)[number] => Boolean(candidate))
+    .map((candidate) => ({
+      id: candidate.id,
+      name: candidate.label,
+      type: candidate.domain === "learning_task" ? "skill" : "concept",
+      status: candidate.mastery >= 0.7 ? "mastered" : candidate.mastery > 0 ? "learning" : "unlearned",
+      importance: candidate.risk || 0.5,
+      mastery: candidate.mastery || 0,
+      connections: graph.edges.filter((edge) => edge.source === candidate.id || edge.target === candidate.id).length,
+      noteCount: 0,
+      practiceCount: 0,
+      practiceCompleted: 0,
+      documentIds: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
+  const nextSteps = graph.edges
+    .filter((edge) => edge.source === node.id)
+    .map((edge) => graph.nodes.find((candidate) => candidate.id === edge.target))
+    .filter((candidate): candidate is (typeof graph.nodes)[number] => Boolean(candidate))
+    .map((candidate) => ({
+      id: candidate.id,
+      name: candidate.label,
+      type: candidate.domain === "learning_task" ? "skill" : "concept",
+      status: candidate.mastery >= 0.7 ? "mastered" : candidate.mastery > 0 ? "learning" : "unlearned",
+      importance: candidate.risk || 0.5,
+      mastery: candidate.mastery || 0,
+      connections: graph.edges.filter((edge) => edge.source === candidate.id || edge.target === candidate.id).length,
+      noteCount: 0,
+      practiceCount: 0,
+      practiceCompleted: 0,
+      documentIds: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    }));
+
   return {
     node,
-    evidences: [
-      {
-        sourceId: `vault:${nodeId}`,
-        chunkRef: "summary",
-        quote: `节点「${node.label}」来自本地知识库沉淀。`
-      }
-    ]
+    relatedNotes: relatedDocs.map((doc) => ({
+      id: doc.id,
+      title: doc.title,
+      excerpt: doc.content.slice(0, 120),
+    })),
+    relatedPractices: [],
+    prerequisites,
+    nextSteps,
+    learningProgress: {
+      totalTime: 0,
+      reviewCount: 0,
+    },
+    evidences: relatedDocs.map((doc) => ({
+      sourceId: doc.id,
+      chunkRef: doc.path,
+      quote: doc.content.slice(0, 120),
+    })),
   };
 }

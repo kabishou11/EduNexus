@@ -53,181 +53,11 @@ const NODE_TYPE_CONFIG = {
   skill: { label: "技能", color: "bg-orange-500" },
 };
 
-// 生成模拟数据
-const generateMockData = (): { nodes: GraphNode[]; edges: GraphEdge[] } => {
-  const now = new Date();
-  const nodes: GraphNode[] = [
-    {
-      id: "1",
-      name: "React 基础",
-      type: "concept",
-      status: "mastered",
-      importance: 0.9,
-      mastery: 0.85,
-      connections: 5,
-      noteCount: 3,
-      practiceCount: 5,
-      practiceCompleted: 5,
-      documentIds: ["doc1", "doc2", "doc3"],
-      lastReviewedAt: new Date(now.getTime() - 5 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "2",
-      name: "JSX 语法",
-      type: "concept",
-      status: "mastered",
-      importance: 0.7,
-      mastery: 0.9,
-      connections: 3,
-      noteCount: 2,
-      practiceCount: 3,
-      practiceCompleted: 3,
-      documentIds: ["doc4", "doc5"],
-      lastReviewedAt: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(now.getTime() - 55 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "3",
-      name: "组件化开发",
-      type: "topic",
-      status: "learning",
-      importance: 0.8,
-      mastery: 0.6,
-      connections: 4,
-      noteCount: 4,
-      practiceCount: 6,
-      practiceCompleted: 3,
-      documentIds: ["doc6", "doc7", "doc8", "doc9"],
-      createdAt: new Date(now.getTime() - 45 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "4",
-      name: "Hooks",
-      type: "concept",
-      status: "learning",
-      importance: 0.85,
-      mastery: 0.5,
-      connections: 6,
-      noteCount: 5,
-      practiceCount: 8,
-      practiceCompleted: 4,
-      documentIds: ["doc10", "doc11", "doc12", "doc13", "doc14"],
-      createdAt: new Date(now.getTime() - 40 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "5",
-      name: "useState",
-      type: "skill",
-      status: "mastered",
-      importance: 0.6,
-      mastery: 0.8,
-      connections: 2,
-      noteCount: 2,
-      practiceCount: 4,
-      practiceCompleted: 4,
-      documentIds: ["doc15", "doc16"],
-      lastReviewedAt: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "6",
-      name: "useEffect",
-      type: "skill",
-      status: "learning",
-      importance: 0.7,
-      mastery: 0.55,
-      connections: 3,
-      noteCount: 3,
-      practiceCount: 5,
-      practiceCompleted: 2,
-      documentIds: ["doc17", "doc18", "doc19"],
-      createdAt: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "7",
-      name: "状态管理",
-      type: "topic",
-      status: "unlearned",
-      importance: 0.75,
-      mastery: 0.2,
-      connections: 4,
-      noteCount: 1,
-      practiceCount: 6,
-      practiceCompleted: 0,
-      documentIds: ["doc20"],
-      createdAt: new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "8",
-      name: "Redux",
-      type: "resource",
-      status: "unlearned",
-      importance: 0.5,
-      mastery: 0.1,
-      connections: 2,
-      noteCount: 0,
-      practiceCount: 4,
-      practiceCompleted: 0,
-      documentIds: [],
-      createdAt: new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "9",
-      name: "Context API",
-      type: "resource",
-      status: "unlearned",
-      importance: 0.6,
-      mastery: 0.15,
-      connections: 2,
-      noteCount: 1,
-      practiceCount: 3,
-      practiceCompleted: 0,
-      documentIds: ["doc21"],
-      createdAt: new Date(now.getTime() - 18 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-    {
-      id: "10",
-      name: "路由",
-      type: "topic",
-      status: "review",
-      importance: 0.7,
-      mastery: 0.75,
-      connections: 3,
-      noteCount: 2,
-      practiceCount: 4,
-      practiceCompleted: 3,
-      documentIds: ["doc22", "doc23"],
-      lastReviewedAt: new Date(now.getTime() - 35 * 24 * 60 * 60 * 1000),
-      createdAt: new Date(now.getTime() - 50 * 24 * 60 * 60 * 1000),
-      updatedAt: now,
-    },
-  ];
-
-  const edges: GraphEdge[] = [
-    { source: "1", target: "2", type: "contains", strength: 0.9 },
-    { source: "1", target: "3", type: "contains", strength: 0.8 },
-    { source: "1", target: "4", type: "contains", strength: 0.85 },
-    { source: "4", target: "5", type: "contains", strength: 0.7 },
-    { source: "4", target: "6", type: "contains", strength: 0.75 },
-    { source: "1", target: "7", type: "related", strength: 0.6 },
-    { source: "7", target: "8", type: "applies", strength: 0.5 },
-    { source: "7", target: "9", type: "applies", strength: 0.6 },
-    { source: "1", target: "10", type: "related", strength: 0.7 },
-    { source: "3", target: "7", type: "prerequisite", strength: 0.8 },
-  ];
-
-  return { nodes, edges };
+const EMPTY_GRAPH: { nodes: GraphNode[]; edges: GraphEdge[] } = {
+  nodes: [],
+  edges: [],
 };
+
 
 export default function EnhancedGraphPage() {
   // 状态管理
@@ -250,62 +80,73 @@ export default function EnhancedGraphPage() {
   const [currentPath, setCurrentPath] = useState<LearningPath | null>(null);
   const [recommendedPaths, setRecommendedPaths] = useState<LearningPath[]>([]);
   const [nodeDetail, setNodeDetail] = useState<NodeDetail | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // 初始化数据
   useEffect(() => {
     const fetchGraphData = async () => {
       try {
+        setIsLoading(true);
+        setLoadError(null);
+
         const res = await fetch('/api/graph/view');
         const json = await res.json();
-        if (json.success && json.data) {
-          const serverNodes = json.data.nodes || [];
-          const serverEdges = json.data.edges || [];
-
-          const nodes: GraphNode[] = serverNodes.map((n: any) => ({
-            id: n.id,
-            name: n.label,
-            type: (n.domain === 'learning_path' ? 'topic' : n.domain === 'learning_task' ? 'skill' : 'concept') as NodeType,
-            status: (n.mastery >= 0.7 ? 'mastered' : n.mastery > 0 ? 'learning' : 'unlearned') as NodeStatus,
-            importance: n.risk || 0.5,
-            mastery: n.mastery || 0,
-            connections: serverEdges.filter((e: any) => e.source === n.id || e.target === n.id).length,
-            noteCount: 0,
-            practiceCount: 0,
-            practiceCompleted: 0,
-            documentIds: [],
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }));
-
-          const edges: GraphEdge[] = serverEdges.map((e: any) => ({
-            id: `${e.source}-${e.target}`,
-            source: e.source,
-            target: e.target,
-            type: 'prerequisite',
-            strength: e.weight || 1,
-          }));
-
-          setGraphData({ nodes, edges });
-
-          const engine = new RecommendationEngine(nodes, edges);
-          const paths = engine.recommendLearningPaths(3);
-          setRecommendedPaths(paths);
-        } else {
-          const data = generateMockData();
-          setGraphData(data);
-
-          const engine = new RecommendationEngine(data.nodes, data.edges);
-          const paths = engine.recommendLearningPaths(3);
-          setRecommendedPaths(paths);
+        if (!json.success || !json.data) {
+          throw new Error(json?.error?.message || '图谱数据返回失败');
         }
-      } catch (error) {
-        console.error('Failed to fetch graph data:', error);
-        const data = generateMockData();
-        setGraphData(data);
 
-        const engine = new RecommendationEngine(data.nodes, data.edges);
+        const serverNodes = json.data.nodes || [];
+        const serverEdges = json.data.edges || [];
+
+        if (serverNodes.length === 0) {
+          setGraphData(EMPTY_GRAPH);
+          setRecommendedPaths([]);
+          setCurrentPath(null);
+          setNodeDetail(null);
+          setSelectedNode(null);
+          setLoadError('当前还没有可展示的真实图谱数据，请先沉淀知识笔记或同步学习路径。');
+          return;
+        }
+
+        const nodes: GraphNode[] = serverNodes.map((n: any) => ({
+          id: n.id,
+          name: n.label,
+          type: (n.domain === 'learning_path' ? 'topic' : n.domain === 'learning_task' ? 'skill' : 'concept') as NodeType,
+          status: (n.mastery >= 0.7 ? 'mastered' : n.mastery > 0 ? 'learning' : 'unlearned') as NodeStatus,
+          importance: n.risk || 0.5,
+          mastery: n.mastery || 0,
+          connections: serverEdges.filter((e: any) => e.source === n.id || e.target === n.id).length,
+          noteCount: 0,
+          practiceCount: 0,
+          practiceCompleted: 0,
+          documentIds: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        const edges: GraphEdge[] = serverEdges.map((e: any) => ({
+          source: e.source,
+          target: e.target,
+          type: 'prerequisite',
+          strength: e.weight || 1,
+        }));
+
+        setGraphData({ nodes, edges });
+
+        const engine = new RecommendationEngine(nodes, edges);
         const paths = engine.recommendLearningPaths(3);
         setRecommendedPaths(paths);
+      } catch (error) {
+        console.error('Failed to fetch graph data:', error);
+        setGraphData(EMPTY_GRAPH);
+        setRecommendedPaths([]);
+        setCurrentPath(null);
+        setNodeDetail(null);
+        setSelectedNode(null);
+        setLoadError(error instanceof Error ? error.message : '图谱数据加载失败');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -342,52 +183,48 @@ export default function EnhancedGraphPage() {
 
   // 处理节点点击
   const handleNodeClick = useCallback(
-    (node: GraphNode) => {
+    async (node: GraphNode) => {
       setSelectedNode(node);
 
-      // 生成节点详情
-      const engine = new RecommendationEngine(graphData.nodes, graphData.edges);
-      const nextSteps = engine.recommendNextSteps(node.id, 3);
+      try {
+        const res = await fetch(`/api/graph/node/${encodeURIComponent(node.id)}`);
+        const json = await res.json();
+        if (!res.ok || !json.success || !json.data) {
+          throw new Error(json?.error?.message || "节点详情加载失败");
+        }
 
-      // 获取前置知识
-      const prerequisites = graphData.edges
-        .filter((e) => {
-          const targetId = typeof e.target === "string" ? e.target : e.target.id;
-          return targetId === node.id && e.type === "prerequisite";
-        })
-        .map((e) => {
-          const sourceId = typeof e.source === "string" ? e.source : e.source.id;
-          return graphData.nodes.find((n) => n.id === sourceId);
-        })
-        .filter((n): n is GraphNode => n !== undefined);
-
-      setNodeDetail({
-        node,
-        prerequisites,
-        nextSteps,
-        relatedNotes: [
-          {
-            id: "note1",
-            title: `${node.name} 学习笔记`,
-            excerpt: "这是关于该知识点的学习笔记摘要...",
+        const detail = json.data;
+        setNodeDetail({
+          node,
+          prerequisites: detail.prerequisites ?? [],
+          nextSteps: detail.nextSteps ?? [],
+          relatedNotes: detail.relatedNotes ?? [],
+          relatedPractices: detail.relatedPractices ?? [],
+          learningProgress: detail.learningProgress ?? {
+            totalTime: 0,
+            reviewCount: 0,
           },
-        ],
-        relatedPractices: [
-          {
-            id: "practice1",
-            title: `${node.name} 练习题`,
-            completed: node.practiceCompleted > 0,
+          evidences: detail.evidences ?? [],
+        });
+      } catch (error) {
+        console.error("Failed to load node detail:", error);
+        setNodeDetail({
+          node,
+          prerequisites: [],
+          nextSteps: [],
+          relatedNotes: [],
+          relatedPractices: [],
+          learningProgress: {
+            totalTime: 0,
+            reviewCount: 0,
           },
-        ],
-        learningProgress: {
-          totalTime: Math.floor(Math.random() * 120) + 30,
-          lastStudied: node.lastReviewedAt,
-          reviewCount: Math.floor(Math.random() * 5),
-        },
-      });
+          evidences: [],
+        });
+      }
     },
-    [graphData]
+    []
   );
+
 
   // 切换类型筛选
   const toggleTypeFilter = (type: NodeType) => {
@@ -577,26 +414,39 @@ export default function EnhancedGraphPage() {
 
       {/* 主内容区 */}
       <div className="flex-1 flex relative overflow-hidden">
-        {/* 图谱画布 */}
         <div className="flex-1 relative">
-          <InteractiveGraph
-            nodes={filteredNodes}
-            edges={filteredEdges}
-            selectedNode={selectedNode}
-            onNodeClick={handleNodeClick}
-            onNodeHover={setHoveredNode}
-            layout={layout}
-            theme={theme}
-            showLearningPath={showLearningPath}
-            pathNodes={currentPath?.nodes || []}
-          />
+          {isLoading ? (
+            <div className="flex h-full items-center justify-center text-muted-foreground">
+              正在加载真实图谱数据...
+            </div>
+          ) : loadError && graphData.nodes.length === 0 ? (
+            <div className="flex h-full items-center justify-center p-8">
+              <div className="max-w-xl rounded-2xl border bg-card/80 p-6 text-center shadow-sm">
+                <AlertCircle className="mx-auto mb-3 h-10 w-10 text-amber-500" />
+                <h2 className="mb-2 text-lg font-semibold">当前没有可展示的真实图谱</h2>
+                <p className="text-sm text-muted-foreground">{loadError}</p>
+              </div>
+            </div>
+          ) : (
+            <>
+              <InteractiveGraph
+                nodes={filteredNodes}
+                edges={filteredEdges}
+                selectedNode={selectedNode}
+                onNodeClick={handleNodeClick}
+                onNodeHover={setHoveredNode}
+                layout={layout}
+                theme={theme}
+                showLearningPath={showLearningPath}
+                pathNodes={currentPath?.nodes || []}
+              />
 
-          {/* 进度图例 */}
-          <ProgressLegend stats={stats} />
+              <ProgressLegend stats={stats} />
+            </>
+          )}
         </div>
 
-        {/* 学习路径叠加层 - 移到外层避免影响布局 */}
-        {showLearningPath && (
+        {showLearningPath && recommendedPaths.length > 0 && (
           <LearningPathOverlay
             paths={recommendedPaths}
             currentPath={currentPath}
@@ -606,7 +456,6 @@ export default function EnhancedGraphPage() {
           />
         )}
 
-        {/* 节点详情面板 */}
         {selectedNode && nodeDetail && (
           <NodeDetailPanel
             detail={nodeDetail}

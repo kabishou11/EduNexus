@@ -36,6 +36,25 @@ export const saveNoteSchema = z.object({
   links: z.array(z.string().min(1)).optional()
 });
 
+export const createKbDocumentSchema = z.object({
+  title: z.string().min(1).max(160),
+  content: z.string().optional().default(""),
+  tags: z.array(z.string().min(1)).optional(),
+  links: z.array(z.string().min(1)).optional(),
+  type: z.string().min(1).max(40).optional(),
+  domain: z.string().min(1).max(40).optional(),
+  vaultId: z.string().min(1).max(80).optional()
+});
+
+export const updateKbDocumentSchema = z.object({
+  title: z.string().min(1).max(160).optional(),
+  content: z.string().min(1).optional(),
+  tags: z.array(z.string().min(1)).optional(),
+  links: z.array(z.string().min(1)).optional(),
+  type: z.string().min(1).max(40).optional(),
+  domain: z.string().min(1).max(40).optional()
+});
+
 export const pathGenerateSchema = z.object({
   goalType: z.enum(["exam", "project", "certificate"]),
   goal: z.string().min(1).max(300),
@@ -82,6 +101,36 @@ export const kbAIChatSchema = z.object({
         content: z.string()
       })
     )
+    .optional()
+});
+
+export const kbQaSchema = z.object({
+  question: z.string().min(1).max(4000),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1)
+      })
+    )
+    .max(8)
+    .optional(),
+  config: z
+    .object({
+      apiKey: z.string().min(1).optional(),
+      apiEndpoint: z.string().min(1).optional(),
+      modelName: z.string().min(1).optional()
+    })
+    .optional(),
+  taskContext: z
+    .object({
+      pathId: z.string().optional(),
+      pathTitle: z.string().optional(),
+      taskId: z.string().optional(),
+      taskTitle: z.string().optional(),
+      taskProgress: z.number().optional()
+    })
+    .passthrough()
     .optional()
 });
 

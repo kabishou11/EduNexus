@@ -294,6 +294,28 @@ export function NodeDetailPanel({
             </div>
           )}
 
+          {detail.evidences && detail.evidences.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  证据来源 ({detail.evidences.length})
+                </h3>
+                <div className="space-y-2">
+                  {detail.evidences.map((evidence) => (
+                    <Card key={`${evidence.sourceId}-${evidence.chunkRef}`} className="p-3">
+                      <div className="text-xs font-medium text-muted-foreground mb-1">
+                        {evidence.sourceId}
+                      </div>
+                      <div className="text-sm leading-6">{evidence.quote}</div>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* 操作按钮 */}

@@ -75,6 +75,11 @@ export interface NodeDetail {
     lastStudied?: Date;
     reviewCount: number;
   };
+  evidences?: Array<{
+    sourceId: string;
+    chunkRef: string;
+    quote: string;
+  }>;
 }
 
 export interface GraphState {

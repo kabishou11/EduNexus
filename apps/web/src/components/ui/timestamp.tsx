@@ -21,11 +21,11 @@ export function Timestamp({ date, showIcon = true, className = "", relative = tr
         <TooltipTrigger asChild>
           <div className={`flex items-center gap-1 text-xs text-muted-foreground cursor-help ${className}`}>
             {showIcon && <Clock className="h-3 w-3" />}
-            <span>{displayTime}</span>
+            <span suppressHydrationWarning>{displayTime}</span>
           </div>
         </TooltipTrigger>
         <TooltipContent>
-          <p className="text-xs">{tooltipTime}</p>
+          <p className="text-xs" suppressHydrationWarning>{tooltipTime}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -45,13 +45,13 @@ export function TimeRange({ createdAt, updatedAt, className = "" }: TimeRangePro
         <TooltipTrigger asChild>
           <div className={`flex items-center gap-1 text-xs text-muted-foreground cursor-help ${className}`}>
             <Clock className="h-3 w-3" />
-            <span>{formatRelativeTime(updatedAt)}</span>
+            <span suppressHydrationWarning>{formatRelativeTime(updatedAt)}</span>
           </div>
         </TooltipTrigger>
         <TooltipContent>
           <div className="text-xs space-y-1">
-            <div>创建: {formatAbsoluteTime(createdAt)}</div>
-            <div>更新: {formatAbsoluteTime(updatedAt)}</div>
+            <div suppressHydrationWarning>创建: {formatAbsoluteTime(createdAt)}</div>
+            <div suppressHydrationWarning>更新: {formatAbsoluteTime(updatedAt)}</div>
           </div>
         </TooltipContent>
       </Tooltip>

@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { GET as searchKb } from "./search/route";
-import { GET as getDoc } from "./doc/[id]/route";
+import { GET as getDoc, PATCH as updateDoc, DELETE as deleteDoc } from "./doc/[id]/route";
+import { GET as listDocs, POST as createDoc } from "./docs/route";
 import { GET as getTags } from "./tags/route";
 import { GET as getBacklinkGraph } from "./backlinks/graph/route";
 import { POST as rebuildIndex } from "./index/rebuild/route";
@@ -96,10 +97,10 @@ describe("kb api", () => {
     });
     expect(docRes.status).toBe(200);
     const docJson = (await docRes.json()) as {
-      data: { id: string; backlinks: string[] };
+      data: { doc: { id: string; backlinks: string[] } };
     };
-    expect(docJson.data.id).toBe("source_ch5");
-    expect(docJson.data.backlinks).toContain("note_seq");
+    expect(docJson.data.doc.id).toBe("source_ch5");
+    expect(docJson.data.doc.backlinks).toContain("note_seq");
 
     const tagsRes = await getTags();
     expect(tagsRes.status).toBe(200);
@@ -130,5 +131,67 @@ describe("kb api", () => {
     };
     expect(rebuildJson.data.docCount).toBeGreaterThanOrEqual(2);
     expect(rebuildJson.data.byType.note).toBeGreaterThanOrEqual(1);
+  });
+
+  it("supports kb document CRUD via server routes", async () => {
+    const createRes = await createDoc(
+      new Request("http://localhost/api/kb/docs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "新建知识文档",
+          content: "这是服务端创建的知识文档。",
+          tags: ["服务端", "文档"],
+          links: ["note_seq"],
+          domain: "general",
+          type: "note",
+          vaultId: "default"
+        })
+      })
+    );
+    expect(createRes.status).toBe(200);
+    const createJson = (await createRes.json()) as {
+      data: { doc: { id: string; title: string } };
+    };
+    const createdId = createJson.data.doc.id;
+    expect(createJson.data.doc.title).toBe("新建知识文档");
+
+    const listRes = await listDocs(
+      new Request("http://localhost/api/kb/docs?vaultId=default")
+    );
+    expect(listRes.status).toBe(200);
+    const listJson = (await listRes.json()) as {
+      data: { docs: Array<{ id: string }> };
+    };
+    expect(listJson.data.docs.some((doc) => doc.id === createdId)).toBe(true);
+
+    const updateRes = await updateDoc(
+      new Request(`http://localhost/api/kb/doc/${createdId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: "更新后的知识文档",
+          content: "更新后的内容。",
+          tags: ["更新后"]
+        })
+      }),
+      { params: Promise.resolve({ id: createdId }) }
+    );
+    expect(updateRes.status).toBe(200);
+    const updateJson = (await updateRes.json()) as {
+      data: { doc: { title: string; tags: string[] } };
+    };
+    expect(updateJson.data.doc.title).toBe("更新后的知识文档");
+    expect(updateJson.data.doc.tags).toContain("更新后");
+
+    const deleteRes = await deleteDoc(new Request("http://localhost"), {
+      params: Promise.resolve({ id: createdId })
+    });
+    expect(deleteRes.status).toBe(200);
+
+    const afterDeleteRes = await getDoc(new Request("http://localhost"), {
+      params: Promise.resolve({ id: createdId })
+    });
+    expect(afterDeleteRes.status).toBe(404);
   });
 });

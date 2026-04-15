@@ -17,23 +17,16 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { zhCN } from "date-fns/locale";
-import { useRouter } from "next/navigation";
 import type { KBDocument } from "@/lib/client/kb-storage";
-import { getKBStorage } from "@/lib/client/kb-storage";
 import { extractOutline, type OutlineItem } from "@/lib/client/document-outline";
 import { AIMindMapEnhanced } from "./ai-mindmap-enhanced";
 import { AISummaryEnhanced } from "./ai-summary-enhanced";
-import { pathStorage, type LearningPath } from "@/lib/client/path-storage";
-import { getAllResources, type Resource } from "@/lib/resources/resource-storage";
 
 interface KBRightPanelProps {
   document: KBDocument | null;
-  allDocuments?: KBDocument[];
-  onDocumentClick?: (doc: KBDocument) => void;
 }
 
-export function KBRightPanel({ document, allDocuments = [], onDocumentClick }: KBRightPanelProps) {
-  const router = useRouter();
+export function KBRightPanel({ document }: KBRightPanelProps) {
   const [activeTab, setActiveTab] = useState("outline");
   const [outline, setOutline] = useState<OutlineItem[]>([]);
 
@@ -183,10 +176,20 @@ export function KBRightPanel({ document, allDocuments = [], onDocumentClick }: K
                     size="sm"
                     className="w-full justify-start"
                     onClick={() => {
-                      if (document) {
-                        const storage = getKBStorage();
-                        storage.exportDocumentAsMarkdown(document);
-                      }
+                      const markdown = [
+                        `# ${document.title}`,
+                        "",
+                        ...(document.tags.length > 0 ? [`标签：${document.tags.join(", ")}`, ""] : []),
+                        document.content,
+                        "",
+                      ].join("\n");
+                      const blob = new Blob([markdown], { type: "text/markdown;charset=utf-8" });
+                      const url = URL.createObjectURL(blob);
+                      const link = globalThis.document.createElement("a");
+                      link.href = url;
+                      link.download = `${document.title || "knowledge-note"}.md`;
+                      link.click();
+                      URL.revokeObjectURL(url);
                     }}
                   >
                     <Download className="h-4 w-4 mr-2" />

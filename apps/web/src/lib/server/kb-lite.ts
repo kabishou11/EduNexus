@@ -170,6 +170,18 @@ export function resolveVaultDir() {
   return path.join(process.cwd(), "vault");
 }
 
+function normalizeVaultId(vaultId?: string | null) {
+  return vaultId?.trim() || "default";
+}
+
+function resolveVaultSubdir(vaultId?: string | null) {
+  const normalizedVaultId = normalizeVaultId(vaultId);
+  if (normalizedVaultId === "default") {
+    return "notes";
+  }
+  return path.join("notes", normalizedVaultId);
+}
+
 async function collectDocs(): Promise<VaultDoc[]> {
   const vaultDir = resolveVaultDir();
   const docs: VaultDoc[] = [];
@@ -219,14 +231,16 @@ function createFrontmatterBlock(input: {
   links: string[];
   sourceRefs: string[];
   owner: string;
+  type?: string;
+  domain?: string;
 }) {
   const now = new Date().toISOString().slice(0, 10);
   return [
     "---",
     `id: ${input.id}`,
     `title: ${input.title}`,
-    "type: note",
-    "domain: general",
+    `type: ${input.type ?? "note"}`,
+    `domain: ${input.domain ?? "general"}`,
     `tags: [${input.tags.join(", ")}]`,
     `links: [${input.links.join(", ")}]`,
     `source_refs: [${input.sourceRefs.join(", ")}]`,
@@ -236,6 +250,155 @@ function createFrontmatterBlock(input: {
     "---",
     ""
   ].join("\n");
+}
+
+function serializeVaultDoc(doc: VaultDoc) {
+  return {
+    id: doc.id,
+    title: doc.title,
+    type: doc.type,
+    domain: doc.domain,
+    tags: doc.tags,
+    links: doc.links,
+    sourceRefs: doc.sourceRefs,
+    owner: doc.owner,
+    updatedAt: doc.updatedAt,
+    path: doc.path,
+    content: doc.content
+  };
+}
+
+async function writeVaultDoc(input: {
+  id?: string;
+  title: string;
+  content: string;
+  tags?: string[];
+  links?: string[];
+  sourceRefs?: string[];
+  owner?: string;
+  type?: string;
+  domain?: string;
+  vaultId?: string;
+}) {
+  const vaultDir = resolveVaultDir();
+  const docsDir = path.join(vaultDir, resolveVaultSubdir(input.vaultId));
+  await fs.mkdir(docsDir, { recursive: true });
+
+  const id = input.id ?? createNoteId();
+  const filePath = path.join(docsDir, `${id}.md`);
+  const frontmatter = createFrontmatterBlock({
+    id,
+    title: input.title,
+    tags: input.tags ?? [],
+    links: input.links ?? [],
+    sourceRefs: input.sourceRefs ?? [],
+    owner: input.owner ?? "kb-ui",
+    type: input.type,
+    domain: input.domain,
+  });
+
+  await fs.writeFile(filePath, `${frontmatter}${input.content.trim()}\n`, "utf8");
+  return getVaultDocById(id);
+}
+
+export async function listVaultDocs(filters?: {
+  vaultId?: string;
+  type?: string;
+  domain?: string;
+  tag?: string;
+}) {
+  const docs = await collectDocs();
+  const expectedDir = filters?.vaultId ? path.join(resolveVaultDir(), resolveVaultSubdir(filters.vaultId)) : null;
+
+  return docs
+    .filter((doc) => {
+      if (expectedDir && !doc.path.startsWith(expectedDir)) return false;
+      if (filters?.type && doc.type !== filters.type) return false;
+      if (filters?.domain && doc.domain !== filters.domain) return false;
+      if (filters?.tag && !doc.tags.includes(filters.tag)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      const timeA = Date.parse(a.updatedAt ?? "") || 0;
+      const timeB = Date.parse(b.updatedAt ?? "") || 0;
+      return timeB - timeA || a.title.localeCompare(b.title, "zh-CN");
+    })
+    .map(serializeVaultDoc);
+}
+
+export async function createVaultDoc(input: {
+  title: string;
+  content?: string;
+  tags?: string[];
+  links?: string[];
+  sourceRefs?: string[];
+  owner?: string;
+  type?: string;
+  domain?: string;
+  vaultId?: string;
+}) {
+  const created = await writeVaultDoc({
+    title: input.title,
+    content: input.content ?? "",
+    tags: input.tags,
+    links: input.links,
+    sourceRefs: input.sourceRefs,
+    owner: input.owner,
+    type: input.type,
+    domain: input.domain,
+    vaultId: input.vaultId,
+  });
+
+  if (!created) {
+    throw new Error("知识文档创建后读取失败");
+  }
+
+  return serializeVaultDoc(created);
+}
+
+export async function updateVaultDoc(
+  docId: string,
+  updates: {
+    title?: string;
+    content?: string;
+    tags?: string[];
+    links?: string[];
+    type?: string;
+    domain?: string;
+  }
+) {
+  const existing = await getVaultDocById(docId);
+  if (!existing) {
+    return null;
+  }
+
+  const updated = await writeVaultDoc({
+    id: existing.id,
+    title: updates.title ?? existing.title,
+    content: updates.content ?? existing.content,
+    tags: updates.tags ?? existing.tags,
+    links: updates.links ?? existing.links,
+    sourceRefs: existing.sourceRefs,
+    owner: existing.owner,
+    type: updates.type ?? existing.type,
+    domain: updates.domain ?? existing.domain,
+  });
+
+  if (!updated) {
+    throw new Error("知识文档更新后读取失败");
+  }
+
+  return serializeVaultDoc(updated);
+}
+
+export async function deleteVaultDoc(docId: string) {
+  const existing = await getVaultDocById(docId);
+  if (!existing) {
+    return false;
+  }
+
+  await fs.rm(existing.path, { force: true });
+  return true;
 }
 
 export async function searchVault(
@@ -284,50 +447,25 @@ export async function saveNoteFromSession(input: {
   links?: string[];
   owner?: string;
 }) {
-  const vaultDir = resolveVaultDir();
-  const notesDir = path.join(vaultDir, "notes");
-  await fs.mkdir(notesDir, { recursive: true });
-
-  const noteId = createNoteId();
-  const fileName = `${noteId}.md`;
-  const filePath = path.join(notesDir, fileName);
-
-  const frontmatter = createFrontmatterBlock({
-    id: noteId,
+  const created = await writeVaultDoc({
     title: input.title,
-    tags: input.tags ?? [],
-    links: input.links ?? [],
+    content: `## 背景\n\n来源会话：${input.sessionId}\n\n## 推理过程\n\n${input.content}\n\n## 证据\n\n- session:${input.sessionId}\n\n## 结论\n\n（待补充）\n\n## 下一步\n\n- [ ] 继续完善本次学习结论`,
+    tags: input.tags,
+    links: input.links,
     sourceRefs: [`session:${input.sessionId}`],
-    owner: input.owner ?? "workspace"
+    owner: input.owner ?? "workspace",
+    type: "note",
+    domain: "general",
   });
 
-  const markdown = `${frontmatter}
-## 背景
-
-来源会话：${input.sessionId}
-
-## 推理过程
-
-${input.content}
-
-## 证据
-
-- session:${input.sessionId}
-
-## 结论
-
-（待补充）
-
-## 下一步
-
-- [ ] 继续完善本次学习结论
-`;
-
-  await fs.writeFile(filePath, markdown, "utf8");
+  if (!created) {
+    throw new Error("保存学习笔记后读取失败");
+  }
 
   return {
-    noteId,
-    path: filePath
+    noteId: created.id,
+    path: created.path,
+    doc: serializeVaultDoc(created)
   };
 }
 

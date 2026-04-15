@@ -4,6 +4,10 @@ import { GET as listSessions } from "./sessions/route";
 import { GET as getSessionDetail } from "./session/[id]/route";
 import { POST as runAgent } from "./agent/run/route";
 import { POST as streamAgent } from "./agent/stream/route";
+import { POST as saveWorkspaceNote } from "./note/save/route";
+import { GET as getKbDoc } from "../kb/doc/[id]/route";
+import { GET as searchKb } from "../kb/search/route";
+import { POST as kbQa } from "../kb/qa/route";
 import {
   cleanupSandbox,
   createSandbox,
@@ -123,5 +127,84 @@ describe("workspace api", () => {
     expect(listJson.data.sessions.some((item) => item.id === sessionId)).toBe(
       true
     );
+  });
+
+  it("can save workspace notes into kb and search them", async () => {
+    const createRes = await createSession(
+      new Request("http://localhost/api/workspace/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: "笔记链路测试" })
+      })
+    );
+    const createJson = (await createRes.json()) as {
+      data: { session: { id: string } };
+    };
+    const sessionId = createJson.data.session.id;
+
+    const saveRes = await saveWorkspaceNote(
+      new Request("http://localhost/api/workspace/note/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId,
+          title: "函数与数列联动总结",
+          content: "先判断函数变化趋势，再回到数列递推关系。",
+          tags: ["函数", "数列"],
+          links: ["note_session_bootstrap"]
+        })
+      })
+    );
+
+    expect(saveRes.status).toBe(200);
+    const saveJson = (await saveRes.json()) as {
+      data: { noteId: string; doc: { id: string; title: string; content: string } };
+    };
+    expect(saveJson.data.noteId).toBeTruthy();
+    expect(saveJson.data.doc.title).toBe("函数与数列联动总结");
+
+    const docRes = await getKbDoc(new Request("http://localhost"), {
+      params: Promise.resolve({ id: saveJson.data.noteId })
+    });
+    expect(docRes.status).toBe(200);
+    const docJson = (await docRes.json()) as {
+      data: { doc: { id: string; links: string[] } };
+    };
+    expect(docJson.data.doc.id).toBe(saveJson.data.noteId);
+    expect(docJson.data.doc.links).toContain("note_session_bootstrap");
+
+    const searchRes = await searchKb(
+      new Request("http://localhost/api/kb/search?q=联动总结")
+    );
+    expect(searchRes.status).toBe(200);
+    const searchJson = (await searchRes.json()) as {
+      data: { candidates: Array<{ docId: string }> };
+    };
+    expect(
+      searchJson.data.candidates.some((item) => item.docId === saveJson.data.noteId)
+    ).toBe(true);
+  });
+
+  it("kb qa uses server-side vault search instead of client documents payload", async () => {
+    const qaRes = await kbQa(
+      new Request("http://localhost/api/kb/qa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: "等差数列题应该先看什么？",
+          history: []
+        })
+      })
+    );
+
+    expect(qaRes.status).toBe(200);
+    const qaJson = (await qaRes.json()) as {
+      data: {
+        answer: string;
+        sources: Array<{ id: string }>;
+      };
+    };
+    expect(qaJson.data.answer.length).toBeGreaterThan(0);
+    expect(qaJson.data.sources.some((source) => source.id === "note_session_bootstrap")).toBe(true);
   });
 });

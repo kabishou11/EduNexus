@@ -3,10 +3,17 @@
  * Helper functions for PWA features
  */
 
+const hasWindow = typeof window !== 'undefined';
+const hasNavigator = typeof navigator !== 'undefined';
+
 /**
  * Check if app is installed (running as PWA)
  */
 export function isInstalled(): boolean {
+  if (!hasWindow || !hasNavigator) {
+    return false;
+  }
+
   return window.matchMedia('(display-mode: standalone)').matches ||
     (window.navigator as any).standalone === true;
 }
@@ -22,6 +29,10 @@ export function isInBrowser(): boolean {
  * Check if device is online
  */
 export function isOnline(): boolean {
+  if (!hasNavigator) {
+    return true;
+  }
+
   return navigator.onLine;
 }
 
@@ -29,13 +40,17 @@ export function isOnline(): boolean {
  * Check if device is offline
  */
 export function isOffline(): boolean {
-  return !navigator.onLine;
+  return !isOnline();
 }
 
 /**
  * Get device type
  */
 export function getDeviceType(): 'mobile' | 'tablet' | 'desktop' {
+  if (!hasWindow) {
+    return 'desktop';
+  }
+
   const width = window.innerWidth;
 
   if (width < 768) {
@@ -72,6 +87,10 @@ export function isDesktop(): boolean {
  * Get platform
  */
 export function getPlatform(): string {
+  if (!hasNavigator) {
+    return 'unknown';
+  }
+
   return navigator.platform;
 }
 
@@ -79,6 +98,10 @@ export function getPlatform(): string {
  * Check if iOS
  */
 export function isIOS(): boolean {
+  if (!hasNavigator) {
+    return false;
+  }
+
   return /iPad|iPhone|iPod/.test(navigator.userAgent);
 }
 
@@ -86,6 +109,10 @@ export function isIOS(): boolean {
  * Check if Android
  */
 export function isAndroid(): boolean {
+  if (!hasNavigator) {
+    return false;
+  }
+
   return /Android/.test(navigator.userAgent);
 }
 
@@ -93,6 +120,10 @@ export function isAndroid(): boolean {
  * Check if Safari
  */
 export function isSafari(): boolean {
+  if (!hasNavigator) {
+    return false;
+  }
+
   return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
 }
 
@@ -100,6 +131,10 @@ export function isSafari(): boolean {
  * Check if Chrome
  */
 export function isChrome(): boolean {
+  if (!hasNavigator) {
+    return false;
+  }
+
   return /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
 }
 
@@ -107,6 +142,10 @@ export function isChrome(): boolean {
  * Check if Firefox
  */
 export function isFirefox(): boolean {
+  if (!hasNavigator) {
+    return false;
+  }
+
   return /Firefox/.test(navigator.userAgent);
 }
 
@@ -124,35 +163,35 @@ export function getBrowserName(): string {
  * Check if service worker is supported
  */
 export function isServiceWorkerSupported(): boolean {
-  return 'serviceWorker' in navigator;
+  return hasNavigator && 'serviceWorker' in navigator;
 }
 
 /**
  * Check if push notifications are supported
  */
 export function isPushSupported(): boolean {
-  return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  return hasWindow && hasNavigator && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 }
 
 /**
  * Check if background sync is supported
  */
 export function isBackgroundSyncSupported(): boolean {
-  return 'serviceWorker' in navigator && 'SyncManager' in window;
+  return hasWindow && hasNavigator && 'serviceWorker' in navigator && 'SyncManager' in window;
 }
 
 /**
  * Check if IndexedDB is supported
  */
 export function isIndexedDBSupported(): boolean {
-  return 'indexedDB' in window;
+  return hasWindow && 'indexedDB' in window;
 }
 
 /**
  * Check if Cache API is supported
  */
 export function isCacheSupported(): boolean {
-  return 'caches' in window;
+  return hasWindow && 'caches' in window;
 }
 
 /**
@@ -165,6 +204,10 @@ export function getNetworkInfo(): {
   rtt?: number;
   saveData?: boolean;
 } | null {
+  if (!hasNavigator) {
+    return null;
+  }
+
   const connection = (navigator as any).connection ||
     (navigator as any).mozConnection ||
     (navigator as any).webkitConnection;
@@ -214,7 +257,7 @@ export function formatBytes(bytes: number): string {
  * Get storage usage percentage
  */
 export async function getStorageUsagePercentage(): Promise<number> {
-  if (!('storage' in navigator && 'estimate' in navigator.storage)) {
+  if (!hasNavigator || !('storage' in navigator && 'estimate' in navigator.storage)) {
     return 0;
   }
 
@@ -234,7 +277,7 @@ export async function getStorageUsagePercentage(): Promise<number> {
  * Request persistent storage
  */
 export async function requestPersistentStorage(): Promise<boolean> {
-  if (!('storage' in navigator && 'persist' in navigator.storage)) {
+  if (!hasNavigator || !('storage' in navigator && 'persist' in navigator.storage)) {
     return false;
   }
 
@@ -252,7 +295,7 @@ export async function requestPersistentStorage(): Promise<boolean> {
  * Check if storage is persisted
  */
 export async function isStoragePersisted(): Promise<boolean> {
-  if (!('storage' in navigator && 'persisted' in navigator.storage)) {
+  if (!hasNavigator || !('storage' in navigator && 'persisted' in navigator.storage)) {
     return false;
   }
 
@@ -273,7 +316,7 @@ export async function share(data: {
   url?: string;
   files?: File[];
 }): Promise<boolean> {
-  if (!('share' in navigator)) {
+  if (!hasNavigator || !('share' in navigator)) {
     console.warn('Web Share API not supported');
     return false;
   }
@@ -293,14 +336,14 @@ export async function share(data: {
  * Check if Web Share API is supported
  */
 export function isShareSupported(): boolean {
-  return 'share' in navigator;
+  return hasNavigator && 'share' in navigator;
 }
 
 /**
  * Copy to clipboard
  */
 export async function copyToClipboard(text: string): Promise<boolean> {
-  if (!('clipboard' in navigator)) {
+  if (!hasNavigator || !('clipboard' in navigator)) {
     return false;
   }
 
@@ -317,7 +360,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
  * Vibrate device
  */
 export function vibrate(pattern: number | number[]): boolean {
-  if (!('vibrate' in navigator)) {
+  if (!hasNavigator || !('vibrate' in navigator)) {
     return false;
   }
 
@@ -328,7 +371,7 @@ export function vibrate(pattern: number | number[]): boolean {
  * Wake lock (keep screen on)
  */
 export async function requestWakeLock(): Promise<WakeLockSentinel | null> {
-  if (!('wakeLock' in navigator)) {
+  if (!hasNavigator || !('wakeLock' in navigator)) {
     return null;
   }
 
@@ -346,7 +389,7 @@ export async function requestWakeLock(): Promise<WakeLockSentinel | null> {
  * Get app badge count
  */
 export async function getBadgeCount(): Promise<number> {
-  if (!('getExperimentalBadge' in navigator)) {
+  if (!hasNavigator || !('getExperimentalBadge' in navigator)) {
     return 0;
   }
 
@@ -361,7 +404,7 @@ export async function getBadgeCount(): Promise<number> {
  * Set app badge count
  */
 export async function setBadgeCount(count: number): Promise<boolean> {
-  if (!('setAppBadge' in navigator)) {
+  if (!hasNavigator || !('setAppBadge' in navigator)) {
     return false;
   }
 
@@ -378,7 +421,7 @@ export async function setBadgeCount(count: number): Promise<boolean> {
  * Clear app badge
  */
 export async function clearBadge(): Promise<boolean> {
-  if (!('clearAppBadge' in navigator)) {
+  if (!hasNavigator || !('clearAppBadge' in navigator)) {
     return false;
   }
 

@@ -1,7 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Plus, Settings, FileText, Clock, Star, Tag, ChevronRight, ChevronDown, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  Search,
+  Plus,
+  Settings,
+  FileText,
+  Clock,
+  ChevronRight,
+  ChevronDown,
+  MoreHorizontal,
+  Trash2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,7 +48,6 @@ export function KBSidebar({
   currentVault,
   documents,
   currentDoc,
-  onVaultChange,
   onCreateDocument,
   onDeleteDocument,
   onSelectDocument,
@@ -49,27 +58,22 @@ export function KBSidebar({
   const [expandedSections, setExpandedSections] = useState({
     recent: true,
     all: true,
-    favorites: false,
-    tags: false,
   });
 
-  // 过滤文档（优化搜索）
-  const filteredDocs = documents.filter(doc => {
+  const filteredDocs = documents.filter((doc) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
       doc.title.toLowerCase().includes(query) ||
       doc.content.toLowerCase().includes(query) ||
-      doc.tags.some(tag => tag.toLowerCase().includes(query))
+      doc.tags.some((tag) => tag.toLowerCase().includes(query))
     );
   });
 
-  // 最近文档（按更新时间排序，取前5个）
   const recentDocs = [...documents]
     .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
     .slice(0, 5);
 
-  // 创建新文档
   const handleCreateDocument = async () => {
     if (!newDocTitle.trim()) return;
     await onCreateDocument(newDocTitle);
@@ -77,9 +81,8 @@ export function KBSidebar({
     setShowNewDocDialog(false);
   };
 
-  // 切换分组展开状态
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({
+    setExpandedSections((prev) => ({
       ...prev,
       [section]: !prev[section],
     }));
@@ -87,39 +90,14 @@ export function KBSidebar({
 
   return (
     <div className="flex flex-col h-full">
-      {/* 知识库切换器 */}
       <div className="p-4 pb-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start font-semibold">
-              <FileText className="h-4 w-4 mr-2" />
-              {currentVault?.name || "选择知识库"}
-              <ChevronDown className="h-4 w-4 ml-auto" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="w-[240px]">
-            {vaults.map(vault => (
-              <DropdownMenuItem
-                key={vault.id}
-                onClick={() => onVaultChange(vault.id)}
-                className={cn(
-                  currentVault?.id === vault.id && "bg-accent"
-                )}
-              >
-                <FileText className="h-4 w-4 mr-2" />
-                {vault.name}
-              </DropdownMenuItem>
-            ))}
-            <Separator className="my-1" />
-            <DropdownMenuItem>
-              <Plus className="h-4 w-4 mr-2" />
-              新建知识库
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Button variant="ghost" className="w-full justify-start font-semibold" disabled>
+          <FileText className="h-4 w-4 mr-2" />
+          {currentVault?.name || vaults[0]?.name || "默认知识库"}
+          <ChevronDown className="h-4 w-4 ml-auto" />
+        </Button>
       </div>
 
-      {/* 搜索框 */}
       <div className="px-4 pb-2">
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -132,9 +110,7 @@ export function KBSidebar({
         </div>
       </div>
 
-      {/* 文档列表 */}
       <ScrollArea className="flex-1 px-2">
-        {/* 最近访问 */}
         <div className="mb-2">
           <button
             onClick={() => toggleSection("recent")}
@@ -150,7 +126,7 @@ export function KBSidebar({
           </button>
           {expandedSections.recent && (
             <div className="ml-4 mt-1 space-y-0.5">
-              {recentDocs.map(doc => (
+              {recentDocs.map((doc) => (
                 <DocumentItem
                   key={doc.id}
                   doc={doc}
@@ -165,7 +141,6 @@ export function KBSidebar({
 
         <Separator className="my-2" />
 
-        {/* 所有文档 */}
         <div className="mb-2">
           <button
             onClick={() => toggleSection("all")}
@@ -184,7 +159,7 @@ export function KBSidebar({
           </button>
           {expandedSections.all && (
             <div className="ml-4 mt-1 space-y-0.5">
-              {filteredDocs.map(doc => (
+              {filteredDocs.map((doc) => (
                 <DocumentItem
                   key={doc.id}
                   doc={doc}
@@ -203,7 +178,6 @@ export function KBSidebar({
         </div>
       </ScrollArea>
 
-      {/* 底部操作栏 */}
       <div className="p-4 pt-2 border-t space-y-2">
         <Button
           onClick={() => setShowNewDocDialog(true)}
@@ -213,16 +187,12 @@ export function KBSidebar({
           <Plus className="h-4 w-4 mr-2" />
           新建文档
         </Button>
-        <Button variant="ghost" size="sm" className="w-full justify-start" onClick={() => {
-          // TODO: 打开设置对话框
-          alert('设置功能开发中，敬请期待！');
-        }}>
+        <Button variant="ghost" size="sm" className="w-full justify-start" disabled>
           <Settings className="h-4 w-4 mr-2" />
           设置
         </Button>
       </div>
 
-      {/* 新建文档对话框 */}
       <Dialog open={showNewDocDialog} onOpenChange={setShowNewDocDialog}>
         <DialogContent>
           <DialogHeader>
@@ -235,7 +205,7 @@ export function KBSidebar({
               onChange={(e) => setNewDocTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
-                  handleCreateDocument();
+                  void handleCreateDocument();
                 }
               }}
               autoFocus
@@ -245,7 +215,7 @@ export function KBSidebar({
             <Button variant="outline" onClick={() => setShowNewDocDialog(false)}>
               取消
             </Button>
-            <Button onClick={handleCreateDocument} disabled={!newDocTitle.trim()}>
+            <Button onClick={() => void handleCreateDocument()} disabled={!newDocTitle.trim()}>
               创建
             </Button>
           </DialogFooter>
@@ -255,7 +225,6 @@ export function KBSidebar({
   );
 }
 
-// 文档项组件
 function DocumentItem({
   doc,
   isActive,
@@ -292,7 +261,7 @@ function DocumentItem({
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
-              onDelete(doc.id);
+              void onDelete(doc.id);
             }}
             className="text-destructive"
           >

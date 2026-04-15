@@ -24,38 +24,35 @@ export function PageHeader({
 }: PageHeaderProps) {
   return (
     <header className={cn("space-y-6 mb-12 animate-in", className)}>
-      {/* Meta 信息 */}
-      <div className="flex items-center gap-3 text-sm">
+      <div className="flex flex-wrap items-center gap-3 text-sm">
         <div className="flex items-center gap-2">
           <div className="status-dot online" />
           <span className="text-muted-foreground font-medium">{metaLabel}</span>
         </div>
-        <Separator orientation="vertical" className="h-4" />
+        <Separator orientation="vertical" className="hidden h-4 sm:block" />
         <Badge variant="secondary" className="badge-success">
           {statusLabel}
         </Badge>
       </div>
 
-      {/* 主标题区 */}
       <div className="space-y-4">
-        <div className="flex items-start justify-between gap-6">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between lg:gap-8">
           <div className="flex-1 space-y-3">
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight gradient-text">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight gradient-text text-balance">
               {title}
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground max-w-3xl leading-relaxed text-balance">
               {description}
             </p>
           </div>
 
           {actions && (
-            <div className="flex gap-3 flex-shrink-0">
+            <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap lg:max-w-xl lg:justify-end lg:flex-shrink-0">
               {actions}
             </div>
           )}
         </div>
 
-        {/* 标签 */}
         {tags.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {tags.map((tag, index) => (

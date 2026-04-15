@@ -20,13 +20,13 @@ function getNextDevSpawn(port) {
         "/d",
         "/s",
         "/c",
-        `pnpm exec next dev --port ${String(port)}`
+        `pnpm exec next dev --webpack --port ${String(port)}`
       ]
     };
   }
   return {
     command: "pnpm",
-    args: ["exec", "next", "dev", "--port", String(port)]
+    args: ["exec", "next", "dev", "--webpack", "--port", String(port)]
   };
 }
 
@@ -41,7 +41,6 @@ async function isPortAvailable(port) {
     server.once("listening", () => {
       server.close(() => resolve(true));
     });
-    // Do not pin host here; Windows may report 127.0.0.1 free while :: is occupied.
     server.listen(port);
   });
 }

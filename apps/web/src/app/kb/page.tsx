@@ -1,51 +1,73 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { KBLayout } from "@/components/kb/kb-layout";
-import { getKBStorage, type KBDocument, type KBVault } from "@/lib/client/kb-storage";
 import { useDocument } from "@/lib/ai/document-context";
+import { requestJson } from "@/lib/client/api";
+import type { KBDocument, KBVault } from "@/lib/client/kb-storage";
+
+type ServerKBDocument = {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  updatedAt?: string;
+  vaultId?: string;
+};
+
+type KbDocsResponse = {
+  docs: ServerKBDocument[];
+};
+
+type KbDocResponse = {
+  doc: ServerKBDocument;
+};
+
+const DEFAULT_VAULT: KBVault = {
+  id: "default",
+  name: "我的知识库",
+  path: "/default",
+  createdAt: new Date(0),
+  lastAccessedAt: new Date(),
+  isDefault: true,
+};
+
+function toClientDoc(doc: ServerKBDocument, fallbackVaultId: string): KBDocument {
+  const updatedAt = doc.updatedAt ? new Date(doc.updatedAt) : new Date();
+  return {
+    id: doc.id,
+    title: doc.title,
+    content: doc.content,
+    tags: doc.tags ?? [],
+    createdAt: updatedAt,
+    updatedAt,
+    vaultId: doc.vaultId ?? fallbackVaultId,
+    version: 1,
+  };
+}
 
 export default function KnowledgeBasePage() {
   const { setCurrentDocument } = useDocument();
-  const [vaults, setVaults] = useState<KBVault[]>([]);
-  const [currentVault, setCurrentVault] = useState<KBVault | null>(null);
+  const [vaults, setVaults] = useState<KBVault[]>([DEFAULT_VAULT]);
+  const [currentVault, setCurrentVault] = useState<KBVault | null>(DEFAULT_VAULT);
   const [documents, setDocuments] = useState<KBDocument[]>([]);
   const [currentDoc, setCurrentDoc] = useState<KBDocument | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 当文档切换时，更新全局文档上下文
   useEffect(() => {
     setCurrentDocument(currentDoc);
   }, [currentDoc, setCurrentDocument]);
 
-  // 初始化数据
+  const loadDocuments = useCallback(async (vaultId: string) => {
+    const data = await requestJson<KbDocsResponse>(`/api/kb/docs?vaultId=${encodeURIComponent(vaultId)}`);
+    return data.docs.map((doc) => toClientDoc(doc, vaultId));
+  }, []);
+
   useEffect(() => {
     const initializeData = async () => {
       try {
-        const storage = getKBStorage();
-        await storage.initialize();
-
-        // 加载知识库列表
-        const allVaults = await storage.getAllVaults();
-
-        // 如果没有知识库，创建默认知识库
-        if (allVaults.length === 0) {
-          const defaultVault = await storage.createVault("我的知识库", "/default");
-          setVaults([defaultVault]);
-          setCurrentVault(defaultVault);
-          storage.setCurrentVault(defaultVault.id);
-        } else {
-          setVaults(allVaults);
-
-          // 获取当前知识库
-          const currentVaultId = storage.getCurrentVaultId();
-          const vault = allVaults.find(v => v.id === currentVaultId) || allVaults[0];
-          setCurrentVault(vault);
-
-          // 加载文档列表
-          const docs = await storage.getDocumentsByVault(vault.id);
-          setDocuments(docs);
-        }
+        const docs = await loadDocuments(DEFAULT_VAULT.id);
+        setDocuments(docs);
       } catch (error) {
         console.error("Failed to initialize knowledge base:", error);
       } finally {
@@ -54,52 +76,58 @@ export default function KnowledgeBasePage() {
     };
 
     initializeData();
-  }, []);
+  }, [loadDocuments]);
 
-  // 切换知识库
   const handleVaultChange = async (vaultId: string) => {
-    const vault = vaults.find(v => v.id === vaultId);
-    if (!vault) return;
-
+    const vault = vaults.find((v) => v.id === vaultId) || DEFAULT_VAULT;
     setCurrentVault(vault);
-    const storage = getKBStorage();
-    storage.setCurrentVault(vaultId);
 
-    // 加载该知识库的文档
-    const docs = await storage.getDocumentsByVault(vaultId);
+    const docs = await loadDocuments(vault.id);
     setDocuments(docs);
     setCurrentDoc(null);
   };
 
-  // 创建新文档
   const handleCreateDocument = async (title: string) => {
     if (!currentVault) return;
 
-    const storage = getKBStorage();
-    const newDoc = await storage.createDocument(currentVault.id, title);
-    setDocuments([...documents, newDoc]);
+    const data = await requestJson<KbDocResponse>("/api/kb/docs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title, vaultId: currentVault.id }),
+    });
+
+    const newDoc = toClientDoc(data.doc, currentVault.id);
+    setDocuments((prev) => [newDoc, ...prev]);
     setCurrentDoc(newDoc);
   };
 
-  // 更新文档
   const handleUpdateDocument = async (doc: KBDocument) => {
-    const storage = getKBStorage();
-    await storage.updateDocument(doc);
-    setDocuments(documents.map(d => d.id === doc.id ? doc : d));
-    setCurrentDoc(doc);
+    const data = await requestJson<KbDocResponse>(`/api/kb/doc/${encodeURIComponent(doc.id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: doc.title,
+        content: doc.content,
+        tags: doc.tags,
+      }),
+    });
+
+    const updatedDoc = toClientDoc(data.doc, doc.vaultId);
+    setDocuments((prev) => prev.map((item) => (item.id === updatedDoc.id ? updatedDoc : item)));
+    setCurrentDoc(updatedDoc);
   };
 
-  // 删除文档
   const handleDeleteDocument = async (docId: string) => {
-    const storage = getKBStorage();
-    await storage.deleteDocument(docId);
-    setDocuments(documents.filter(d => d.id !== docId));
+    await requestJson(`/api/kb/doc/${encodeURIComponent(docId)}`, {
+      method: "DELETE",
+    });
+
+    setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
     if (currentDoc?.id === docId) {
       setCurrentDoc(null);
     }
   };
 
-  // 选择文档
   const handleSelectDocument = (doc: KBDocument) => {
     setCurrentDoc(doc);
   };

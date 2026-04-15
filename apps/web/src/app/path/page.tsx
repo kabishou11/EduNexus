@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -63,7 +63,7 @@ import {
 } from "@/lib/client/path-storage";
 import { goalStorage } from "@/lib/goals/goal-storage";
 
-export default function PathPage() {
+function PathPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   // 状态管理
@@ -1217,5 +1217,13 @@ export default function PathPage() {
         onUpdate={handleUpdateMilestones}
       />
     </div>
+  );
+}
+
+export default function PathPage() {
+  return (
+    <Suspense>
+      <PathPageContent />
+    </Suspense>
   );
 }

@@ -8,7 +8,6 @@ import { KBSidebar } from "./kb-sidebar";
 import { KBEditor } from "./kb-editor";
 import { KBRightPanel } from "./kb-right-panel";
 import { useKBShortcuts } from "@/lib/hooks/use-kb-shortcuts";
-import { useRouter } from "next/navigation";
 import type { KBDocument, KBVault } from "@/lib/client/kb-storage";
 
 interface KBLayoutProps {
@@ -34,27 +33,24 @@ export function KBLayout({
   onDeleteDocument,
   onSelectDocument,
 }: KBLayoutProps) {
-  const router = useRouter();
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(true);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
 
-  // 快捷键支持
   useKBShortcuts([
     {
       key: "b",
       ctrl: true,
-      callback: () => setLeftSidebarOpen(prev => !prev),
+      callback: () => setLeftSidebarOpen((prev) => !prev),
     },
     {
       key: "\\",
       ctrl: true,
-      callback: () => setRightPanelOpen(prev => !prev),
+      callback: () => setRightPanelOpen((prev) => !prev),
     },
   ]);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* 左侧边栏 */}
       <AnimatePresence mode="wait">
         {leftSidebarOpen && (
           <motion.div
@@ -78,7 +74,6 @@ export function KBLayout({
         )}
       </AnimatePresence>
 
-      {/* 左侧边栏切换按钮 */}
       {!leftSidebarOpen && (
         <div className="absolute top-4 left-4 z-10">
           <Button
@@ -92,9 +87,7 @@ export function KBLayout({
         </div>
       )}
 
-      {/* 中间编辑区 */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* 顶部工具栏 */}
         <div className="h-12 border-b flex items-center justify-between px-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="flex items-center gap-2">
             {leftSidebarOpen && (
@@ -126,7 +119,6 @@ export function KBLayout({
           </div>
         </div>
 
-        {/* 编辑器 */}
         <div className="flex-1 overflow-hidden">
           <KBEditor
             document={currentDoc}
@@ -135,7 +127,6 @@ export function KBLayout({
         </div>
       </div>
 
-      {/* 右侧面板 */}
       <AnimatePresence mode="wait">
         {rightPanelOpen && (
           <motion.div
@@ -147,14 +138,11 @@ export function KBLayout({
           >
             <KBRightPanel
               document={currentDoc}
-              allDocuments={documents}
-              onDocumentClick={onSelectDocument}
             />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 右侧面板切换按钮 */}
       {!rightPanelOpen && (
         <div className="absolute top-4 right-4 z-10">
           <Button

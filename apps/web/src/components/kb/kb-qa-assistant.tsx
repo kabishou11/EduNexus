@@ -20,7 +20,6 @@ import {
   Trash2,
 } from "lucide-react";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
-import type { KBDocument } from "@/lib/client/kb-storage";
 
 interface Message {
   id: string;
@@ -30,10 +29,10 @@ interface Message {
 }
 
 interface KBQAAssistantProps {
-  documents: KBDocument[];
+  documentCount: number;
 }
 
-export function KBQAAssistant({ documents }: KBQAAssistantProps) {
+export function KBQAAssistant({ documentCount }: KBQAAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
@@ -54,15 +53,16 @@ export function KBQAAssistant({ documents }: KBQAAssistantProps) {
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
 
-    if (documents.length === 0) {
+    if (documentCount === 0) {
       alert("知识库中没有文档，请先添加文档");
       return;
     }
 
+    const question = inputValue;
     const userMessage: Message = {
       id: Date.now().toString(),
       role: "user",
-      content: inputValue,
+      content: question,
       timestamp: new Date(),
     };
 
@@ -75,13 +75,7 @@ export function KBQAAssistant({ documents }: KBQAAssistantProps) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          question: inputValue,
-          documents: documents.map((doc) => ({
-            id: doc.id,
-            title: doc.title,
-            content: doc.content,
-            tags: doc.tags,
-          })),
+          question,
           history: messages.slice(-4).map((m) => ({
             role: m.role,
             content: m.content,
@@ -95,12 +89,12 @@ export function KBQAAssistant({ documents }: KBQAAssistantProps) {
         const assistantMessage: Message = {
           id: (Date.now() + 1).toString(),
           role: "assistant",
-          content: data.answer,
+          content: data.data.answer,
           timestamp: new Date(),
         };
         setMessages((prev) => [...prev, assistantMessage]);
       } else {
-        throw new Error(data.error || "Unknown error");
+        throw new Error(data.error?.message || "Unknown error");
       }
     } catch (error) {
       console.error("问答失败:", error);
@@ -146,7 +140,7 @@ export function KBQAAssistant({ documents }: KBQAAssistantProps) {
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
               <BookOpen className="w-3 h-3 mr-1" />
-              {documents.length} 个文档
+              {documentCount} 个文档
             </Badge>
             {messages.length > 1 && (
               <Button
@@ -163,7 +157,6 @@ export function KBQAAssistant({ documents }: KBQAAssistantProps) {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-0">
-        {/* 消息列表 */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-4">
             {messages.map((message) => (
@@ -230,7 +223,6 @@ export function KBQAAssistant({ documents }: KBQAAssistantProps) {
           </div>
         </ScrollArea>
 
-        {/* 输入区域 */}
         <div className="flex-shrink-0 p-4 border-t border-gray-200">
           <div className="flex gap-2">
             <Textarea
@@ -239,11 +231,11 @@ export function KBQAAssistant({ documents }: KBQAAssistantProps) {
               onKeyDown={handleKeyDown}
               placeholder="基于知识库提问..."
               className="min-h-[60px] max-h-[120px] resize-none text-sm"
-              disabled={isLoading || documents.length === 0}
+              disabled={isLoading || documentCount === 0}
             />
             <Button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isLoading || documents.length === 0}
+              disabled={!inputValue.trim() || isLoading || documentCount === 0}
               className="bg-gradient-to-br from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             >
               {isLoading ? (

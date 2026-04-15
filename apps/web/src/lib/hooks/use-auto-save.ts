@@ -77,22 +77,17 @@ export function useAutoSave<T>(
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
-  // 使用 ref 存储最新的数据，避免闭包问题
   const dataRef = useRef<T>(data);
   const isSavingRef = useRef(false);
   const savedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hasInitializedRef = useRef(false);
 
-  // 更新数据引用
   useEffect(() => {
     dataRef.current = data;
   }, [data]);
 
-  // 防抖数据
   const debouncedData = useDebounce(data, delay);
 
-  /**
-   * 执行保存操作
-   */
   const performSave = useCallback(async () => {
     if (!enabled || isSavingRef.current) {
       return;
@@ -103,20 +98,16 @@ export function useAutoSave<T>(
       setStatus('saving');
       setError(null);
 
-      // 执行保存
       await onSave(dataRef.current);
 
-      // 保存成功
       setStatus('saved');
       setLastSaved(new Date());
       onSuccess?.();
 
-      // 清除之前的定时器
       if (savedTimeoutRef.current) {
         clearTimeout(savedTimeoutRef.current);
       }
 
-      // 2秒后重置为 idle
       savedTimeoutRef.current = setTimeout(() => {
         setStatus('idle');
       }, 2000);
@@ -130,16 +121,10 @@ export function useAutoSave<T>(
     }
   }, [enabled, onSave, onSuccess, onError]);
 
-  /**
-   * 手动触发保存
-   */
   const triggerSave = useCallback(async () => {
     await performSave();
   }, [performSave]);
 
-  /**
-   * 重置状态
-   */
   const reset = useCallback(() => {
     setStatus('idle');
     setError(null);
@@ -149,14 +134,22 @@ export function useAutoSave<T>(
     }
   }, []);
 
-  // 监听防抖数据变化，触发自动保存
   useEffect(() => {
-    if (enabled && debouncedData !== undefined) {
-      performSave();
+    if (!enabled) {
+      hasInitializedRef.current = true;
+      return;
+    }
+
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      return;
+    }
+
+    if (debouncedData !== undefined) {
+      void performSave();
     }
   }, [debouncedData, enabled, performSave]);
 
-  // 清理函数
   useEffect(() => {
     return () => {
       if (savedTimeoutRef.current) {

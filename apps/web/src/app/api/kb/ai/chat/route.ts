@@ -1,6 +1,6 @@
 import { fail, ok } from "@/lib/server/response";
 import { kbAIChatSchema } from "@/lib/server/schema";
-import { AI_CONFIG } from "@/lib/ai-config";
+import { AI_CONFIG, isAIServiceAvailable } from "@/lib/ai-config";
 import { getModelscopeClient } from "@/lib/server/modelscope";
 
 export const runtime = "nodejs";
@@ -64,11 +64,25 @@ export async function POST(request: Request) {
   }
 }
 
+function getFallbackResponse(messages: Array<{ role: "system" | "user" | "assistant"; content: string }>) {
+  const userInput = [...messages].reverse().find((message) => message.role === "user")?.content || "";
+  return generateMockResponse(userInput);
+}
+
 // AI 响应生成函数
 async function generateAIResponse(
   messages: Array<{ role: "system" | "user" | "assistant"; content: string }>
 ): Promise<string> {
   const provider = AI_CONFIG.provider;
+  const fallbackResponse = getFallbackResponse(messages);
+
+  if (provider === "mock") {
+    return fallbackResponse;
+  }
+
+  if (provider !== "local" && !isAIServiceAvailable()) {
+    return fallbackResponse;
+  }
 
   try {
     // 使用 ModelScope
@@ -83,7 +97,7 @@ async function generateAIResponse(
         max_tokens: AI_CONFIG.modelscope.maxTokens,
       });
 
-      return completion.choices[0]?.message?.content || "抱歉，我无法生成回复。";
+      return completion.choices?.[0]?.message?.content || fallbackResponse;
     }
 
     // 使用 OpenAI
@@ -107,7 +121,7 @@ async function generateAIResponse(
       }
 
       const data = await response.json();
-      return data.choices[0].message.content;
+      return data.choices?.[0]?.message?.content || fallbackResponse;
     }
 
     // 使用 Anthropic
@@ -136,7 +150,7 @@ async function generateAIResponse(
       }
 
       const data = await response.json();
-      return data.content[0].text;
+      return data.content?.[0]?.text || fallbackResponse;
     }
 
     // 使用本地模型 (Ollama)
@@ -158,15 +172,12 @@ async function generateAIResponse(
       }
 
       const data = await response.json();
-      return data.message.content;
+      return data.message?.content || fallbackResponse;
     }
 
-    // 降级到模拟模式
-    return generateMockResponse(messages[messages.length - 1]?.content || "");
-  } catch (error) {
-    console.error("AI generation error:", error);
-    // 如果真实 API 失败，降级到模拟模式
-    return generateMockResponse(messages[messages.length - 1]?.content || "");
+    return fallbackResponse;
+  } catch {
+    return fallbackResponse;
   }
 }
 
