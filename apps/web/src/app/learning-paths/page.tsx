@@ -42,6 +42,7 @@ export default function LearningPathsPage() {
   const handleDeletePath = async (id: string) => {
     if (!confirm('确定要删除这个学习路径吗？')) return;
     try {
+      goalStorage.unlinkPath(id);
       await pathStorage.deletePath(id);
       setPaths(paths.filter(p => p.id !== id));
       toast.success('路径已删除');
