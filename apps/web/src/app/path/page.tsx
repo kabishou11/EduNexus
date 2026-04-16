@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback, useEffect } from "react";
+import { Suspense, useState, useCallback, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -44,6 +44,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Timestamp } from "@/components/ui/timestamp";
 import { cn } from "@/lib/utils";
 import { GrowthMapVisualization } from "@/components/path/growth-map-visualization";
@@ -67,6 +75,7 @@ import { goalStorage } from "@/lib/goals/goal-storage";
 function PathPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   // 状态管理
   const [paths, setPaths] = useState<LearningPath[]>([]);
   const [selectedPath, setSelectedPath] = useState<LearningPath | null>(null);
@@ -81,6 +90,8 @@ function PathPageContent() {
   const [taskCreateOpen, setTaskCreateOpen] = useState(false);
   const [taskEditOpen, setTaskEditOpen] = useState(false);
   const [milestoneOpen, setMilestoneOpen] = useState(false);
+  const [pathDeleteOpen, setPathDeleteOpen] = useState(false);
+  const [taskDeleteOpen, setTaskDeleteOpen] = useState(false);
 
   const applyPathSelection = useCallback((path: LearningPath | null, preferredTaskId?: string | null) => {
     setSelectedPath(path);
@@ -249,14 +260,11 @@ function PathPageContent() {
   const handleDeletePath = useCallback(async () => {
     if (!selectedPath) return;
 
-    if (!confirm(`确定要删除"${selectedPath.title}"吗？此操作无法撤销。`)) {
-      return;
-    }
-
     try {
       await pathStorage.deletePath(selectedPath.id);
       const newPaths = removePath(selectedPath.id);
       applyPathSelection(newPaths[0] || null);
+      setPathDeleteOpen(false);
       toast.success("成功删除路径");
     } catch (error) {
       console.error("Failed to delete path:", error);
@@ -299,28 +307,28 @@ function PathPageContent() {
     }
   }, [selectedPath]);
 
-  // 导入路径
-  const handleImportPath = useCallback(async () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+  const handleImportFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      try {
-        const text = await file.text();
-        const imported = await pathStorage.importPath(text);
-        appendPath(imported);
-        applyPathSelection(imported);
-        toast.success("成功导入路径");
-      } catch (error) {
-        console.error("Failed to import path:", error);
-        toast.error("导入路径失败，请检查文件格式");
-      }
-    };
-    input.click();
-  }, [paths]);
+    try {
+      const text = await file.text();
+      const imported = await pathStorage.importPath(text);
+      appendPath(imported);
+      applyPathSelection(imported);
+      toast.success("成功导入路径");
+    } catch (error) {
+      console.error("Failed to import path:", error);
+      toast.error("导入路径失败，请检查文件格式");
+    } finally {
+      e.target.value = "";
+    }
+  }, [appendPath, applyPathSelection]);
+
+  // 导入路径
+  const handleImportPath = useCallback(() => {
+    importInputRef.current?.click();
+  }, []);
 
   // 创建任务
   const handleCreateTask = useCallback(async (data: Omit<Task, 'id' | 'createdAt' | 'status' | 'progress'>) => {
@@ -395,10 +403,6 @@ function PathPageContent() {
   const handleDeleteTask = useCallback(async () => {
     if (!selectedPath || !selectedTask) return;
 
-    if (!confirm(`确定要删除任务"${selectedTask.title}"吗？`)) {
-      return;
-    }
-
     try {
       const updatedTasks = selectedPath.tasks.filter(t => t.id !== selectedTask.id);
       const updated = await pathStorage.updatePath(selectedPath.id, {
@@ -407,6 +411,7 @@ function PathPageContent() {
 
       replacePath(updated);
       applyPathSelection(updated);
+      setTaskDeleteOpen(false);
       toast.success("成功删除任务");
     } catch (error) {
       console.error("Failed to delete task:", error);
@@ -758,7 +763,7 @@ function PathPageContent() {
                       导出路径
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleDeletePath} className="text-red-600">
+                    <DropdownMenuItem onClick={() => setPathDeleteOpen(true)} className="text-red-600">
                       <Trash2 className="h-4 w-4 mr-2" />
                       删除路径
                     </DropdownMenuItem>
@@ -1052,7 +1057,7 @@ function PathPageContent() {
                   <Button
                     variant="ghost"
                     className="w-full hover:bg-red-50 text-red-600"
-                    onClick={handleDeleteTask}
+                    onClick={() => setTaskDeleteOpen(true)}
                   >
                     删除任务
                   </Button>
@@ -1062,6 +1067,14 @@ function PathPageContent() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleImportFileChange}
+      />
 
       {/* 对话框 */}
       <PathCreateDialog
@@ -1099,6 +1112,44 @@ function PathPageContent() {
         tasks={selectedPath?.tasks || []}
         onUpdate={handleUpdateMilestones}
       />
+
+      <Dialog open={pathDeleteOpen} onOpenChange={setPathDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除路径</DialogTitle>
+            <DialogDescription>
+              {selectedPath ? `确定要删除“${selectedPath.title}”吗？此操作无法撤销。` : "此操作无法撤销。"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPathDeleteOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeletePath}>
+              删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={taskDeleteOpen} onOpenChange={setTaskDeleteOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除任务</DialogTitle>
+            <DialogDescription>
+              {selectedTask ? `确定要删除任务“${selectedTask.title}”吗？` : "此操作无法撤销。"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setTaskDeleteOpen(false)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteTask}>
+              删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
