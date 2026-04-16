@@ -9,8 +9,12 @@ function LegacyPathEditorRedirect() {
 
   useEffect(() => {
     const id = searchParams.get('id');
+    const goalId = searchParams.get('goalId');
     const target = id ? `/path/new-editor?id=${encodeURIComponent(id)}` : '/path/new-editor';
-    router.replace(target);
+    const nextTarget = goalId
+      ? `${target}${id ? '&' : '?'}goalId=${encodeURIComponent(goalId)}`
+      : target;
+    router.replace(nextTarget);
   }, [router, searchParams]);
 
   return null;

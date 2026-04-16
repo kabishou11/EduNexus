@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Plus, X, Edit } from "lucide-react";
+import { Plus, X, Edit, Target } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { goalStorage, type Goal } from "@/lib/goals/goal-storage";
 import type { LearningPath } from "@/lib/client/path-storage";
 
 type PathEditDialogProps = {
@@ -26,6 +28,7 @@ type PathEditDialogProps = {
     title: string;
     description: string;
     tags: string[];
+    goalId?: string;
   }) => void;
 };
 
@@ -39,12 +42,21 @@ export function PathEditDialog({
   const [description, setDescription] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [goalId, setGoalId] = useState<string | undefined>(undefined);
+  const [goals, setGoals] = useState<Goal[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      setGoals(goalStorage.getGoals().filter((goal) => goal.status === "active"));
+    }
+  }, [open]);
 
   useEffect(() => {
     if (path) {
       setTitle(path.title);
       setDescription(path.description);
       setTags(path.tags);
+      setGoalId(path.goalId);
     }
   }, [path]);
 
@@ -56,6 +68,7 @@ export function PathEditDialog({
       title: title.trim(),
       description: description.trim(),
       tags,
+      goalId,
     });
   };
 
@@ -105,6 +118,26 @@ export function PathEditDialog({
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="goal">关联目标（可选）</Label>
+            <Select value={goalId} onValueChange={(value) => setGoalId(value === "none" ? undefined : value)}>
+              <SelectTrigger>
+                <SelectValue placeholder="选择一个目标..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">不关联目标</SelectItem>
+                {goals.map((goal) => (
+                  <SelectItem key={goal.id} value={goal.id}>
+                    <div className="flex items-center gap-2">
+                      <Target className="w-3 h-3" />
+                      {goal.title}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
