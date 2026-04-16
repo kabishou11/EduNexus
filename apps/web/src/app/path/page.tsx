@@ -128,7 +128,6 @@ function PathPageContent() {
     // 监听页面可见性变化
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[PathPage] 页面重新可见，重新加载数据');
         loadPaths();
       }
     };
@@ -144,9 +143,7 @@ function PathPageContent() {
   const loadPaths = async () => {
     try {
       setLoading(true);
-      console.log('[PathPage] 加载路径...');
       const loadedPaths = await pathStorage.getAllPaths();
-      console.log('[PathPage] 加载成功:', loadedPaths.length, '个路径');
       const pathCreatedByEditor = searchParams.get("selected");
       let editorSelectionApplied = false;
       if (pathCreatedByEditor) {
@@ -159,7 +156,6 @@ function PathPageContent() {
       }
 
       if (loadedPaths.length === 0) {
-        console.log('[PathPage] 没有路径，创建示例数据...');
         const initialized = await initializeSampleData();
         if (initialized) {
           toast.success("已为你创建示例学习路径");
@@ -203,7 +199,6 @@ function PathPageContent() {
     goalId?: string;
   }) => {
     try {
-      console.log('[PathPage] 创建路径:', data);
       const newPath = await pathStorage.createPath({
         title: data.title,
         description: data.description,
@@ -214,8 +209,6 @@ function PathPageContent() {
         tasks: [],
         milestones: [],
       });
-
-      console.log('[PathPage] 路径创建成功:', newPath.id);
 
       // 如果关联了目标，更新目标的 linkedPathIds
       if (data.goalId) {
