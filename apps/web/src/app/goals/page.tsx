@@ -131,6 +131,40 @@ export default function GoalsPage() {
     ? Math.round(goals.reduce((sum, g) => sum + g.progress, 0) / goals.length)
     : 0;
 
+  const renderDeleteDialog = (
+    open: boolean,
+    setOpen: (open: boolean) => void,
+    title: string,
+    description: string,
+    onConfirm: () => void,
+    onReset: () => void
+  ) => (
+    <Dialog open={open} onOpenChange={(nextOpen) => {
+      setOpen(nextOpen);
+      if (!nextOpen) {
+        onReset();
+      }
+    }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => {
+            setOpen(false);
+            onReset();
+          }}>
+            取消
+          </Button>
+          <Button variant="destructive" onClick={onConfirm}>
+            删除
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50/30 via-amber-50/20 to-rose-50/30">
       <div className="page-container">
@@ -301,58 +335,22 @@ export default function GoalsPage() {
             ))}
           </div>
         </TabsContent>
-      <Dialog open={showGoalDeleteDialog} onOpenChange={(open) => {
-        setShowGoalDeleteDialog(open);
-        if (!open) {
-          setGoalToDelete(null);
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除目标</DialogTitle>
-            <DialogDescription>
-              {goalToDelete ? `确定要删除“${goalToDelete.title}”吗？` : '此操作无法撤销。'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {
-              setShowGoalDeleteDialog(false);
-              setGoalToDelete(null);
-            }}>
-              取消
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteGoal}>
-              删除
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-      <Dialog open={showHabitDeleteDialog} onOpenChange={(open) => {
-        setShowHabitDeleteDialog(open);
-        if (!open) {
-          setHabitToDelete(null);
-        }
-      }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>删除习惯</DialogTitle>
-            <DialogDescription>
-              {habitToDelete ? `确定要删除“${habitToDelete.name}”吗？` : '此操作无法撤销。'}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => {
-              setShowHabitDeleteDialog(false);
-              setHabitToDelete(null);
-            }}>
-              取消
-            </Button>
-            <Button variant="destructive" onClick={handleDeleteHabit}>
-              删除
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {renderDeleteDialog(
+        showGoalDeleteDialog,
+        setShowGoalDeleteDialog,
+        '删除目标',
+        goalToDelete ? `确定要删除“${goalToDelete.title}”吗？` : '此操作无法撤销。',
+        handleDeleteGoal,
+        () => setGoalToDelete(null)
+      )}
+      {renderDeleteDialog(
+        showHabitDeleteDialog,
+        setShowHabitDeleteDialog,
+        '删除习惯',
+        habitToDelete ? `确定要删除“${habitToDelete.name}”吗？` : '此操作无法撤销。',
+        handleDeleteHabit,
+        () => setHabitToDelete(null)
+      )}
       </Tabs>
       </div>
     </div>
