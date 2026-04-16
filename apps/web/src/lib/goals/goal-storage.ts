@@ -65,6 +65,43 @@ export const goalStorage = {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
   },
 
+  linkPath(goalId: string, pathId: string): void {
+    const goals = this.getGoals();
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) {
+      return;
+    }
+
+    const linkedPathIds = Array.isArray(goal.linkedPathIds) ? goal.linkedPathIds : [];
+    if (linkedPathIds.includes(pathId)) {
+      return;
+    }
+
+    goal.linkedPathIds = [...linkedPathIds, pathId];
+    goal.updatedAt = new Date().toISOString();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+  },
+
+  unlinkPath(pathId: string): void {
+    const goals = this.getGoals();
+    let changed = false;
+
+    for (const goal of goals) {
+      const linkedPathIds = Array.isArray(goal.linkedPathIds) ? goal.linkedPathIds : [];
+      if (!linkedPathIds.includes(pathId)) {
+        continue;
+      }
+
+      goal.linkedPathIds = linkedPathIds.filter((id) => id !== pathId);
+      goal.updatedAt = new Date().toISOString();
+      changed = true;
+    }
+
+    if (changed) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(goals));
+    }
+  },
+
   updateProgress(id: string, progress: number): void {
     const goals = this.getGoals();
     const goal = goals.find(g => g.id === id);

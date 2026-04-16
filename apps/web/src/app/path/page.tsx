@@ -212,11 +212,7 @@ function PathPageContent() {
 
       // 如果关联了目标，更新目标的 linkedPathIds
       if (data.goalId) {
-        const goal = goalStorage.getGoals().find(g => g.id === data.goalId);
-        if (goal) {
-          goal.linkedPathIds = [...(goal.linkedPathIds || []), newPath.id];
-          goalStorage.saveGoal(goal);
-        }
+        goalStorage.linkPath(data.goalId, newPath.id);
       }
 
       appendPath(newPath);
@@ -254,6 +250,7 @@ function PathPageContent() {
     if (!selectedPath) return;
 
     try {
+      goalStorage.unlinkPath(selectedPath.id);
       await pathStorage.deletePath(selectedPath.id);
       const newPaths = removePath(selectedPath.id);
       applyPathSelection(newPaths[0] || null);
