@@ -1,4 +1,5 @@
 import { getGraphView } from "./graph-service";
+import { findSyncedPathTask } from "./path-sync-service";
 import { loadDb } from "./store";
 
 type WorkspaceGraphContext = {
@@ -84,12 +85,10 @@ export async function buildWorkspaceGraphContext(input: {
   }
 
   if (!taskNode && normalizedTaskId) {
-    const syncedPathTask = db.syncedPaths
-      .flatMap((path) => path.tasks)
-      .find((task) => task.taskId === normalizedTaskId);
+    const syncedPathTaskMatch = await findSyncedPathTask(normalizedTaskId);
 
-    if (syncedPathTask?.title) {
-      const loweredMatchedTitle = syncedPathTask.title.trim().toLowerCase();
+    if (syncedPathTaskMatch?.task.title) {
+      const loweredMatchedTitle = syncedPathTaskMatch.task.title.trim().toLowerCase();
       taskNode =
         graph.nodes.find((node) => node.label.toLowerCase() === loweredMatchedTitle) ||
         graph.nodes.find(

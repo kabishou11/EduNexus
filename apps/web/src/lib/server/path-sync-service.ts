@@ -1,5 +1,7 @@
 import { loadDb, saveDb, type SyncedPathRecord, type SyncedPathTaskRecord } from "./store";
 
+export type { SyncedPathRecord, SyncedPathTaskRecord };
+
 export type UpsertSyncedPathInput = {
   pathId: string;
   title: string;
@@ -18,6 +20,11 @@ export type UpsertSyncedPathInput = {
   }>;
 };
 
+export type SyncedPathTaskMatch = {
+  path: SyncedPathRecord;
+  task: SyncedPathTaskRecord;
+};
+
 function normalizeTask(task: NonNullable<UpsertSyncedPathInput["tasks"]>[number]): SyncedPathTaskRecord {
   return {
     taskId: task.taskId,
@@ -28,6 +35,33 @@ function normalizeTask(task: NonNullable<UpsertSyncedPathInput["tasks"]>[number]
     progress: typeof task.progress === "number" ? Math.max(0, Math.min(100, Math.round(task.progress))) : undefined,
     dependencies: Array.isArray(task.dependencies) ? task.dependencies.filter(Boolean) : [],
   };
+}
+
+export async function listSyncedPaths() {
+  const db = await loadDb();
+  return db.syncedPaths;
+}
+
+export async function getSyncedPath(pathId: string) {
+  const db = await loadDb();
+  return db.syncedPaths.find((item) => item.pathId === pathId) ?? null;
+}
+
+export async function findSyncedPathTask(taskId: string): Promise<SyncedPathTaskMatch | null> {
+  const normalizedTaskId = taskId.trim();
+  if (!normalizedTaskId) {
+    return null;
+  }
+
+  const db = await loadDb();
+  for (const path of db.syncedPaths) {
+    const task = path.tasks.find((item) => item.taskId === normalizedTaskId);
+    if (task) {
+      return { path, task };
+    }
+  }
+
+  return null;
 }
 
 export async function upsertSyncedPath(input: UpsertSyncedPathInput) {

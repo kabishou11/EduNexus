@@ -18,17 +18,106 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, Clock, Award, Download } from 'lucide-react';
 import { nodeTypes } from './node-types';
 import { LearningPath, PathProgress, PathNodeData } from '@/lib/path/path-types';
-import {
-  getProgress,
-  updateNodeCompletion,
-  saveProgress,
-} from '@/lib/path/path-storage';
+import { pathStorage, type LearningPath as ClientLearningPath, type TaskStatus } from '@/lib/client/path-storage';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePathSync } from '@/lib/sync';
 
 interface PathExecutorProps {
   path: LearningPath;
   onComplete?: () => void;
+}
+
+const SKIPPED_NODE_TYPES = new Set<PathNodeData['type']>(['start', 'end']);
+
+function toClientPath(path: LearningPath): ClientLearningPath {
+  const activeNodes = path.nodes.filter((node) => !SKIPPED_NODE_TYPES.has(node.data.type));
+  const activeNodeIds = new Set(activeNodes.map((node) => node.id));
+  const createdAt = new Date(path.createdAt);
+  const updatedAt = new Date(path.updatedAt);
+
+  const tasks = activeNodes.map((node, index) => {
+    const taskStatus: TaskStatus =
+      node.data.status === 'completed'
+        ? 'completed'
+        : node.data.status === 'in_progress'
+          ? 'in_progress'
+          : 'not_started';
+    const estimatedMinutes = Number.isFinite(node.data.estimatedTime)
+      ? Math.max(0, Math.round(node.data.estimatedTime || 0))
+      : 0;
+
+    return {
+      id: node.id,
+      title: node.data.label?.trim() || `学习节点 ${index + 1}`,
+      description: node.data.description?.trim() || '',
+      estimatedTime: `${estimatedMinutes || 30}分钟`,
+      progress: taskStatus === 'completed' ? 100 : taskStatus === 'in_progress' ? 50 : 0,
+      status: taskStatus,
+      dependencies: path.edges
+        .filter((edge) => edge.target === node.id && activeNodeIds.has(String(edge.source)))
+        .map((edge) => String(edge.source)),
+      resources: node.data.resourceUrl
+        ? [
+            {
+              id: node.data.resourceId || `res_${node.id}`,
+              title: `${node.data.label || '学习资源'} 资料`,
+              type: node.data.type === 'video' ? ('video' as const) : ('document' as const),
+              url: node.data.resourceUrl,
+            },
+          ]
+        : [],
+      notes: '',
+      createdAt: new Date(createdAt.getTime() + index),
+      startedAt: taskStatus === 'in_progress' || taskStatus === 'completed' ? updatedAt : undefined,
+      completedAt: taskStatus === 'completed' ? new Date(node.data.completedAt || path.updatedAt) : undefined,
+      actualTime: taskStatus === 'completed' ? estimatedMinutes || undefined : undefined,
+    };
+  });
+
+  const completedCount = tasks.filter((task) => task.status === 'completed').length;
+  const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+
+  return {
+    id: path.id,
+    title: path.title,
+    description: path.description,
+    status: progress === 100 ? 'completed' : progress > 0 ? 'in_progress' : 'not_started',
+    progress,
+    tags: Array.from(new Set([path.category, path.difficulty, ...path.tags].filter(Boolean))),
+    createdAt,
+    updatedAt,
+    tasks,
+    milestones: [],
+  };
+}
+
+function buildLegacyProgress(path: ClientLearningPath): PathProgress {
+  const completedNodes = path.tasks.filter((task) => task.status === 'completed').map((task) => task.id);
+  const currentNode = path.tasks.find((task) => task.status === 'in_progress')?.id;
+  const totalTasks = path.tasks.length;
+  const progress = totalTasks > 0 ? Math.round((completedNodes.length / totalTasks) * 100) : 0;
+  const startedAt =
+    path.tasks
+      .map((task) => task.startedAt?.toISOString())
+      .find(Boolean) || path.createdAt.toISOString();
+  const completedAt = progress === 100 ? path.updatedAt.toISOString() : undefined;
+
+  return {
+    pathId: path.id,
+    userId: 'default-user',
+    completedNodes,
+    currentNode,
+    startedAt,
+    lastAccessedAt: path.updatedAt.toISOString(),
+    completedAt,
+    progress,
+  };
+}
+
+function parseEstimatedMinutes(value?: string): number {
+  const matched = value?.match(/\d+/);
+  const minutes = matched ? Number(matched[0]) : 0;
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : 0;
 }
 
 function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
@@ -38,33 +127,7 @@ function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [showCertificate, setShowCertificate] = useState(false);
 
-  // 监听路径变化，自动刷新进度
-  usePathSync(() => {
-    loadProgress();
-  });
-
-  useEffect(() => {
-    loadProgress();
-  }, [path.id]);
-
-  const loadProgress = async () => {
-    let prog = await getProgress(path.id);
-    if (!prog) {
-      prog = {
-        pathId: path.id,
-        userId: 'default-user',
-        completedNodes: [],
-        startedAt: new Date().toISOString(),
-        lastAccessedAt: new Date().toISOString(),
-        progress: 0,
-      };
-      await saveProgress(prog);
-    }
-    setProgress(prog);
-    updateNodesStatus(prog);
-  };
-
-  const updateNodesStatus = (prog: PathProgress) => {
+  const updateNodesStatus = useCallback((prog: PathProgress) => {
     setNodes((nds) =>
       nds.map((node) => ({
         ...node,
@@ -73,12 +136,36 @@ function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
           status: prog.completedNodes.includes(node.id)
             ? 'completed'
             : prog.currentNode === node.id
-            ? 'in_progress'
-            : 'not_started',
+              ? 'in_progress'
+              : 'not_started',
         },
       }))
     );
-  };
+  }, [setNodes]);
+
+  const loadProgress = useCallback(async () => {
+    const existingPath = await pathStorage.getPath(path.id);
+    if (!existingPath) {
+      const seeded = await pathStorage.savePath(toClientPath(path));
+      const seededProgress = buildLegacyProgress(seeded);
+      setProgress(seededProgress);
+      updateNodesStatus(seededProgress);
+      return;
+    }
+
+    const nextProgress = buildLegacyProgress(existingPath);
+    setProgress(nextProgress);
+    updateNodesStatus(nextProgress);
+  }, [path, updateNodesStatus]);
+
+  // 监听路径变化，自动刷新进度
+  usePathSync(() => {
+    void loadProgress();
+  });
+
+  useEffect(() => {
+    void loadProgress();
+  }, [loadProgress]);
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: any) => {
@@ -90,16 +177,35 @@ function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
   const handleCompleteNode = async () => {
     if (!selectedNode || !progress) return;
 
-    await updateNodeCompletion(path.id, selectedNode, true);
-    const updatedProgress = await getProgress(path.id);
-    if (updatedProgress) {
-      setProgress(updatedProgress);
-      updateNodesStatus(updatedProgress);
+    const existingPath = await pathStorage.getPath(path.id);
+    const basePath = existingPath || toClientPath(path);
+    const now = new Date();
+    const updated = await pathStorage.savePath({
+      ...basePath,
+      tasks: basePath.tasks.map((task) => {
+        if (task.id !== selectedNode) {
+          return task;
+        }
 
-      if (updatedProgress.progress === 100) {
-        setShowCertificate(true);
-        onComplete?.();
-      }
+        return {
+          ...task,
+          status: 'completed',
+          progress: 100,
+          startedAt: task.startedAt || now,
+          completedAt: now,
+          actualTime: task.actualTime || parseEstimatedMinutes(task.estimatedTime) || undefined,
+        };
+      }),
+      updatedAt: now,
+    });
+
+    const updatedProgress = buildLegacyProgress(updated);
+    setProgress(updatedProgress);
+    updateNodesStatus(updatedProgress);
+
+    if (updatedProgress.progress === 100) {
+      setShowCertificate(true);
+      onComplete?.();
     }
   };
 
@@ -110,7 +216,7 @@ function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
 
 路径名称: ${path.title}
 完成时间: ${new Date().toLocaleDateString('zh-CN')}
-总时长: ${Math.round(path.estimatedDuration / 60)} 小时
+总时长: ${Math.round(totalEstimatedMinutes / 60)} 小时
 
 恭喜你完成了这个学习路径！
     `.trim();
@@ -124,6 +230,11 @@ function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
     URL.revokeObjectURL(url);
   };
 
+  const learningNodes = nodes.filter((n) => !SKIPPED_NODE_TYPES.has(n.data.type));
+  const totalEstimatedMinutes = learningNodes.reduce(
+    (sum, node) => sum + (node.data.estimatedTime || 0),
+    0
+  );
   const selectedNodeData = nodes.find((n) => n.id === selectedNode);
   const isNodeCompleted = progress?.completedNodes.includes(selectedNode || '');
 
@@ -152,7 +263,7 @@ function PathExecutorInner({ path, onComplete }: PathExecutorProps) {
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="w-4 h-4" />
-                <span>总时长: {Math.round(path.estimatedDuration / 60)} 小时</span>
+                <span>总时长: {Math.round(totalEstimatedMinutes / 60)} 小时</span>
               </div>
               <div>
                 <div className="flex justify-between text-sm mb-1">

@@ -54,6 +54,12 @@ export type LearningPath = {
   milestones: Milestone[];
 };
 
+type SeedPathInput = Omit<LearningPath, 'id' | 'createdAt' | 'updatedAt'> & {
+  id?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
 // IndexedDB Schema
 interface PathDB extends DBSchema {
   paths: {
@@ -249,6 +255,46 @@ export class PathStorageManager {
   }
 
   /**
+   * 按给定 ID 保存路径（用于兼容旧路径模型桥接）
+   */
+  async savePath(path: LearningPath): Promise<LearningPath> {
+    try {
+      await this.initialize();
+
+      if (this.useLocalStorage) {
+        const existed = Boolean(localStoragePathManager.getPath(path.id));
+        const saved = localStoragePathManager.savePath(path);
+        emitPathSyncEvent(existed ? SyncEventType.PATH_UPDATED : SyncEventType.PATH_CREATED, saved);
+        emitPathProgressEvent(saved);
+        void syncPathToServerGraph(saved);
+        return saved;
+      }
+
+      const existing = await this.getPath(path.id);
+      const nextPath: LearningPath = {
+        ...path,
+        createdAt: path.createdAt,
+        updatedAt: path.updatedAt,
+      };
+
+      await this.db!.put('paths', this.serializePath(nextPath));
+      emitPathSyncEvent(existing ? SyncEventType.PATH_UPDATED : SyncEventType.PATH_CREATED, nextPath);
+      emitPathProgressEvent(nextPath);
+      void syncPathToServerGraph(nextPath);
+      return nextPath;
+    } catch (error) {
+      console.error('[PathStorage] savePath 失败，尝试 LocalStorage:', error);
+      this.useLocalStorage = true;
+      const existed = Boolean(localStoragePathManager.getPath(path.id));
+      const saved = localStoragePathManager.savePath(path);
+      emitPathSyncEvent(existed ? SyncEventType.PATH_UPDATED : SyncEventType.PATH_CREATED, saved);
+      emitPathProgressEvent(saved);
+      void syncPathToServerGraph(saved);
+      return saved;
+    }
+  }
+
+  /**
    * 创建新路径
    */
   async createPath(data: Omit<LearningPath, 'id' | 'createdAt' | 'updatedAt'>): Promise<LearningPath> {
@@ -297,6 +343,24 @@ export class PathStorageManager {
       void syncPathToServerGraph(created);
       return created;
     }
+  }
+
+  async seedPath(data: SeedPathInput): Promise<LearningPath> {
+    await this.initialize();
+
+    const path: LearningPath = {
+      ...data,
+      id: data.id ?? `path_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: data.createdAt ?? new Date(),
+      updatedAt: data.updatedAt ?? new Date(),
+    };
+
+    if (this.useLocalStorage) {
+      return localStoragePathManager.savePath(path);
+    }
+
+    await this.db!.put('paths', this.serializePath(path));
+    return path;
   }
 
   /**

@@ -61,6 +61,7 @@ import {
   type TaskStatus,
   type PathStatus,
 } from "@/lib/client/path-storage";
+import { initializeSampleData } from "@/lib/client/path-sample-data";
 import { goalStorage } from "@/lib/goals/goal-storage";
 
 function PathPageContent() {
@@ -100,35 +101,6 @@ function PathPageContent() {
     };
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!selectedPath) {
-      return;
-    }
-
-    void fetch('/api/path/sync', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        pathId: selectedPath.id,
-        title: selectedPath.title,
-        description: selectedPath.description,
-        status: selectedPath.status,
-        progress: selectedPath.progress,
-        tags: selectedPath.tags,
-        tasks: selectedPath.tasks.map((task) => ({
-          taskId: task.id,
-          title: task.title,
-          description: task.description,
-          estimatedTime: task.estimatedTime,
-          status: task.status,
-          progress: task.progress,
-          dependencies: task.dependencies,
-        })),
-      }),
-    }).catch((error) => {
-      console.warn('[PathPage] 服务端路径同步失败:', error);
-    });
-  }, [selectedPath]);
 
   const loadPaths = async () => {
     try {
@@ -151,8 +123,10 @@ function PathPageContent() {
       // 如果没有路径，创建示例数据
       if (loadedPaths.length === 0) {
         console.log('[PathPage] 没有路径，创建示例数据...');
-        await initializeSamplePaths();
-        // 重新加载
+        const initialized = await initializeSampleData();
+        if (initialized) {
+          toast.success("已为你创建示例学习路径");
+        }
         const newPaths = await pathStorage.getAllPaths();
         setPaths(newPaths);
         if (newPaths.length > 0) {
@@ -175,109 +149,6 @@ function PathPageContent() {
       toast.error(`加载学习路径失败: ${error}`);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // 初始化示例路径
-  const initializeSamplePaths = async () => {
-    try {
-      // 示例路径 1: 前端开发入门
-      const path1 = await pathStorage.createPath({
-        title: "前端开发入门",
-        description: "从零开始学习前端开发，掌握 HTML、CSS 和 JavaScript 基础知识",
-        status: "in_progress",
-        progress: 30,
-        tags: ["前端", "Web开发", "入门"],
-        tasks: [
-          {
-            id: `task_${Date.now()}_1`,
-            title: "学习 HTML 基础",
-            description: "掌握 HTML 标签、语义化、表单等基础知识",
-            estimatedTime: "8小时",
-            progress: 100,
-            status: "completed" as const,
-            dependencies: [],
-            resources: [],
-            notes: "已完成 HTML 基础学习",
-            createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-            completedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-          },
-          {
-            id: `task_${Date.now()}_2`,
-            title: "学习 CSS 样式",
-            description: "学习 CSS 选择器、布局、动画等",
-            estimatedTime: "12小时",
-            progress: 60,
-            status: "in_progress" as const,
-            dependencies: [],
-            resources: [],
-            notes: "正在学习 Flexbox 和 Grid 布局",
-            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-            startedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-          },
-          {
-            id: `task_${Date.now()}_3`,
-            title: "JavaScript 基础",
-            description: "学习 JavaScript 语法、DOM 操作、事件处理",
-            estimatedTime: "20小时",
-            progress: 0,
-            status: "not_started" as const,
-            dependencies: [],
-            resources: [],
-            notes: "",
-            createdAt: new Date(),
-          },
-        ],
-        milestones: [
-          {
-            id: `milestone_${Date.now()}_1`,
-            title: "完成基础三件套",
-            taskIds: [`task_${Date.now()}_1`, `task_${Date.now()}_2`, `task_${Date.now()}_3`],
-          },
-        ],
-      });
-
-      // 示例路径 2: React 进阶
-      const path2 = await pathStorage.createPath({
-        title: "React 框架进阶",
-        description: "深入学习 React 框架，掌握组件化开发和状态管理",
-        status: "not_started",
-        progress: 0,
-        tags: ["React", "前端框架", "进阶"],
-        tasks: [
-          {
-            id: `task_${Date.now()}_4`,
-            title: "React 基础概念",
-            description: "学习组件、Props、State 等核心概念",
-            estimatedTime: "10小时",
-            progress: 0,
-            status: "not_started" as const,
-            dependencies: [],
-            resources: [],
-            notes: "",
-            createdAt: new Date(),
-          },
-          {
-            id: `task_${Date.now()}_5`,
-            title: "Hooks 深入理解",
-            description: "掌握 useState、useEffect、useContext 等 Hooks",
-            estimatedTime: "15小时",
-            progress: 0,
-            status: "not_started" as const,
-            dependencies: [],
-            resources: [],
-            notes: "",
-            createdAt: new Date(),
-          },
-        ],
-        milestones: [],
-      });
-
-      console.log('[PathPage] 示例数据创建成功');
-      toast.success("已为你创建示例学习路径");
-    } catch (error) {
-      console.error('[PathPage] 创建示例数据失败:', error);
-      toast.error("创建示例数据失败");
     }
   };
 

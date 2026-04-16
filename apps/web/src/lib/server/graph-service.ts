@@ -1,22 +1,15 @@
-import { buildGraphFromVault, getVaultDocById, listVaultDocs } from "./kb-lite";
+import { buildGraphFromVault, listVaultDocs } from "./kb-lite";
 import { loadDb } from "./store";
+import { listSyncedPaths } from "./path-sync-service";
 
 function toTaskNodeId(pathId: string, taskId: string) {
   return `path_task:${pathId}:${taskId}`;
 }
 
-function createSlug(input: string) {
-  const normalized = input
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
-  return normalized || "task";
-}
-
 export async function getGraphView(input: { domain?: string; owner?: string }) {
   const graph = await buildGraphFromVault();
   const db = await loadDb();
+  const syncedPaths = await listSyncedPaths();
 
   const baseNodes = graph.nodes.map((node) => {
     const mastery = db.masteryByNode[node.id] ?? node.mastery ?? 0.45;
@@ -29,7 +22,7 @@ export async function getGraphView(input: { domain?: string; owner?: string }) {
 
   const baseEdges = [...graph.edges];
 
-  const pathNodes = db.syncedPaths.map((path) => {
+  const pathNodes = syncedPaths.map((path) => {
     const pathNodeId = `path:${path.pathId}`;
     const mastery = Number(Math.max(0, Math.min(1, path.progress / 100)).toFixed(2));
     return {
@@ -51,7 +44,7 @@ export async function getGraphView(input: { domain?: string; owner?: string }) {
 
   const pathEdges: Array<{ source: string; target: string; weight: number }> = [];
 
-  for (const path of db.syncedPaths) {
+  for (const path of syncedPaths) {
     const pathNodeId = `path:${path.pathId}`;
     for (const task of path.tasks) {
       const taskNodeId = toTaskNodeId(path.pathId, task.taskId);

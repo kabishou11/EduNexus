@@ -33,6 +33,24 @@ export class LocalStoragePathManager {
   }
 
   /**
+   * 按原始 ID 保存路径
+   */
+  savePath(path: LearningPath): LearningPath {
+    const paths = this.getAllPaths();
+    const index = paths.findIndex((item) => item.id === path.id);
+
+    if (index === -1) {
+      paths.push(path);
+    } else {
+      paths[index] = path;
+    }
+
+    this.savePaths(paths);
+    console.log('[LocalStorage] 路径保存成功:', path.id);
+    return path;
+  }
+
+  /**
    * 创建新路径
    */
   createPath(data: Omit<LearningPath, 'id' | 'createdAt' | 'updatedAt'>): LearningPath {
@@ -43,12 +61,7 @@ export class LocalStoragePathManager {
       updatedAt: new Date(),
     };
 
-    const paths = this.getAllPaths();
-    paths.push(path);
-    this.savePaths(paths);
-
-    console.log('[LocalStorage] 路径创建成功:', path.id);
-    return path;
+    return this.savePath(path);
   }
 
   /**

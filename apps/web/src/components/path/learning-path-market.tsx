@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/select';
 import { Clock, Users, Download, Play, Search, Sparkles, TrendingUp } from 'lucide-react';
 import { pathTemplates } from '@/lib/path/path-templates';
-import { PathTemplate, LearningPath } from '@/lib/path/path-types';
-import { savePath } from '@/lib/path/path-storage';
+import { PathTemplate, LearningPath, PathNodeData } from '@/lib/path/path-types';
+import { pathStorage, type LearningPath as ClientLearningPath, type TaskStatus } from '@/lib/client/path-storage';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,130 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+
+const SKIPPED_NODE_TYPES = new Set<PathNodeData['type']>(['start', 'end']);
+
+function parseDifficulty(tags: string[], fallback: LearningPath['difficulty']): LearningPath['difficulty'] {
+  if (tags.includes('advanced')) {
+    return 'advanced';
+  }
+  if (tags.includes('intermediate')) {
+    return 'intermediate';
+  }
+  if (tags.includes('beginner')) {
+    return 'beginner';
+  }
+  return fallback;
+}
+
+function toClientPath(path: LearningPath): ClientLearningPath {
+  const now = new Date();
+  const activeNodes = path.nodes.filter((node) => !SKIPPED_NODE_TYPES.has(node.data.type));
+  const activeNodeIds = new Set(activeNodes.map((node) => node.id));
+
+  const tasks = activeNodes.map((node, index) => {
+    const taskStatus: TaskStatus =
+      node.data.status === 'completed'
+        ? 'completed'
+        : node.data.status === 'in_progress'
+          ? 'in_progress'
+          : 'not_started';
+    const estimatedMinutes = Number.isFinite(node.data.estimatedTime)
+      ? Math.max(0, Math.round(node.data.estimatedTime || 0))
+      : 0;
+
+    return {
+      id: node.id,
+      title: node.data.label?.trim() || `学习节点 ${index + 1}`,
+      description: node.data.description?.trim() || '',
+      estimatedTime: `${estimatedMinutes || 30}分钟`,
+      progress: taskStatus === 'completed' ? 100 : taskStatus === 'in_progress' ? 50 : 0,
+      status: taskStatus,
+      dependencies: path.edges
+        .filter((edge) => edge.target === node.id && activeNodeIds.has(String(edge.source)))
+        .map((edge) => String(edge.source)),
+      resources: node.data.resourceUrl
+        ? [
+            {
+              id: node.data.resourceId || `res_${node.id}`,
+              title: `${node.data.label || '学习资源'} 资料`,
+              type: node.data.type === 'video' ? ('video' as const) : ('document' as const),
+              url: node.data.resourceUrl,
+            },
+          ]
+        : [],
+      notes: '',
+      createdAt: new Date(now.getTime() + index),
+      startedAt: taskStatus === 'in_progress' || taskStatus === 'completed' ? now : undefined,
+      completedAt: taskStatus === 'completed' ? now : undefined,
+      actualTime: taskStatus === 'completed' ? estimatedMinutes || undefined : undefined,
+    };
+  });
+
+  const completedCount = tasks.filter((task) => task.status === 'completed').length;
+  const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const tags = Array.from(new Set([path.category, path.difficulty, ...path.tags].filter(Boolean)));
+
+  return {
+    id: path.id,
+    title: path.title,
+    description: path.description,
+    status: progress === 100 ? 'completed' : progress > 0 ? 'in_progress' : 'not_started',
+    progress,
+    tags,
+    createdAt: new Date(path.createdAt),
+    updatedAt: new Date(path.updatedAt),
+    tasks,
+    milestones: [],
+  };
+}
+
+function toLegacyPath(path: ClientLearningPath): LearningPath {
+  const nodes = path.tasks.map((task, index) => ({
+    id: task.id,
+    type: 'default',
+    position: { x: 240 + (index % 2) * 280, y: 120 + index * 140 },
+    data: {
+      label: task.title,
+      description: task.description,
+      type: (task.resources[0]?.type === 'video'
+        ? 'video'
+        : task.resources[0]?.type === 'document' || task.resources[0]?.type === 'article'
+          ? 'document'
+          : 'practice') as PathNodeData['type'],
+      estimatedTime: Number(task.estimatedTime.match(/\d+/)?.[0] || 30),
+      difficulty: parseDifficulty(path.tags, 'beginner'),
+      status: task.status,
+      resourceUrl: task.resources[0]?.url,
+      resourceId: task.resources[0]?.id,
+      completedAt: task.completedAt?.toISOString(),
+    },
+  }));
+
+  return {
+    id: path.id,
+    title: path.title,
+    description: path.description,
+    category: path.tags[0] || path.status,
+    difficulty: parseDifficulty(path.tags, 'beginner'),
+    estimatedDuration: path.tasks.reduce((sum, task) => sum + Number(task.estimatedTime.match(/\d+/)?.[0] || 0), 0),
+    nodes,
+    edges: path.tasks.flatMap((task) =>
+      task.dependencies.map((dependencyId) => ({
+        id: `edge_${dependencyId}_${task.id}`,
+        source: dependencyId,
+        target: task.id,
+        type: 'smoothstep',
+        animated: true,
+      }))
+    ),
+    tags: path.tags,
+    isPublic: false,
+    createdAt: path.createdAt.toISOString(),
+    updatedAt: path.updatedAt.toISOString(),
+    version: 1,
+  };
+}
 
 interface LearningPathMarketProps {
   onSelectTemplate?: (path: LearningPath) => void;
@@ -86,8 +210,8 @@ export default function LearningPathMarket({
       updatedAt: new Date().toISOString(),
     };
 
-    await savePath(newPath);
-    onSelectTemplate?.(newPath);
+    const saved = await pathStorage.savePath(toClientPath(newPath));
+    onSelectTemplate?.(toLegacyPath(saved));
   };
 
   const handleStartPath = async (template: PathTemplate) => {
@@ -98,8 +222,8 @@ export default function LearningPathMarket({
       updatedAt: new Date().toISOString(),
     };
 
-    await savePath(newPath);
-    onStartPath?.(newPath);
+    const saved = await pathStorage.savePath(toClientPath(newPath));
+    onStartPath?.(toLegacyPath(saved));
   };
 
   const handleGetRecommendations = async () => {

@@ -9,7 +9,7 @@ import { z } from "zod";
 import { getModelscopeClient } from "@/lib/server/modelscope";
 import { searchVault, getVaultDocById } from "@/lib/server/kb-lite";
 import { getGraphView } from "@/lib/server/graph-service";
-import { loadDb } from "@/lib/server/store";
+import { getSyncedPath, listSyncedPaths } from "@/lib/server/path-sync-service";
 
 /**
  * 搜索知识库工具（真实实现）
@@ -503,10 +503,8 @@ export const queryLearningProgressTool = new DynamicStructuredTool({
   }),
   func: async ({ pathId }) => {
     try {
-      const db = await loadDb();
-      const paths = pathId
-        ? db.syncedPaths.filter(p => p.pathId === pathId)
-        : db.syncedPaths;
+      const matchedPath = pathId ? await getSyncedPath(pathId) : null;
+      const paths = matchedPath ? [matchedPath] : pathId ? [] : await listSyncedPaths();
 
       const result = paths.map(path => ({
         pathId: path.pathId,

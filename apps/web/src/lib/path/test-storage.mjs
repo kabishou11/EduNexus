@@ -9,44 +9,26 @@ const testPath = {
   id: 'test-path-' + Date.now(),
   title: '测试学习路径',
   description: '这是一个测试路径',
-  category: '测试',
-  difficulty: 'beginner',
-  estimatedDuration: 120,
-  nodes: [
-    {
-      id: 'start',
-      type: 'input',
-      position: { x: 250, y: 0 },
-      data: { label: '开始', type: 'start' },
-    },
+  status: 'not_started',
+  progress: 0,
+  tags: ['测试', 'beginner'],
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  tasks: [
     {
       id: 'node-1',
-      type: 'default',
-      position: { x: 250, y: 100 },
-      data: {
-        label: '测试节点',
-        description: '这是一个测试节点',
-        type: 'document',
-        estimatedTime: 60,
-        difficulty: 'beginner',
-      },
-    },
-    {
-      id: 'end',
-      type: 'output',
-      position: { x: 250, y: 200 },
-      data: { label: '结束', type: 'end' },
+      title: '测试节点',
+      description: '这是一个测试节点',
+      estimatedTime: '60分钟',
+      progress: 0,
+      status: 'not_started',
+      dependencies: [],
+      resources: [],
+      notes: '',
+      createdAt: new Date(),
     },
   ],
-  edges: [
-    { id: 'e1', source: 'start', target: 'node-1' },
-    { id: 'e2', source: 'node-1', target: 'end' },
-  ],
-  tags: ['测试'],
-  isPublic: false,
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-  version: 1,
+  milestones: [],
 };
 
 // 测试函数
@@ -54,50 +36,63 @@ async function testPathStorage() {
   console.log('🧪 开始测试学习路径存储...\n');
 
   try {
-    // 动态导入存储模块
-    const storage = await import('./path-storage.js');
+    // 动态导入新存储模块
+    const { pathStorage } = await import('../client/path-storage.js');
 
     // 测试 1: 保存路径
     console.log('📝 测试 1: 保存路径');
-    await storage.savePath(testPath);
+    await pathStorage.savePath(testPath);
     console.log('✅ 路径保存成功\n');
 
     // 测试 2: 获取路径
     console.log('📖 测试 2: 获取路径');
-    const retrievedPath = await storage.getPath(testPath.id);
+    const retrievedPath = await pathStorage.getPath(testPath.id);
     console.log('✅ 路径获取成功:', retrievedPath?.title);
     console.assert(retrievedPath?.id === testPath.id, '路径 ID 匹配');
     console.log('');
 
     // 测试 3: 获取所有路径
     console.log('📚 测试 3: 获取所有路径');
-    const allPaths = await storage.getAllPaths();
+    const allPaths = await pathStorage.getAllPaths();
     console.log('✅ 获取到', allPaths.length, '个路径\n');
 
-    // 测试 4: 更新节点完成状态
-    console.log('✔️ 测试 4: 更新节点完成状态');
-    await storage.updateNodeCompletion(testPath.id, 'node-1', true);
-    const progress = await storage.getProgress(testPath.id);
-    console.log('✅ 进度更新成功:', progress?.progress + '%');
-    console.assert(progress?.completedNodes.includes('node-1'), '节点已标记为完成');
+    // 测试 4: 更新任务完成状态
+    console.log('✔️ 测试 4: 更新任务完成状态');
+    const updatedPath = await pathStorage.updatePath(testPath.id, {
+      tasks: testPath.tasks.map((task) =>
+        task.id === 'node-1'
+          ? {
+              ...task,
+              status: 'completed',
+              progress: 100,
+              startedAt: task.createdAt,
+              completedAt: new Date(),
+              actualTime: 60,
+            }
+          : task
+      ),
+    });
+    console.log('✅ 进度更新成功:', updatedPath.progress + '%');
+    console.assert(updatedPath.tasks.some((task) => task.id === 'node-1' && task.status === 'completed'), '任务已标记为完成');
+    console.assert(updatedPath.progress === 100, '路径进度已更新为 100%');
     console.log('');
 
     // 测试 5: 导出路径
     console.log('💾 测试 5: 导出路径');
-    const exported = await storage.exportPath(testPath.id);
+    const exported = await pathStorage.exportPath(testPath.id);
     console.log('✅ 路径导出成功，JSON 长度:', exported.length);
     console.log('');
 
     // 测试 6: 导入路径
     console.log('📥 测试 6: 导入路径');
-    const imported = await storage.importPath(exported);
+    const imported = await pathStorage.importPath(exported);
     console.log('✅ 路径导入成功:', imported.title);
     console.log('');
 
     // 测试 7: 删除路径
     console.log('🗑️ 测试 7: 删除测试路径');
-    await storage.deletePath(testPath.id);
-    await storage.deletePath(imported.id);
+    await pathStorage.deletePath(testPath.id);
+    await pathStorage.deletePath(imported.id);
     console.log('✅ 测试路径已删除\n');
 
     console.log('🎉 所有测试通过！');

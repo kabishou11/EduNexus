@@ -45,8 +45,168 @@ import {
 } from 'lucide-react';
 import { nodeTypes } from './node-types';
 import { LearningPath, PathNode, PathEdge, NodeType, DifficultyLevel, PathNodeData } from '@/lib/path/path-types';
-import { savePath, exportPath, importPath } from '@/lib/path/path-storage';
+import { pathStorage, type LearningPath as ClientLearningPath, type Task as ClientTask } from '@/lib/client/path-storage';
 import { Textarea } from '@/components/ui/textarea';
+
+function parseEstimatedMinutes(value?: string) {
+  const matched = value?.match(/\d+/);
+  const minutes = matched ? Number(matched[0]) : 60;
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : 60;
+}
+
+function toClientTask(
+  node: Node<PathNodeData>,
+  index: number,
+  edges: Edge[],
+  createdAt: Date,
+  previousTask?: ClientTask
+): ClientTask {
+  const rawMinutes = Number(node.data.estimatedTime ?? 60);
+  const minutes = Number.isFinite(rawMinutes) && rawMinutes > 0 ? Math.round(rawMinutes) : 60;
+  const status =
+    node.data.status === 'completed'
+      ? 'completed'
+      : node.data.status === 'in_progress'
+        ? 'in_progress'
+        : 'not_started';
+
+  return {
+    id: node.id,
+    title: node.data.label?.trim() || `学习节点 ${index + 1}`,
+    description: node.data.description?.trim() || '',
+    estimatedTime: `${minutes}分钟`,
+    progress: status === 'completed' ? 100 : status === 'in_progress' ? 50 : 0,
+    status,
+    dependencies: edges
+      .filter((edge) => String(edge.target) === node.id)
+      .map((edge) => String(edge.source)),
+    resources: node.data.resourceUrl
+      ? [
+          {
+            id: node.data.resourceId || `res_${node.id}`,
+            title: `${node.data.label || '学习资源'} 资料`,
+            type: node.data.type === 'video' ? ('video' as const) : ('document' as const),
+            url: node.data.resourceUrl,
+          },
+        ]
+      : [],
+    notes: previousTask?.notes || '',
+    createdAt: previousTask?.createdAt || new Date(createdAt.getTime() + index),
+    startedAt:
+      status === 'in_progress' || status === 'completed'
+        ? previousTask?.startedAt || new Date()
+        : undefined,
+    completedAt:
+      status === 'completed'
+        ? previousTask?.completedAt || new Date()
+        : undefined,
+    actualTime: status === 'completed' ? previousTask?.actualTime || minutes : undefined,
+  };
+}
+
+function toClientPath(
+  path: LearningPath,
+  nodes: Node<PathNodeData>[],
+  edges: Edge[],
+  previousPath?: ClientLearningPath
+): ClientLearningPath {
+  const now = new Date();
+  const tasks = nodes.map((node, index) =>
+    toClientTask(
+      node,
+      index,
+      edges,
+      previousPath?.createdAt || now,
+      previousPath?.tasks.find((task) => task.id === node.id)
+    )
+  );
+  const completedCount = tasks.filter((task) => task.status === 'completed').length;
+  const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+  const tagSet = new Set<string>(path.tags.filter(Boolean));
+
+  nodes.forEach((node) => {
+    if (node.data.type) {
+      tagSet.add(node.data.type);
+    }
+    if (node.data.difficulty) {
+      tagSet.add(node.data.difficulty);
+    }
+  });
+
+  return {
+    id: path.id,
+    title: path.title,
+    description: path.description,
+    status: progress === 100 ? 'completed' : progress > 0 ? 'in_progress' : 'not_started',
+    progress,
+    tags: Array.from(tagSet),
+    goalId: previousPath?.goalId,
+    createdAt: previousPath?.createdAt || now,
+    updatedAt: now,
+    tasks,
+    milestones: previousPath?.milestones || [],
+  };
+}
+
+function toLegacyPath(path: ClientLearningPath): LearningPath {
+  const activeTasks = path.tasks;
+  const nodes: PathNode[] = activeTasks.map((task, index) => ({
+    id: task.id,
+    type: 'default',
+    position: { x: 240 + (index % 2) * 280, y: 120 + index * 140 },
+    data: {
+      label: task.title,
+      description: task.description,
+      type:
+        task.resources[0]?.type === 'video'
+          ? 'video'
+          : task.resources[0]?.type === 'document' || task.resources[0]?.type === 'article'
+            ? 'document'
+            : 'practice',
+      estimatedTime: parseEstimatedMinutes(task.estimatedTime),
+      difficulty: path.tags.includes('advanced')
+        ? 'advanced'
+        : path.tags.includes('intermediate')
+          ? 'intermediate'
+          : 'beginner',
+      status: task.status,
+      resourceUrl: task.resources[0]?.url,
+      resourceId: task.resources[0]?.id,
+      completedAt: task.completedAt?.toISOString(),
+    },
+  }));
+
+  const edges: PathEdge[] = activeTasks.flatMap((task) =>
+    task.dependencies.map((dependencyId) => ({
+      id: `edge_${dependencyId}_${task.id}`,
+      source: dependencyId,
+      target: task.id,
+      type: 'smoothstep',
+      animated: true,
+    }))
+  );
+
+  return {
+    id: path.id,
+    title: path.title,
+    description: path.description,
+    category: path.tags[0] || path.status,
+    difficulty: path.tags.includes('advanced')
+      ? 'advanced'
+      : path.tags.includes('intermediate')
+        ? 'intermediate'
+        : 'beginner',
+    estimatedDuration: activeTasks.reduce((sum, task) => sum + parseEstimatedMinutes(task.estimatedTime), 0),
+    nodes,
+    edges,
+    tags: path.tags,
+    author: undefined,
+    isPublic: false,
+    createdAt: path.createdAt.toISOString(),
+    updatedAt: path.updatedAt.toISOString(),
+    version: 1,
+  };
+}
 
 interface PathEditorProps {
   initialPath?: LearningPath;
@@ -143,7 +303,8 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
         edgesCount: path.edges.length,
       });
 
-      await savePath(path);
+      const previousPath = initialPath?.id ? await pathStorage.getPath(initialPath.id) : undefined;
+      await pathStorage.savePath(toClientPath(path, nodes, edges, previousPath));
 
       console.log('[path-editor] 路径保存成功');
       onSave?.(path);
@@ -159,7 +320,7 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
       alert('请先保存路径');
       return;
     }
-    const json = await exportPath(initialPath.id);
+    const json = await pathStorage.exportPath(initialPath.id);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -178,7 +339,8 @@ function PathEditorInner({ initialPath, onSave, onPreview }: PathEditorProps) {
       reader.onload = async (e) => {
         try {
           const json = e.target?.result as string;
-          const path = await importPath(json);
+          const imported = await pathStorage.importPath(json);
+          const path = toLegacyPath(imported);
           setNodes(path.nodes);
           setEdges(path.edges as Edge[]);
           setPathInfo({

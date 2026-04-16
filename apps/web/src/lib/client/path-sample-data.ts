@@ -93,7 +93,7 @@ export async function initializeSampleData() {
     const existingPaths = await pathStorage.getAllPaths();
     if (existingPaths.length === 0) {
       for (const pathData of samplePaths) {
-        await pathStorage.createPath(pathData);
+        await pathStorage.seedPath(pathData);
       }
       console.log('示例数据已初始化');
       return true;
