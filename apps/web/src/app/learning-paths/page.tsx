@@ -9,6 +9,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { pathStorage, type LearningPath } from '@/lib/client/path-storage';
 import { goalStorage, type Goal } from '@/lib/goals/goal-storage';
@@ -19,6 +27,7 @@ export default function LearningPathsPage() {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [pathToDelete, setPathToDelete] = useState<LearningPath | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -39,12 +48,13 @@ export default function LearningPathsPage() {
     }
   };
 
-  const handleDeletePath = async (id: string) => {
-    if (!confirm('确定要删除这个学习路径吗？')) return;
+  const handleDeletePath = async () => {
+    if (!pathToDelete) return;
     try {
-      goalStorage.unlinkPath(id);
-      await pathStorage.deletePath(id);
-      setPaths(paths.filter(p => p.id !== id));
+      goalStorage.unlinkPath(pathToDelete.id);
+      await pathStorage.deletePath(pathToDelete.id);
+      setPaths(paths.filter(p => p.id !== pathToDelete.id));
+      setPathToDelete(null);
       toast.success('路径已删除');
     } catch (error) {
       toast.error('删除失败');
@@ -179,7 +189,7 @@ export default function LearningPathsPage() {
                         <Button size="sm" variant="outline" onClick={() => router.push(`/path/new-editor?id=${path.id}`)} className="flex-1">
                           <Edit className="w-4 h-4 mr-2" />编辑
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleDeletePath(path.id)} className="text-red-500 hover:text-red-600">
+                        <Button size="sm" variant="ghost" onClick={() => setPathToDelete(path)} className="text-red-500 hover:text-red-600">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -191,6 +201,29 @@ export default function LearningPathsPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={Boolean(pathToDelete)} onOpenChange={(open) => {
+        if (!open) {
+          setPathToDelete(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除学习路径</DialogTitle>
+            <DialogDescription>
+              {pathToDelete ? `确定要删除“${pathToDelete.title}”吗？此操作无法撤销。` : '此操作无法撤销。'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPathToDelete(null)}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeletePath}>
+              删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
