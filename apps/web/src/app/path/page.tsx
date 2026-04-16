@@ -94,6 +94,23 @@ function PathPageContent() {
       : path.tasks[0] || null;
     setSelectedTask(nextTask);
   }, []);
+
+  const appendPath = useCallback((path: LearningPath) => {
+    setPaths((currentPaths) => [...currentPaths, path]);
+  }, []);
+
+  const replacePath = useCallback((path: LearningPath) => {
+    setPaths((currentPaths) => currentPaths.map((item) => (item.id === path.id ? path : item)));
+  }, []);
+
+  const removePath = useCallback((pathId: string) => {
+    let nextPaths: LearningPath[] = [];
+    setPaths((currentPaths) => {
+      nextPaths = currentPaths.filter((item) => item.id !== pathId);
+      return nextPaths;
+    });
+    return nextPaths;
+  }, []);
   useEffect(() => {
     loadPaths();
 
@@ -198,7 +215,7 @@ function PathPageContent() {
         }
       }
 
-      setPaths((currentPaths) => [...currentPaths, newPath]);
+      appendPath(newPath);
       applyPathSelection(newPath);
       setPathCreateOpen(false);
       toast.success("成功创建学习路径");
@@ -218,7 +235,7 @@ function PathPageContent() {
 
     try {
       const updated = await pathStorage.updatePath(selectedPath.id, data);
-      setPaths(paths.map(p => p.id === updated.id ? updated : p));
+      replacePath(updated);
       applyPathSelection(updated, selectedTask?.id);
       setPathEditOpen(false);
       toast.success("成功更新路径信息");
@@ -238,8 +255,7 @@ function PathPageContent() {
 
     try {
       await pathStorage.deletePath(selectedPath.id);
-      const newPaths = paths.filter(p => p.id !== selectedPath.id);
-      setPaths(newPaths);
+      const newPaths = removePath(selectedPath.id);
       applyPathSelection(newPaths[0] || null);
       toast.success("成功删除路径");
     } catch (error) {
@@ -254,7 +270,7 @@ function PathPageContent() {
 
     try {
       const duplicated = await pathStorage.duplicatePath(selectedPath.id);
-      setPaths((currentPaths) => [...currentPaths, duplicated]);
+      appendPath(duplicated);
       applyPathSelection(duplicated);
       toast.success("成功复制路径");
     } catch (error) {
@@ -295,7 +311,7 @@ function PathPageContent() {
       try {
         const text = await file.text();
         const imported = await pathStorage.importPath(text);
-        setPaths((currentPaths) => [...currentPaths, imported]);
+        appendPath(imported);
         applyPathSelection(imported);
         toast.success("成功导入路径");
       } catch (error) {
@@ -323,7 +339,7 @@ function PathPageContent() {
         tasks: [...selectedPath.tasks, newTask],
       });
 
-      setPaths(paths.map(p => p.id === updated.id ? updated : p));
+      replacePath(updated);
       applyPathSelection(updated, newTask.id);
       setTaskCreateOpen(false);
       toast.success("成功创建任务");
@@ -365,7 +381,7 @@ function PathPageContent() {
         tasks: updatedTasks,
       });
 
-      setPaths(paths.map(p => p.id === updated.id ? updated : p));
+      replacePath(updated);
       applyPathSelection(updated, selectedTask.id);
       setTaskEditOpen(false);
       toast.success("成功更新任务");
@@ -389,7 +405,7 @@ function PathPageContent() {
         tasks: updatedTasks,
       });
 
-      setPaths(paths.map(p => p.id === updated.id ? updated : p));
+      replacePath(updated);
       applyPathSelection(updated);
       toast.success("成功删除任务");
     } catch (error) {
@@ -418,7 +434,7 @@ function PathPageContent() {
         tasks: updatedTasks,
       });
 
-      setPaths(paths.map(p => p.id === updated.id ? updated : p));
+      replacePath(updated);
       applyPathSelection(updated, selectedTask.id);
       const latestTask = updated.tasks.find(t => t.id === selectedTask.id) || selectedTask;
       toast.success("开始学习任务，正在进入学习工作区");
@@ -474,7 +490,7 @@ function PathPageContent() {
         tasks: updatedTasks,
       });
 
-      setPaths(paths.map(p => p.id === updated.id ? updated : p));
+      replacePath(updated);
       applyPathSelection(updated, selectedTask.id);
       toast.success("任务已完成！🎉");
     } catch (error) {
@@ -492,7 +508,7 @@ function PathPageContent() {
         milestones,
       });
 
-      setPaths(paths.map(p => p.id === updated.id ? updated : p));
+      replacePath(updated);
       applyPathSelection(updated, selectedTask?.id);
       toast.success("成功更新里程碑");
     } catch (error) {
