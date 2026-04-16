@@ -427,6 +427,17 @@ export class PathStorageManager {
     }
   }
 
+  async unlinkGoal(goalId: string): Promise<void> {
+    await this.initialize();
+
+    const paths = await this.getAllPaths();
+    const linkedPaths = paths.filter((path) => path.goalId === goalId);
+
+    for (const path of linkedPaths) {
+      await this.updatePath(path.id, { goalId: undefined });
+    }
+  }
+
   /**
    * 删除路径
    */

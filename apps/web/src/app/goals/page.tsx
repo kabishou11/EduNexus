@@ -76,13 +76,7 @@ export default function GoalsPage() {
   const handleDeleteGoal = async () => {
     if (!goalToDelete) return;
 
-    const paths = await pathStorage.getAllPaths();
-    const linkedPaths = paths.filter((path) => path.goalId === goalToDelete.id);
-
-    for (const path of linkedPaths) {
-      await pathStorage.updatePath(path.id, { goalId: undefined });
-    }
-
+    await pathStorage.unlinkGoal(goalToDelete.id);
     goalStorage.deleteGoal(goalToDelete.id);
     await loadData();
     setGoalToDelete(null);
