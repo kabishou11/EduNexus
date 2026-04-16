@@ -23,6 +23,11 @@ export default function GoalsPage() {
   const [showHabitDialog, setShowHabitDialog] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', description: '' });
   const [linkedPathsData, setLinkedPathsData] = useState<Record<string, { count: number; progress: number }>>({});
+  const [showGoalDeleteDialog, setShowGoalDeleteDialog] = useState(false);
+  const [goalToDelete, setGoalToDelete] = useState<Goal | null>(null);
+  const [habitToDelete, setHabitToDelete] = useState<Habit | null>(null);
+  const [showHabitDeleteDialog, setShowHabitDeleteDialog] = useState(false);
+
 
   useEffect(() => {
     loadData();
@@ -68,12 +73,21 @@ export default function GoalsPage() {
   };
 
 
-  const handleDeleteGoal = (id: string) => {
-    if (confirm('确定要删除这个目标吗？')) {
-      goalStorage.deleteGoal(id);
-      loadData();
-      toast.success('目标已删除');
+  const handleDeleteGoal = async () => {
+    if (!goalToDelete) return;
+
+    const paths = await pathStorage.getAllPaths();
+    const linkedPaths = paths.filter((path) => path.goalId === goalToDelete.id);
+
+    for (const path of linkedPaths) {
+      await pathStorage.updatePath(path.id, { goalId: undefined });
     }
+
+    goalStorage.deleteGoal(goalToDelete.id);
+    await loadData();
+    setGoalToDelete(null);
+    setShowGoalDeleteDialog(false);
+    toast.success('目标已删除');
   };
 
   const handleCreateHabit = () => {
@@ -103,9 +117,12 @@ export default function GoalsPage() {
     setHabits(habitStorage.getHabits());
   };
 
-  const handleDeleteHabit = (id: string) => {
-    habitStorage.deleteHabit(id);
+  const handleDeleteHabit = () => {
+    if (!habitToDelete) return;
+    habitStorage.deleteHabit(habitToDelete.id);
     setHabits(habitStorage.getHabits());
+    setHabitToDelete(null);
+    setShowHabitDeleteDialog(false);
   };
 
   const activeGoals = goals.filter(g => g.status === 'active').length;
@@ -196,7 +213,11 @@ export default function GoalsPage() {
                 key={goal.id}
                 goal={goal}
                 onUpdateProgress={handleUpdateProgress}
-                onDelete={handleDeleteGoal}
+                onDelete={(goalId) => {
+                  const goal = goals.find((item) => item.id === goalId) || null;
+                  setGoalToDelete(goal);
+                  setShowGoalDeleteDialog(Boolean(goal));
+                }}
                 linkedPathsCount={linkedPathsData[goal.id]?.count || 0}
                 linkedPathsProgress={linkedPathsData[goal.id]?.progress || 0}
               />
@@ -263,7 +284,11 @@ export default function GoalsPage() {
           <HabitTracker
             habits={habits}
             onCheckIn={handleCheckIn}
-            onDelete={handleDeleteHabit}
+            onDelete={(habitId) => {
+              const habit = habits.find((item) => item.id === habitId) || null;
+              setHabitToDelete(habit);
+              setShowHabitDeleteDialog(Boolean(habit));
+            }}
           />
 
           <div className="space-y-6 mt-8">
@@ -276,6 +301,58 @@ export default function GoalsPage() {
             ))}
           </div>
         </TabsContent>
+      <Dialog open={showGoalDeleteDialog} onOpenChange={(open) => {
+        setShowGoalDeleteDialog(open);
+        if (!open) {
+          setGoalToDelete(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除目标</DialogTitle>
+            <DialogDescription>
+              {goalToDelete ? `确定要删除“${goalToDelete.title}”吗？` : '此操作无法撤销。'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowGoalDeleteDialog(false);
+              setGoalToDelete(null);
+            }}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteGoal}>
+              删除
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showHabitDeleteDialog} onOpenChange={(open) => {
+        setShowHabitDeleteDialog(open);
+        if (!open) {
+          setHabitToDelete(null);
+        }
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除习惯</DialogTitle>
+            <DialogDescription>
+              {habitToDelete ? `确定要删除“${habitToDelete.name}”吗？` : '此操作无法撤销。'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowHabitDeleteDialog(false);
+              setHabitToDelete(null);
+            }}>
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteHabit}>
+              删除
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       </Tabs>
       </div>
     </div>
