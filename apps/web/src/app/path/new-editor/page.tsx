@@ -54,6 +54,7 @@ function NewPathEditorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathId = searchParams.get('id');
+  const goalId = searchParams.get('goalId');
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [editingPath, setEditingPath] = useState<LearningPath | null>(null);
@@ -95,7 +96,7 @@ function NewPathEditorContent() {
     return () => {
       cancelled = true;
     };
-  }, [pathId, router]);
+  }, [pathId, goalId, router]);
 
   const initialNodes = useMemo(() => (editingPath ? toEditorNodes(editingPath) : []), [editingPath]);
   const initialEdges = useMemo(() => (editingPath ? toEditorEdges(editingPath) : []), [editingPath]);
@@ -178,6 +179,7 @@ function NewPathEditorContent() {
       const createdPath = await pathStorage.createPath({
         title: `学习路径 ${new Date().toLocaleDateString('zh-CN')}`,
         description: `由可视化编排编辑器生成，共 ${tasks.length} 个学习节点`,
+        goalId: goalId || undefined,
         status: progress === 100 ? 'completed' : progress > 0 ? 'in_progress' : 'not_started',
         progress,
         tags: Array.from(tagSet),

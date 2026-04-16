@@ -70,7 +70,6 @@ import {
   type PathStatus,
 } from "@/lib/client/path-storage";
 import { initializeSampleData } from "@/lib/client/path-sample-data";
-import { goalStorage } from "@/lib/goals/goal-storage";
 
 function PathPageContent() {
   const router = useRouter();
@@ -210,11 +209,6 @@ function PathPageContent() {
         milestones: [],
       });
 
-      // 如果关联了目标，更新目标的 linkedPathIds
-      if (data.goalId) {
-        goalStorage.linkPath(data.goalId, newPath.id);
-      }
-
       appendPath(newPath);
       applyPathSelection(newPath);
       setPathCreateOpen(false);
@@ -230,6 +224,7 @@ function PathPageContent() {
     title: string;
     description: string;
     tags: string[];
+    goalId?: string;
   }) => {
     if (!selectedPath) return;
 
@@ -250,7 +245,6 @@ function PathPageContent() {
     if (!selectedPath) return;
 
     try {
-      goalStorage.unlinkPath(selectedPath.id);
       await pathStorage.deletePath(selectedPath.id);
       const newPaths = removePath(selectedPath.id);
       applyPathSelection(newPaths[0] || null);

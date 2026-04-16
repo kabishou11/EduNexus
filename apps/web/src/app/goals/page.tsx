@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Goal, goalStorage, Habit, habitStorage } from '@/lib/goals/goal-storage';
 import { pathStorage } from '@/lib/client/path-storage';
+import { getDataSyncEventManager, SyncEventType } from '@/lib/sync/data-sync-events';
 import { GoalWizard } from '@/components/goals/goal-wizard';
 import { GoalCard } from '@/components/goals/goal-card';
 import { HabitCalendar } from '@/components/goals/habit-calendar';
@@ -29,11 +30,7 @@ export default function GoalsPage() {
   const [showHabitDeleteDialog, setShowHabitDeleteDialog] = useState(false);
 
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const goals = goalStorage.getGoals();
     const habits = habitStorage.getHabits();
     const paths = await pathStorage.getAllPaths();
@@ -57,7 +54,33 @@ export default function GoalsPage() {
     }
 
     setLinkedPathsData(pathsData);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const eventManager = getDataSyncEventManager();
+    const unsubscribeCreated = eventManager.on(SyncEventType.PATH_CREATED, () => {
+      void loadData();
+    });
+    const unsubscribeUpdated = eventManager.on(SyncEventType.PATH_UPDATED, () => {
+      void loadData();
+    });
+    const unsubscribeDeleted = eventManager.on(SyncEventType.PATH_DELETED, () => {
+      void loadData();
+    });
+    const unsubscribeProgressUpdated = eventManager.on(SyncEventType.PATH_PROGRESS_UPDATED, () => {
+      void loadData();
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+      unsubscribeDeleted();
+      unsubscribeProgressUpdated();
+    };
+  }, [loadData]);
+
 
   const handleCreateGoal = (goal: Goal) => {
     goalStorage.saveGoal(goal);
@@ -76,13 +99,7 @@ export default function GoalsPage() {
   const handleDeleteGoal = async () => {
     if (!goalToDelete) return;
 
-    const paths = await pathStorage.getAllPaths();
-    const linkedPaths = paths.filter((path) => path.goalId === goalToDelete.id);
-
-    for (const path of linkedPaths) {
-      await pathStorage.updatePath(path.id, { goalId: undefined });
-    }
-
+    await pathStorage.unlinkGoal(goalToDelete.id);
     goalStorage.deleteGoal(goalToDelete.id);
     await loadData();
     setGoalToDelete(null);

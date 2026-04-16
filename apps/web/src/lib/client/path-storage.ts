@@ -6,6 +6,7 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
 import { localStoragePathManager } from './path-storage-fallback';
 import { getDataSyncEventManager, SyncEventType } from '../sync/data-sync-events';
+import { goalStorage } from '../goals/goal-storage';
 
 // 数据类型定义
 export type PathStatus = 'not_started' | 'in_progress' | 'completed';
@@ -305,6 +306,9 @@ export class PathStorageManager {
       if (this.useLocalStorage) {
         console.log('[PathStorage] 使用 LocalStorage 创建路径');
         const created = localStoragePathManager.createPath(data);
+        if (created.goalId) {
+          goalStorage.linkPath(created.goalId, created.id);
+        }
         emitPathSyncEvent(SyncEventType.PATH_CREATED, created);
         emitPathProgressEvent(created);
         void syncPathToServerGraph(created);
@@ -330,6 +334,9 @@ export class PathStorageManager {
       }
       console.log('[PathStorage] 验证成功，路径已保存');
 
+      if (path.goalId) {
+        goalStorage.linkPath(path.goalId, path.id);
+      }
       emitPathSyncEvent(SyncEventType.PATH_CREATED, path);
       emitPathProgressEvent(path);
       void syncPathToServerGraph(path);
@@ -338,6 +345,9 @@ export class PathStorageManager {
       console.error('[PathStorage] 创建路径失败，尝试 LocalStorage:', error);
       this.useLocalStorage = true;
       const created = localStoragePathManager.createPath(data);
+      if (created.goalId) {
+        goalStorage.linkPath(created.goalId, created.id);
+      }
       emitPathSyncEvent(SyncEventType.PATH_CREATED, created);
       emitPathProgressEvent(created);
       void syncPathToServerGraph(created);
@@ -390,9 +400,13 @@ export class PathStorageManager {
         throw new Error(`Path ${id} not found`);
       }
 
+      const previousGoalId = existing.goalId;
+      const hasGoalIdUpdate = Object.prototype.hasOwnProperty.call(updates, 'goalId');
+      const nextGoalId = hasGoalIdUpdate ? updates.goalId : existing.goalId;
       const updated: LearningPath = {
         ...existing,
         ...updates,
+        goalId: nextGoalId,
         id: existing.id,
         createdAt: existing.createdAt,
         updatedAt: new Date(),
@@ -414,6 +428,23 @@ export class PathStorageManager {
       }
 
       console.log('[PathStorage] 更新路径:', id, '进度:', updated.progress);
+
+      if (previousGoalId && previousGoalId !== nextGoalId) {
+        goalStorage.unlinkPath(id);
+      }
+      if (nextGoalId && previousGoalId !== nextGoalId) {
+        goalStorage.linkPath(nextGoalId, id);
+      }
+
+      if (this.useLocalStorage) {
+        const saved = localStoragePathManager.updatePath(id, updated);
+        console.log('[PathStorage] LocalStorage 路径已更新');
+        emitPathSyncEvent(SyncEventType.PATH_UPDATED, saved);
+        emitPathProgressEvent(saved);
+        void syncPathToServerGraph(saved);
+        return saved;
+      }
+
       await this.db!.put('paths', this.serializePath(updated));
       console.log('[PathStorage] 路径已更新');
 
@@ -427,11 +458,23 @@ export class PathStorageManager {
     }
   }
 
+  async unlinkGoal(goalId: string): Promise<void> {
+    await this.initialize();
+
+    const paths = await this.getAllPaths();
+    const linkedPaths = paths.filter((path) => path.goalId === goalId);
+
+    for (const path of linkedPaths) {
+      await this.updatePath(path.id, { goalId: undefined });
+    }
+  }
+
   /**
    * 删除路径
    */
   async deletePath(id: string): Promise<void> {
     await this.initialize();
+    goalStorage.unlinkPath(id);
 
     if (this.useLocalStorage) {
       localStoragePathManager.deletePath(id);
@@ -479,7 +522,21 @@ export class PathStorageManager {
       })),
     };
 
+    if (this.useLocalStorage) {
+      const saved = localStoragePathManager.savePath(duplicate);
+      if (saved.goalId) {
+        goalStorage.linkPath(saved.goalId, saved.id);
+      }
+      emitPathSyncEvent(SyncEventType.PATH_CREATED, saved);
+      emitPathProgressEvent(saved);
+      void syncPathToServerGraph(saved);
+      return saved;
+    }
+
     await this.db!.put('paths', this.serializePath(duplicate));
+    if (duplicate.goalId) {
+      goalStorage.linkPath(duplicate.goalId, duplicate.id);
+    }
     emitPathSyncEvent(SyncEventType.PATH_CREATED, duplicate);
     emitPathProgressEvent(duplicate);
     void syncPathToServerGraph(duplicate);
@@ -511,7 +568,23 @@ export class PathStorageManager {
       updatedAt: new Date(),
     };
 
+    await this.initialize();
+
+    if (this.useLocalStorage) {
+      const saved = localStoragePathManager.savePath(path);
+      if (saved.goalId) {
+        goalStorage.linkPath(saved.goalId, saved.id);
+      }
+      emitPathSyncEvent(SyncEventType.PATH_CREATED, saved);
+      emitPathProgressEvent(saved);
+      void syncPathToServerGraph(saved);
+      return saved;
+    }
+
     await this.db!.put('paths', this.serializePath(path));
+    if (path.goalId) {
+      goalStorage.linkPath(path.goalId, path.id);
+    }
     emitPathSyncEvent(SyncEventType.PATH_CREATED, path);
     emitPathProgressEvent(path);
     void syncPathToServerGraph(path);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Plus, Wand2, BookOpen, Target, Edit, Trash2, CheckCircle2 } from 'lucide-react';
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { pathStorage, type LearningPath } from '@/lib/client/path-storage';
+import { getDataSyncEventManager, SyncEventType } from '@/lib/sync/data-sync-events';
 import { goalStorage, type Goal } from '@/lib/goals/goal-storage';
 
 export default function LearningPathsPage() {
@@ -29,9 +30,7 @@ export default function LearningPathsPage() {
   const [loading, setLoading] = useState(true);
   const [pathToDelete, setPathToDelete] = useState<LearningPath | null>(null);
 
-  useEffect(() => { loadData(); }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [loadedPaths, loadedGoals] = await Promise.all([
@@ -46,12 +45,37 @@ export default function LearningPathsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadData();
+
+    const eventManager = getDataSyncEventManager();
+    const unsubscribeCreated = eventManager.on(SyncEventType.PATH_CREATED, () => {
+      void loadData();
+    });
+    const unsubscribeUpdated = eventManager.on(SyncEventType.PATH_UPDATED, () => {
+      void loadData();
+    });
+    const unsubscribeDeleted = eventManager.on(SyncEventType.PATH_DELETED, () => {
+      void loadData();
+    });
+    const unsubscribeProgressUpdated = eventManager.on(SyncEventType.PATH_PROGRESS_UPDATED, () => {
+      void loadData();
+    });
+
+    return () => {
+      unsubscribeCreated();
+      unsubscribeUpdated();
+      unsubscribeDeleted();
+      unsubscribeProgressUpdated();
+    };
+  }, [loadData]);
+
 
   const handleDeletePath = async () => {
     if (!pathToDelete) return;
     try {
-      goalStorage.unlinkPath(pathToDelete.id);
       await pathStorage.deletePath(pathToDelete.id);
       setPaths(paths.filter(p => p.id !== pathToDelete.id));
       setPathToDelete(null);
