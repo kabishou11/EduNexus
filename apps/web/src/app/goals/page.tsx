@@ -29,15 +29,17 @@ export default function GoalsPage() {
   }, []);
 
   const loadData = async () => {
-    setGoals(goalStorage.getGoals());
-    setHabits(habitStorage.getHabits());
+    const goals = goalStorage.getGoals();
+    const habits = habitStorage.getHabits();
+    const paths = await pathStorage.getAllPaths();
+
+    setGoals(goals);
+    setHabits(habits);
 
     // 加载关联路径数据
-    const goals = goalStorage.getGoals();
     const pathsData: Record<string, { count: number; progress: number }> = {};
 
     for (const goal of goals) {
-      const paths = await pathStorage.getAllPaths();
       const linkedPaths = paths.filter(p => p.goalId === goal.id);
       const avgProgress = linkedPaths.length > 0
         ? Math.round(linkedPaths.reduce((sum, p) => sum + p.progress, 0) / linkedPaths.length)
