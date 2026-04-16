@@ -82,7 +82,18 @@ function PathPageContent() {
   const [taskEditOpen, setTaskEditOpen] = useState(false);
   const [milestoneOpen, setMilestoneOpen] = useState(false);
 
-  // 加载数据 - 每次页面可见时都重新加载
+  const applyPathSelection = useCallback((path: LearningPath | null, preferredTaskId?: string | null) => {
+    setSelectedPath(path);
+    if (!path) {
+      setSelectedTask(null);
+      return;
+    }
+
+    const nextTask = preferredTaskId
+      ? path.tasks.find((task) => task.id === preferredTaskId) || path.tasks[0] || null
+      : path.tasks[0] || null;
+    setSelectedTask(nextTask);
+  }, []);
   useEffect(() => {
     loadPaths();
 
@@ -113,14 +124,12 @@ function PathPageContent() {
       if (pathCreatedByEditor) {
         const created = loadedPaths.find((path) => path.id === pathCreatedByEditor);
         if (created) {
-          setSelectedPath(created);
-          setSelectedTask(created.tasks[0] || null);
+          applyPathSelection(created);
           editorSelectionApplied = true;
           toast.success(`已加载新路径：${created.title}`);
         }
       }
 
-      // 如果没有路径，创建示例数据
       if (loadedPaths.length === 0) {
         console.log('[PathPage] 没有路径，创建示例数据...');
         const initialized = await initializeSampleData();
@@ -130,17 +139,23 @@ function PathPageContent() {
         const newPaths = await pathStorage.getAllPaths();
         setPaths(newPaths);
         if (newPaths.length > 0) {
-          setSelectedPath(newPaths[0]);
-          if (newPaths[0].tasks.length > 0) {
-            setSelectedTask(newPaths[0].tasks[0]);
-          }
+          applyPathSelection(newPaths[0]);
+        } else {
+          applyPathSelection(null);
         }
       } else {
         setPaths(loadedPaths);
-        if (!editorSelectionApplied && loadedPaths.length > 0 && !selectedPath) {
-          setSelectedPath(loadedPaths[0]);
-          if (loadedPaths[0].tasks.length > 0) {
-            setSelectedTask(loadedPaths[0].tasks[0]);
+        if (!editorSelectionApplied) {
+          const matchedSelectedPath = selectedPath
+            ? loadedPaths.find((path) => path.id === selectedPath.id) || null
+            : null;
+
+          if (matchedSelectedPath) {
+            applyPathSelection(matchedSelectedPath, selectedTask?.id);
+          } else if (loadedPaths.length > 0) {
+            applyPathSelection(loadedPaths[0]);
+          } else {
+            applyPathSelection(null);
           }
         }
       }
@@ -183,24 +198,10 @@ function PathPageContent() {
         }
       }
 
-      // 重新加载所有路径以确保数据同步
-      await loadPaths();
-
-      // 选中新创建的路径
-      setSelectedPath(newPath);
+      setPaths((currentPaths) => [...currentPaths, newPath]);
+      applyPathSelection(newPath);
       setPathCreateOpen(false);
       toast.success("成功创建学习路径");
-
-      // 验证保存
-      setTimeout(async () => {
-        const saved = await pathStorage.getPath(newPath.id);
-        if (saved) {
-          console.log('[PathPage] 验证成功，路径已保存');
-        } else {
-          console.error('[PathPage] 验证失败，路径未保存');
-          toast.error("路径保存验证失败，请刷新页面");
-        }
-      }, 100);
     } catch (error) {
       console.error("[PathPage] 创建路径失败:", error);
       toast.error(`创建路径失败: ${error}`);
@@ -218,7 +219,7 @@ function PathPageContent() {
     try {
       const updated = await pathStorage.updatePath(selectedPath.id, data);
       setPaths(paths.map(p => p.id === updated.id ? updated : p));
-      setSelectedPath(updated);
+      applyPathSelection(updated, selectedTask?.id);
       setPathEditOpen(false);
       toast.success("成功更新路径信息");
     } catch (error) {
@@ -239,8 +240,7 @@ function PathPageContent() {
       await pathStorage.deletePath(selectedPath.id);
       const newPaths = paths.filter(p => p.id !== selectedPath.id);
       setPaths(newPaths);
-      setSelectedPath(newPaths[0] || null);
-      setSelectedTask(null);
+      applyPathSelection(newPaths[0] || null);
       toast.success("成功删除路径");
     } catch (error) {
       console.error("Failed to delete path:", error);
@@ -254,8 +254,8 @@ function PathPageContent() {
 
     try {
       const duplicated = await pathStorage.duplicatePath(selectedPath.id);
-      setPaths([...paths, duplicated]);
-      setSelectedPath(duplicated);
+      setPaths((currentPaths) => [...currentPaths, duplicated]);
+      applyPathSelection(duplicated);
       toast.success("成功复制路径");
     } catch (error) {
       console.error("Failed to duplicate path:", error);
@@ -295,8 +295,8 @@ function PathPageContent() {
       try {
         const text = await file.text();
         const imported = await pathStorage.importPath(text);
-        setPaths([...paths, imported]);
-        setSelectedPath(imported);
+        setPaths((currentPaths) => [...currentPaths, imported]);
+        applyPathSelection(imported);
         toast.success("成功导入路径");
       } catch (error) {
         console.error("Failed to import path:", error);
@@ -324,7 +324,7 @@ function PathPageContent() {
       });
 
       setPaths(paths.map(p => p.id === updated.id ? updated : p));
-      setSelectedPath(updated);
+      applyPathSelection(updated, newTask.id);
       setTaskCreateOpen(false);
       toast.success("成功创建任务");
     } catch (error) {
@@ -366,8 +366,7 @@ function PathPageContent() {
       });
 
       setPaths(paths.map(p => p.id === updated.id ? updated : p));
-      setSelectedPath(updated);
-      setSelectedTask(updated.tasks.find(t => t.id === selectedTask.id) || null);
+      applyPathSelection(updated, selectedTask.id);
       setTaskEditOpen(false);
       toast.success("成功更新任务");
     } catch (error) {
@@ -391,8 +390,7 @@ function PathPageContent() {
       });
 
       setPaths(paths.map(p => p.id === updated.id ? updated : p));
-      setSelectedPath(updated);
-      setSelectedTask(updated.tasks[0] || null);
+      applyPathSelection(updated);
       toast.success("成功删除任务");
     } catch (error) {
       console.error("Failed to delete task:", error);
@@ -421,9 +419,8 @@ function PathPageContent() {
       });
 
       setPaths(paths.map(p => p.id === updated.id ? updated : p));
-      setSelectedPath(updated);
+      applyPathSelection(updated, selectedTask.id);
       const latestTask = updated.tasks.find(t => t.id === selectedTask.id) || selectedTask;
-      setSelectedTask(latestTask);
       toast.success("开始学习任务，正在进入学习工作区");
 
       const workspaceParams = new URLSearchParams({
@@ -478,8 +475,7 @@ function PathPageContent() {
       });
 
       setPaths(paths.map(p => p.id === updated.id ? updated : p));
-      setSelectedPath(updated);
-      setSelectedTask(updated.tasks.find(t => t.id === selectedTask.id) || null);
+      applyPathSelection(updated, selectedTask.id);
       toast.success("任务已完成！🎉");
     } catch (error) {
       console.error("Failed to complete task:", error);
@@ -497,7 +493,7 @@ function PathPageContent() {
       });
 
       setPaths(paths.map(p => p.id === updated.id ? updated : p));
-      setSelectedPath(updated);
+      applyPathSelection(updated, selectedTask?.id);
       toast.success("成功更新里程碑");
     } catch (error) {
       console.error("Failed to update milestones:", error);
